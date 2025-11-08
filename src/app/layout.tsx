@@ -1,0 +1,46 @@
+import type { Metadata } from "next";
+import "./globals.css";
+import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
+import ErrorReporter from "@/components/ErrorReporter";
+import Script from "next/script";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
+import ThemeToggle from "@/components/ui/theme-toggle";
+
+export const metadata: Metadata = {
+  title: "Axis CRM - Real Estate Management Platform",
+  description: "Comprehensive CRM for real estate agents and property managers",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <body className="antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <ErrorReporter />
+          <Script
+            src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+            strategy="afterInteractive"
+            data-target-origin="*"
+            data-message-type="ROUTE_CHANGE"
+            data-include-search-params="true"
+            data-only-in-iframe="true"
+            data-debug="true"
+            data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+          />
+          {/* Global theme toggle */}
+          <div className="fixed right-4 top-4 z-50">
+            <ThemeToggle />
+          </div>
+          {children}
+          <Toaster />
+          <VisualEditsMessenger />
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
