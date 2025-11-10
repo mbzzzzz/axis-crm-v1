@@ -9,6 +9,10 @@ import {
   LogOut,
   ChevronUp,
   User2,
+  Users,
+  Wrench,
+  DollarSign,
+  BarChart3,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -32,9 +36,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { authClient, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "sonner";
+import { SignOutButton } from "@clerk/nextjs";
 
 const navItems = [
   {
@@ -48,42 +52,37 @@ const navItems = [
     icon: Building2,
   },
   {
-    title: "Invoices",
+    title: "Tenants",
+    url: "/tenants",
+    icon: Users,
+  },
+  {
+    title: "Invoicing",
     url: "/invoices",
     icon: FileText,
   },
   {
-    title: "Settings",
-    url: "/settings",
-    icon: Settings,
+    title: "Maintenance",
+    url: "/maintenance",
+    icon: Wrench,
+  },
+  {
+    title: "Financials",
+    url: "/financials",
+    icon: DollarSign,
+  },
+  {
+    title: "Reports",
+    url: "/reports",
+    icon: BarChart3,
   },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session, refetch } = useSession();
+  const { data: session } = useSession();
   const { open } = useSidebar();
-
-  const handleSignOut = async () => {
-    const token = localStorage.getItem("bearer_token");
-
-    const { error } = await authClient.signOut({
-      fetchOptions: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    });
-
-    if (error?.code) {
-      toast.error("Sign out failed");
-    } else {
-      localStorage.removeItem("bearer_token");
-      refetch();
-      router.push("/login");
-    }
-  };
 
   const userInitials = session?.user?.name
     ?.split(" ")
@@ -135,6 +134,17 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === "/settings"}
+            >
+              <a href="/settings">
+                <Settings />
+                <span>Settings</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
@@ -176,10 +186,12 @@ export function AppSidebar() {
                   Profile Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 size-4" />
-                  Sign out
-                </DropdownMenuItem>
+                      <SignOutButton>
+                        <DropdownMenuItem>
+                          <LogOut className="mr-2 size-4" />
+                          Sign out
+                        </DropdownMenuItem>
+                      </SignOutButton>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

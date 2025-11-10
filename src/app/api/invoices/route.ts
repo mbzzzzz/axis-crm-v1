@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { invoices, properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { currentUser } from '@clerk/nextjs/server';
 
 // Helper function to get current authenticated user
-async function getCurrentUser(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user || null;
+async function getCurrentUser() {
+  const user = await currentUser();
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.fullName || user.firstName || 'User',
+    email: user.primaryEmailAddress?.emailAddress || '',
+  };
 }
 
 // Validation helpers
@@ -27,8 +31,8 @@ const VALID_PAYMENT_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled']
 export async function GET(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -53,7 +57,7 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             eq(invoices.id, parseInt(id)),
-            eq(invoices.userId, currentUser.id)
+            eq(invoices.userId, user.id)
           )
         )
         .limit(1);
@@ -76,7 +80,7 @@ export async function GET(request: NextRequest) {
     const propertyId = searchParams.get('propertyId');
 
     const conditions = [
-      eq(invoices.userId, currentUser.id)
+      eq(invoices.userId, user.id)
     ];
 
     // Search across invoiceNumber, clientName, clientEmail
@@ -122,8 +126,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -286,7 +290,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(invoices.invoiceNumber, invoiceNumber.trim()),
-          eq(invoices.userId, currentUser.id)
+          eq(invoices.userId, user.id)
         )
       )
       .limit(1);
@@ -303,7 +307,7 @@ export async function POST(request: NextRequest) {
     const insertData: any = {
       invoiceNumber: invoiceNumber.trim(),
       propertyId: parseInt(propertyId),
-      userId: currentUser.id,
+      userId: user.id,
       clientName: clientName.trim(),
       clientEmail: clientEmail.trim().toLowerCase(),
       clientAddress: clientAddress?.trim() || null,
@@ -337,8 +341,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -361,7 +365,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(invoices.id, parseInt(id)),
-          eq(invoices.userId, currentUser.id)
+          eq(invoices.userId, user.id)
         )
       )
       .limit(1);
@@ -407,7 +411,7 @@ export async function PUT(request: NextRequest) {
         .where(
           and(
             eq(invoices.invoiceNumber, invoiceNumber.trim()),
-            eq(invoices.userId, currentUser.id)
+            eq(invoices.userId, user.id)
           )
         )
         .limit(1);
@@ -589,7 +593,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(invoices.id, parseInt(id)),
-          eq(invoices.userId, currentUser.id)
+          eq(invoices.userId, user.id)
         )
       )
       .returning();
@@ -606,8 +610,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -630,7 +634,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(invoices.id, parseInt(id)),
-          eq(invoices.userId, currentUser.id)
+          eq(invoices.userId, user.id)
         )
       )
       .limit(1);
@@ -646,7 +650,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(invoices.id, parseInt(id)),
-          eq(invoices.userId, currentUser.id)
+          eq(invoices.userId, user.id)
         )
       )
       .returning();

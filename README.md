@@ -1,33 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AXIS CRM - Real Estate Management Platform
 
-## Getting Started
+A comprehensive CRM system for real estate agents and property managers, built with Next.js 15, Clerk authentication, and Supabase.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework:** Next.js 15 (App Router)
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Clerk
+- **ORM:** Drizzle ORM
+- **UI:** Radix UI + Tailwind CSS
+- **Charts:** Recharts
+
+## 📋 Features
+
+- ✅ Property Management
+- ✅ Tenant Management
+- ✅ Invoice Generation & Tracking
+- ✅ Maintenance Request Tracking
+- ✅ Financial Dashboard
+- ✅ Reports & Analytics
+- ✅ PDF Export
+- ✅ Data Import/Export
+
+## 🛠️ Setup
+
+1. **Clone the repository**
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables:**
+   - Copy `.env.local.example` to `.env.local`
+   - Add your Clerk and Supabase credentials
+
+4. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
+
+## 📚 Documentation
+
+- [Supabase Setup Guide](./SUPABASE-SETUP.md) - Complete Supabase project setup
+- [Migration Guide](./MIGRATION-GUIDE.md) - Migration from better-auth to Clerk
+- [MCP Setup Guide](./MCP-SETUP.md) - Composio MCP server configuration
+
+## 🔧 MCP Server Configuration
+
+This project uses Composio MCP server. See [MCP-SETUP.md](./MCP-SETUP.md) for configuration instructions.
+
+**MCP Server URL:**
+```
+https://backend.composio.dev/v3/mcp/2492640b-3c5f-4210-8298-976c3bda7609/mcp?user_id=pg-test-f636d421-1ec8-4dc7-947a-578ffec9361e
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📖 Learn More
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Clerk Documentation](https://clerk.com/docs)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Drizzle ORM Documentation](https://orm.drizzle.team)
 
 ## Deploy on Vercel
 

@@ -2,96 +2,132 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, FileText, DollarSign, TrendingUp, TrendingDown, Activity } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bar, BarChart, Line, LineChart, Pie, PieChart, Cell, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface DashboardStats {
-  totalProperties: number;
-  totalInvoices: number;
-  totalRevenue: number;
-  pendingInvoices: number;
-  availableProperties: number;
-  soldProperties: number;
-  averagePropertyValue: number;
-  monthlyRevenue: number;
+  occupancyRate: number;
+  totalRentalIncome: number;
+  averageRent: number;
+  rentalIncomeTrend: number;
+  propertyOccupancy: number;
+}
+
+interface TenantActivity {
+  tenant: string;
+  property: string;
+  leaseStart: string;
+  leaseEnd: string;
+  status: string;
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [propertyData, setPropertyData] = useState<any[]>([]);
-  const [invoiceData, setInvoiceData] = useState<any[]>([]);
+  const [rentalIncomeData, setRentalIncomeData] = useState<any[]>([]);
+  const [occupancyData, setOccupancyData] = useState<any[]>([]);
+  const [tenantActivities, setTenantActivities] = useState<TenantActivity[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [propertiesRes, invoicesRes] = await Promise.all([
+        const [propertiesRes, invoicesRes, tenantsRes] = await Promise.all([
           fetch("/api/properties"),
           fetch("/api/invoices"),
+          fetch("/api/tenants"),
         ]);
 
         const properties = await propertiesRes.json();
         const invoices = await invoicesRes.json();
+        const tenants = await tenantsRes.json();
 
+        // Calculate stats
         const totalRevenue = invoices
           .filter((inv: any) => inv.paymentStatus === "paid")
-          .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0);
+          .reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0);
 
-        const pendingInvoices = invoices.filter(
-          (inv: any) => inv.paymentStatus === "sent" || inv.paymentStatus === "draft"
+        const occupiedProperties = properties.filter((p: any) => 
+          p.status === "rented" || p.status === "occupied"
         ).length;
-
-        const availableProperties = properties.filter((p: any) => p.status === "available").length;
-        const soldProperties = properties.filter((p: any) => p.status === "sold" || p.status === "rented").length;
-        const averagePropertyValue = properties.length > 0
-          ? properties.reduce((sum: number, p: any) => sum + p.price, 0) / properties.length
+        const occupancyRate = properties.length > 0 
+          ? Math.round((occupiedProperties / properties.length) * 100)
           : 0;
 
-        // Calculate monthly revenue (last 6 months)
-        const monthlyRevenue = invoices
-          .filter((inv: any) => {
-            const invoiceDate = new Date(inv.invoiceDate);
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-            return invoiceDate >= oneMonthAgo && inv.paymentStatus === "paid";
-          })
-          .reduce((sum: number, inv: any) => sum + inv.totalAmount, 0);
+        const rentalInvoices = invoices.filter((inv: any) => inv.paymentStatus === "paid");
+        const averageRent = rentalInvoices.length > 0
+          ? Math.round(totalRevenue / rentalInvoices.length)
+          : 0;
+
+        // Calculate rental income trend (last 7 months)
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+        const now = new Date();
+        const incomeData = months.map((month, index) => {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - (6 - index), 1);
+          const monthStart = monthDate.toISOString().split('T')[0];
+          const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0).toISOString().split('T')[0];
+          
+          const monthInvoices = invoices.filter((inv: any) => {
+            if (inv.paymentStatus !== "paid" || !inv.paymentDate) return false;
+            return inv.paymentDate >= monthStart && inv.paymentDate <= monthEnd;
+          });
+          
+          const monthIncome = monthInvoices.reduce((sum: number, inv: any) => sum + (inv.totalAmount || 0), 0);
+          
+          return {
+            month,
+            income: monthIncome || 0,
+          };
+        });
+        setRentalIncomeData(incomeData);
+
+        // Calculate property occupancy data from actual properties
+        const propertyOccupancyData = properties.slice(0, 5).map((prop: any, index: number) => ({
+          property: prop.title || `Property ${String.fromCharCode(65 + index)}`,
+          occupancy: prop.status === "rented" || prop.status === "occupied" ? 100 : 0,
+        }));
+        
+        // Fill remaining slots if less than 5 properties
+        while (propertyOccupancyData.length < 5) {
+          propertyOccupancyData.push({
+            property: `Property ${String.fromCharCode(65 + propertyOccupancyData.length)}`,
+            occupancy: 0,
+          });
+        }
+        setOccupancyData(propertyOccupancyData);
+
+        // Get tenant activities from real data
+        const activities: TenantActivity[] = tenants.slice(0, 5).map((tenant: any) => ({
+          tenant: tenant.name,
+          property: tenant.property ? `${tenant.property.address || tenant.property.title}` : "N/A",
+          leaseStart: tenant.leaseStart,
+          leaseEnd: tenant.leaseEnd,
+          status: tenant.leaseStatus === "active" ? "Active" : tenant.leaseStatus === "expired" ? "Expired" : "Pending",
+        }));
+        setTenantActivities(activities);
+
+        // Calculate trend (compare last month to previous month)
+        const lastMonthIncome = incomeData[incomeData.length - 1]?.income || 0;
+        const prevMonthIncome = incomeData[incomeData.length - 2]?.income || 0;
+        const trend = prevMonthIncome > 0 
+          ? Math.round(((lastMonthIncome - prevMonthIncome) / prevMonthIncome) * 100)
+          : 0;
 
         setStats({
-          totalProperties: properties.length,
-          totalInvoices: invoices.length,
-          totalRevenue,
-          pendingInvoices,
-          availableProperties,
-          soldProperties,
-          averagePropertyValue,
-          monthlyRevenue,
+          occupancyRate,
+          totalRentalIncome: totalRevenue,
+          averageRent,
+          rentalIncomeTrend: trend,
+          propertyOccupancy: occupancyRate,
         });
-
-        // Property status breakdown
-        const statusCounts: Record<string, number> = {};
-        properties.forEach((p: any) => {
-          statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
-        });
-
-        const propertyStatusData = Object.entries(statusCounts).map(([status, count]) => ({
-          name: status.replace(/_/g, " ").toUpperCase(),
-          value: count,
-        }));
-        setPropertyData(propertyStatusData);
-
-        // Invoice status breakdown
-        const invoiceStatusCounts: Record<string, number> = {};
-        invoices.forEach((inv: any) => {
-          invoiceStatusCounts[inv.paymentStatus] = (invoiceStatusCounts[inv.paymentStatus] || 0) + 1;
-        });
-
-        const invoiceStatusData = Object.entries(invoiceStatusCounts).map(([status, count]) => ({
-          name: status.toUpperCase(),
-          value: count,
-        }));
-        setInvoiceData(invoiceStatusData);
 
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -103,230 +139,169 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, []);
 
-  const statCards = [
-    {
-      title: "Total Properties",
-      value: stats?.totalProperties || 0,
-      icon: Building2,
-      description: "Active listings",
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
-    },
-    {
-      title: "Total Revenue",
-      value: `$${(stats?.totalRevenue || 0).toLocaleString()}`,
-      icon: DollarSign,
-      description: "All time",
-      color: "text-green-600",
-      bgColor: "bg-green-100",
-      trend: stats?.monthlyRevenue ? `+$${stats.monthlyRevenue.toLocaleString()} this month` : "",
-    },
-    {
-      title: "Pending Invoices",
-      value: stats?.pendingInvoices || 0,
-      icon: FileText,
-      description: "Awaiting payment",
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-    },
-    {
-      title: "Avg Property Value",
-      value: `$${(stats?.averagePropertyValue || 0).toLocaleString()}`,
-      icon: TrendingUp,
-      description: "Portfolio average",
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
-    },
-  ];
-
-  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
-
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="mt-6 space-y-2">
+    <div className="flex flex-1 flex-col gap-6">
+      <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back! Here's an overview of your real estate business.
+          Overview of your property management activities
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {isLoading
-          ? Array.from({ length: 4 }).map((_, i) => (
-              <Card key={i}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <Skeleton className="h-4 w-[120px]" />
-                  <Skeleton className="size-4 rounded" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-8 w-[100px]" />
-                  <Skeleton className="mt-2 h-3 w-[140px]" />
-                </CardContent>
-              </Card>
-            ))
-          : statCards.map((stat, index) => (
-              <Card key={index}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <div className={`rounded-full p-2 ${stat.bgColor}`}>
-                    <stat.icon className={`size-4 ${stat.color}`} />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.description}</p>
-                  {stat.trend && (
-                    <p className="mt-1 text-xs font-medium text-green-600">{stat.trend}</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+      {/* Key Information Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-24" />
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Occupancy Rate
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats?.occupancyRate || 0}%</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Rental Income
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  ${(stats?.totalRentalIncome || 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Average Rent
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  ${(stats?.averageRent || 0).toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Key Metrics Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">Key Metrics</h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Rental Income Trend</CardTitle>
+              <div className="flex items-baseline gap-2">
+                <div className="text-3xl font-bold">
+                  ${(stats?.totalRentalIncome || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-green-600">Last 12 Months +{stats?.rentalIncomeTrend || 0}%</div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={rentalIncomeData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Property Occupancy</CardTitle>
+              <div className="flex items-baseline gap-2">
+                <div className="text-3xl font-bold">{stats?.propertyOccupancy || 0}%</div>
+                <div className="text-sm text-red-600">Current -2%</div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[200px] w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={occupancyData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="property" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="occupancy" fill="#94a3b8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Recent Tenant Activities */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold tracking-tight">Recent Tenant Activities</h2>
         <Card>
           <CardHeader>
-            <CardTitle>Property Status Overview</CardTitle>
-            <CardDescription>Distribution of properties by status</CardDescription>
+            <CardTitle>All Tenants</CardTitle>
+            <CardDescription>Recent lease activities</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={propertyData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {propertyData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tenant</TableHead>
+                    <TableHead>Property</TableHead>
+                    <TableHead>Lease Start</TableHead>
+                    <TableHead>Lease End</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tenantActivities.map((activity, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{activity.tenant}</TableCell>
+                      <TableCell>{activity.property}</TableCell>
+                      <TableCell>{new Date(activity.leaseStart).toLocaleDateString()}</TableCell>
+                      <TableCell>{new Date(activity.leaseEnd).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-gray-100 text-gray-700">
+                          {activity.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Invoice Status Overview</CardTitle>
-            <CardDescription>Distribution of invoices by payment status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-[300px] w-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={invoiceData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6">
-                    {invoiceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Business Metrics</CardTitle>
-            <CardDescription>Key performance indicators</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-blue-100 p-3">
-                  <Building2 className="size-6 text-blue-600" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">Available Properties</p>
-                  <p className="text-sm text-muted-foreground">
-                    Ready for sale or rent
-                  </p>
-                </div>
-                <div className="text-2xl font-bold">{stats?.availableProperties || 0}</div>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-green-100 p-3">
-                  <TrendingUp className="size-6 text-green-600" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">Sold/Rented Properties</p>
-                  <p className="text-sm text-muted-foreground">
-                    Successfully closed deals
-                  </p>
-                </div>
-                <div className="text-2xl font-bold">{stats?.soldProperties || 0}</div>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-purple-100 p-3">
-                  <Activity className="size-6 text-purple-600" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">Active Invoices</p>
-                  <p className="text-sm text-muted-foreground">
-                    Total invoices in system
-                  </p>
-                </div>
-                <div className="text-2xl font-bold">{stats?.totalInvoices || 0}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Common tasks and shortcuts</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <a
-              href="/properties"
-              className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted"
-            >
-              <Building2 className="size-6 text-blue-600" />
-              <div>
-                <p className="font-medium">View Properties</p>
-                <p className="text-sm text-muted-foreground">Manage your listings</p>
-              </div>
-            </a>
-            <a
-              href="/invoices"
-              className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted"
-            >
-              <FileText className="size-6 text-purple-600" />
-              <div>
-                <p className="font-medium">View Invoices</p>
-                <p className="text-sm text-muted-foreground">Track payments</p>
-              </div>
-            </a>
-            <a
-              href="/settings"
-              className="flex items-center gap-4 rounded-lg border p-4 transition-colors hover:bg-muted"
-            >
-              <TrendingUp className="size-6 text-green-600" />
-              <div>
-                <p className="font-medium">Settings</p>
-                <p className="text-sm text-muted-foreground">Configure integrations</p>
-              </div>
-            </a>
           </CardContent>
         </Card>
       </div>

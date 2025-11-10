@@ -1,24 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbPage } from "@/components/ui/breadcrumb";
 import { useSession } from "@/lib/auth-client";
 import { Toaster } from "@/components/ui/sonner";
-import EtheralShadow from "@/components/ui/etheral-shadow";
+import { Input } from "@/components/ui/input";
+import { Bell, Search } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { SignOutButton } from "@clerk/nextjs";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isPending && !session?.user) {
-      router.push("/login");
-    }
-  }, [session, isPending, router]);
 
   if (isPending) {
     return (
@@ -33,40 +34,66 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!session?.user) return null;
 
-  return (
-    <div className="relative min-h-screen">
-      {/* Animated background */}
-      <div className="absolute inset-0 -z-10">
-        <EtheralShadow
-          color="rgba(128, 128, 128, 1)"
-          animation={{ scale: 100, speed: 90 }}
-          noise={{ opacity: 1, scale: 1.2 }}
-          sizing="fill"
-          className="h-full w-full"
-        />
-      </div>
+  const userInitials = session?.user?.name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase() || "U";
 
+  return (
+    <div className="min-h-screen bg-background">
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-white/20 bg-black/30 px-4 text-white backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4 bg-white/30" />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Axis CRM</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
+          <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="h-6" />
+            <div className="flex flex-1 items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search"
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex items-center gap-4">
+                <button className="relative rounded-full p-2 hover:bg-muted">
+                  <Bell className="size-5" />
+                  <span className="absolute right-1 top-1 size-2 rounded-full bg-red-500" />
+                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-2 rounded-full hover:opacity-80">
+                      <Avatar className="size-8">
+                        <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
+                        <AvatarFallback>{userInitials}</AvatarFallback>
+                      </Avatar>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{session?.user?.name || "User"}</p>
+                        <p className="text-xs leading-none text-muted-foreground">{session?.user?.email || ""}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = "/settings"}>
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <SignOutButton>
+                      <DropdownMenuItem>
+                        Log out
+                      </DropdownMenuItem>
+                    </SignOutButton>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </header>
-          <main className="flex-1 overflow-auto">
-            {/* Glassmorphic content wrapper for readability */}
-            <div className="m-4 rounded-xl border border-white/15 bg-black/40 p-4 text-white backdrop-blur-xl">
-              {children}
-            </div>
+          <main className="flex-1 overflow-auto bg-background p-6">
+            {children}
           </main>
         </SidebarInset>
         <Toaster />

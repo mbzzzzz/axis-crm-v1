@@ -20,6 +20,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { PropertyForm } from "@/components/property-form";
@@ -51,15 +58,23 @@ export default function PropertiesPage() {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
 
   const fetchProperties = async () => {
     try {
-      const response = await fetch("/api/properties");
-      const data = await response.json();
+      const [propertiesRes, tenantsRes] = await Promise.all([
+        fetch("/api/properties"),
+        fetch("/api/tenants"),
+      ]);
+      const data = await propertiesRes.json();
+      const tenantsData = await tenantsRes.json();
+      
       // Ensure we always work with an array regardless of API shape
       const arr: Property[] = Array.isArray(data)
         ? data
@@ -67,7 +82,8 @@ export default function PropertiesPage() {
           ? data.data
           : [];
       setProperties(arr);
-      setFilteredProperties(arr);
+      setTenants(Array.isArray(tenantsData) ? tenantsData : []);
+      applyFilters(arr, searchQuery, selectedStatus, selectedType);
     } catch (error) {
       toast.error("Failed to load properties");
     } finally {
@@ -75,20 +91,55 @@ export default function PropertiesPage() {
     }
   };
 
+  const applyFilters = (props: Property[], search: string, status: string, type: string) => {
+    let filtered = [...props];
+    
+    // Search filter
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter((property) => {
+        const title = (property.title ?? "").toLowerCase();
+        const address = (property.address ?? "").toLowerCase();
+        const city = (property.city ?? "").toLowerCase();
+        return title.includes(q) || address.includes(q) || city.includes(q);
+      });
+    }
+    
+    // Status filter
+    if (status !== "all") {
+      const statusMap: Record<string, string> = {
+        "Occupied": "rented",
+        "Vacant": "available",
+        "Maintenance": "pending",
+      };
+      filtered = filtered.filter((property) => {
+        const mappedStatus = statusMap[status] || status.toLowerCase();
+        return property.status.toLowerCase() === mappedStatus.toLowerCase();
+      });
+    }
+    
+    // Type filter
+    if (type !== "all") {
+      filtered = filtered.filter((property) => {
+        return property.propertyType.toLowerCase() === type.toLowerCase();
+      });
+    }
+    
+    setFilteredProperties(filtered);
+  };
+
   useEffect(() => {
     fetchProperties();
   }, []);
 
   useEffect(() => {
-    const q = searchQuery.toLowerCase();
-    const filtered = properties.filter((property) => {
-      const title = (property.title ?? "").toLowerCase();
-      const address = (property.address ?? "").toLowerCase();
-      const city = (property.city ?? "").toLowerCase();
-      return title.includes(q) || address.includes(q) || city.includes(q);
-    });
-    setFilteredProperties(filtered);
-  }, [searchQuery, properties]);
+    applyFilters(properties, searchQuery, selectedStatus, selectedType);
+  }, [searchQuery, selectedStatus, selectedType, properties]);
+
+  const getTenantForProperty = (propertyId: number) => {
+    const tenant = tenants.find((t: any) => t.propertyId === propertyId);
+    return tenant ? tenant.name : null;
+  };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this property?")) return;
@@ -124,53 +175,86 @@ export default function PropertiesPage() {
     return type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
+  const getStatusBadgeColor = (status: string) => {
+    const colors: Record<string, string> = {
+      rented: "bg-green-500 text-white",
+      occupied: "bg-green-500 text-white",
+      available: "bg-blue-500 text-white",
+      vacant: "bg-blue-500 text-white",
+      pending: "bg-orange-500 text-white",
+      maintenance: "bg-orange-500 text-white",
+      under_contract: "bg-yellow-500 text-white",
+      sold: "bg-purple-500 text-white",
+    };
+    return colors[status.toLowerCase()] || "bg-gray-500 text-white";
+  };
+
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="mt-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Properties</h1>
-          <p className="text-muted-foreground">Manage your real estate listings</p>
+    <div className="flex flex-1 flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">All Properties</h1>
+          <p className="text-muted-foreground">
+            Manage and view all your properties in one place.
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsImportExportOpen(true)}>
-            <Upload className="mr-2 size-4" />
-            Import/Export
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 size-4" />
-                Add Property
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Property</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to add a new property to your portfolio
-                </DialogDescription>
-              </DialogHeader>
-              <PropertyForm
-                onSuccess={() => {
-                  setIsAddDialogOpen(false);
-                  fetchProperties();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 size-4" />
+              Add Property
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add New Property</DialogTitle>
+              <DialogDescription>
+                Fill in the details to add a new property to your portfolio
+              </DialogDescription>
+            </DialogHeader>
+            <PropertyForm
+              onSuccess={() => {
+                setIsAddDialogOpen(false);
+                fetchProperties();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search properties..."
+            placeholder="Search by address or tenant..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
+        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="Occupied">Occupied</SelectItem>
+            <SelectItem value="Vacant">Vacant</SelectItem>
+            <SelectItem value="Maintenance">Maintenance</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={selectedType} onValueChange={setSelectedType}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="residential">Residential</SelectItem>
+            <SelectItem value="commercial">Commercial</SelectItem>
+            <SelectItem value="multi_family">Multi Family</SelectItem>
+            <SelectItem value="land">Land</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading ? (
@@ -201,7 +285,7 @@ export default function PropertiesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {filteredProperties.map((property) => (
             <Card key={property.id} className="overflow-hidden transition-shadow hover:shadow-lg">
               <div
@@ -216,63 +300,27 @@ export default function PropertiesPage() {
                   setIsDetailsDialogOpen(true);
                 }}
               />
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="line-clamp-1">{property.title}</CardTitle>
-                    <CardDescription className="mt-1 flex items-center gap-1">
-                      <MapPin className="size-3" />
-                      <span className="line-clamp-1">
-                        {property.city}, {property.state}
-                      </span>
-                    </CardDescription>
+              <CardContent className="p-4">
+                <div className="space-y-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg line-clamp-1">{property.title || property.address}</CardTitle>
+                      <CardDescription className="mt-1 flex items-center gap-1 text-sm">
+                        <MapPin className="size-3" />
+                        <span className="line-clamp-1">
+                          {property.city}, {property.state} {property.zipCode}
+                        </span>
+                      </CardDescription>
+                    </div>
                   </div>
-                  <Badge className={`${getStatusColor(property.status)} text-white`}>
+                  <Badge className={`${getStatusBadgeColor(property.status)} capitalize`}>
                     {property.status.replace(/_/g, " ")}
                   </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold">
-                      ${property.price.toLocaleString()}
-                    </span>
-                    <Badge variant="outline">{formatPropertyType(property.propertyType)}</Badge>
+                  <div className="text-lg font-semibold">
+                    ${property.price.toLocaleString()}{property.status === "rented" ? "/mo" : ""}
                   </div>
-                  {property.bedrooms !== undefined && property.bathrooms !== undefined && (
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{property.bedrooms} beds</span>
-                      <span>•</span>
-                      <span>{property.bathrooms} baths</span>
-                      {property.sizeSqft && (
-                        <>
-                          <span>•</span>
-                          <span>{property.sizeSqft.toLocaleString()} sqft</span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setSelectedProperty(property);
-                        setIsDetailsDialogOpen(true);
-                      }}
-                    >
-                      <Edit className="mr-1 size-3" />
-                      View
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(property.id)}
-                    >
-                      <Trash2 className="size-3" />
-                    </Button>
+                  <div className="text-sm text-muted-foreground">
+                    Tenant: {getTenantForProperty(property.id) || "N/A"}
                   </div>
                 </div>
               </CardContent>

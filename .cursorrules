@@ -1,0 +1,64 @@
+# Cursor Rules for AXIS CRM Project
+
+## Project Context
+This is a Next.js 15 real estate CRM application using:
+- **Framework:** Next.js 15 with App Router
+- **Database:** Supabase (PostgreSQL)
+- **Authentication:** Clerk
+- **ORM:** Drizzle ORM
+- **UI:** Radix UI + Tailwind CSS
+
+## MCP Server Configuration
+
+### Composio MCP Server ✅ INSTALLED
+- **URL:** https://backend.composio.dev/v3/mcp/2492640b-3c5f-4210-8298-976c3bda7609/mcp
+- **User ID:** pg-test-f636d421-1ec8-4dc7-947a-578ffec9361e
+- **Server Name:** composio-8o4ehs-78
+- **Config Location:** C:\Users\e laptop\.cursor\mcp.json
+- **Status:** Installed - Restart Cursor to activate
+
+The MCP server has been installed using:
+```bash
+npx @composio/mcp@latest setup "https://backend.composio.dev/v3/mcp/2492640b-3c5f-4210-8298-976c3bda7609/mcp?user_id=pg-test-f636d421-1ec8-4dc7-947a-578ffec9361e" "composio-8o4ehs-78" --client cursor
+```
+
+**IMPORTANT:** Restart Cursor for the MCP server to be available.
+
+See `MCP-SETUP.md` for detailed information.
+
+## Code Style Guidelines
+
+- Use TypeScript for all new files
+- Follow Next.js 15 App Router conventions
+- Use server components by default, client components only when needed
+- Use Clerk's `currentUser()` for server-side auth
+- Use Clerk's `useUser()` hook for client-side auth
+- Filter all database queries by `user_id` for data isolation
+- Use Drizzle ORM for all database operations
+- Follow existing component patterns in `src/components/ui`
+
+## Database Schema
+
+All tables use `user_id TEXT` to reference Clerk user IDs:
+- `properties` - Property management
+- `invoices` - Invoice tracking  
+- `tenants` - Tenant management
+- `maintenance_requests` - Maintenance tracking
+
+## Environment Variables
+
+Required environment variables (see `.env.local.example`):
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_DATABASE_URL`
+
+## Important Notes
+
+- Never commit `.env.local` to git
+- Always filter queries by `user_id` for security
+- Use Clerk middleware for route protection
+- Database connection uses Supabase PostgreSQL
+- All timestamps use `TIMESTAMP WITH TIME ZONE`
+

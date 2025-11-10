@@ -2,23 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
-import { auth } from '@/lib/auth';
-import { headers } from 'next/headers';
+import { auth, currentUser } from '@clerk/nextjs/server';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
 
 // Helper function to get current authenticated user
-async function getCurrentUser(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session?.user || null;
+async function getCurrentUser() {
+  const user = await currentUser();
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.fullName || user.firstName || 'User',
+    email: user.primaryEmailAddress?.emailAddress || '',
+  };
 }
 
 export async function GET(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             eq(properties.id, parseInt(id)),
-            eq(properties.userId, currentUser.id) // Use text ID directly
+            eq(properties.userId, user.id) // Use Clerk user ID
           )
         )
         .limit(1);
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const conditions = [
       // CRITICAL: Always filter by current user's ID
-      eq(properties.userId, currentUser.id) // Use text ID directly
+      eq(properties.userId, user.id) // Use Clerk user ID
     ];
 
     // Search across title, address, city
@@ -119,8 +123,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -290,7 +294,7 @@ export async function POST(request: NextRequest) {
     // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
     const now = new Date().toISOString();
     const insertData: any = {
-      userId: currentUser.id, // CRITICAL: Use authenticated user's text ID
+      userId: user.id, // CRITICAL: Use Clerk user ID
       title: body.title.trim(),
       address: body.address.trim(),
       city: body.city.trim(),
@@ -353,8 +357,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -378,7 +382,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, currentUser.id) // Use text ID directly
+          eq(properties.userId, user.id) // Use Clerk user ID
         )
       )
       .limit(1);
@@ -580,7 +584,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, currentUser.id) // Use text ID directly
+          eq(properties.userId, user.id) // Use Clerk user ID
         )
       )
       .returning();
@@ -598,8 +602,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // CRITICAL: Authenticate user first
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
         { status: 401 }
@@ -623,7 +627,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, currentUser.id) // Use text ID directly
+          eq(properties.userId, user.id) // Use Clerk user ID
         )
       )
       .limit(1);
@@ -640,7 +644,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, currentUser.id) // Use text ID directly
+          eq(properties.userId, user.id) // Use Clerk user ID
         )
       )
       .returning();

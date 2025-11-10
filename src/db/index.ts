@@ -1,11 +1,17 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from '@/db/schema-postgres';
 
-import { drizzle } from 'drizzle-orm/libsql';
-import { createClient } from '@libsql/client';
-import * as schema from '@/db/schema';
+// Get Supabase connection string from environment
+const connectionString = process.env.SUPABASE_DATABASE_URL!;
 
-const client = createClient({
-  url: process.env.TURSO_CONNECTION_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
+if (!connectionString) {
+  throw new Error('SUPABASE_DATABASE_URL environment variable is not set');
+}
+
+// Create the connection
+const client = postgres(connectionString, {
+  max: 1, // Connection pool size
 });
 
 export const db = drizzle(client, { schema });

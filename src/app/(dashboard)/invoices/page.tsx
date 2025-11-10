@@ -21,6 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -190,96 +196,79 @@ export default function InvoicesPage() {
     return colors[status] || "bg-gray-500";
   };
 
+  const getStatusBadge = (status: string) => {
+    const statusConfig: Record<string, { bg: string; text: string }> = {
+      paid: { bg: "bg-green-100", text: "text-green-700" },
+      overdue: { bg: "bg-red-100", text: "text-red-700" },
+      sent: { bg: "bg-blue-100", text: "text-blue-700" },
+      draft: { bg: "bg-gray-100", text: "text-gray-700" },
+    };
+    const config = statusConfig[status.toLowerCase()] || statusConfig.draft;
+    return (
+      <Badge className={`${config.bg} ${config.text} border-0`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-      <div className="mt-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Invoices</h1>
-          <p className="text-muted-foreground">Manage and track your invoices</p>
+    <div className="flex flex-1 flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Invoicing</h1>
+          <p className="text-muted-foreground">Manage and track all tenant invoices.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsImportExportOpen(true)}>
-            <Upload className="mr-2 size-4" />
-            Import/Export
-          </Button>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 size-4" />
-                Create Invoice
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Create New Invoice</DialogTitle>
-                <DialogDescription>
-                  Generate a professional invoice for your property
-                </DialogDescription>
-              </DialogHeader>
-              <InvoiceForm
-                onSuccess={() => {
-                  setIsAddDialogOpen(false);
-                  fetchInvoices();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 size-4" />
+              Create Invoice
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Create New Invoice</DialogTitle>
+              <DialogDescription>
+                Generate a professional invoice for your property
+              </DialogDescription>
+            </DialogHeader>
+            <InvoiceForm
+              onSuccess={() => {
+                setIsAddDialogOpen(false);
+                fetchInvoices();
+              }}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search invoices..."
+            placeholder="Search by tenant..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              All Statuses
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>All Statuses</DropdownMenuItem>
+            <DropdownMenuItem>Paid</DropdownMenuItem>
+            <DropdownMenuItem>Overdue</DropdownMenuItem>
+            <DropdownMenuItem>Sent</DropdownMenuItem>
+            <DropdownMenuItem>Draft</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Input type="date" className="w-40" placeholder="mm/dd/yyyy" />
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invoices.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Paid</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {invoices.filter((inv) => inv.paymentStatus === "paid").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {invoices.filter((inv) => inv.paymentStatus === "sent").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {invoices.filter((inv) => inv.paymentStatus === "overdue").length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {isLoading ? (
         <Card>
@@ -316,47 +305,30 @@ export default function InvoicesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>TENANT</TableHead>
+                  <TableHead>PROPERTY</TableHead>
+                  <TableHead>ISSUE DATE</TableHead>
+                  <TableHead>DUE DATE</TableHead>
+                  <TableHead>AMOUNT</TableHead>
+                  <TableHead>STATUS</TableHead>
+                  <TableHead>ACTIONS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{invoice.clientName}</div>
-                        <div className="text-sm text-muted-foreground">{invoice.clientEmail}</div>
-                      </div>
-                    </TableCell>
+                    <TableCell className="font-medium">{invoice.clientName}</TableCell>
+                    <TableCell>{invoice.clientAddress || "N/A"}</TableCell>
                     <TableCell>{new Date(invoice.invoiceDate).toLocaleDateString()}</TableCell>
                     <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
                     <TableCell className="font-semibold">
                       ${invoice.totalAmount.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <Badge className={`${getStatusColor(invoice.paymentStatus)} text-white`}>
-                        {invoice.paymentStatus.toUpperCase()}
-                      </Badge>
+                      {getStatusBadge(invoice.paymentStatus)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedInvoice(invoice);
-                            setIsViewDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="size-4" />
-                        </Button>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -364,12 +336,44 @@ export default function InvoicesPage() {
                         >
                           <Download className="size-4" />
                         </Button>
+                        {invoice.paymentStatus === "overdue" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Handle send email
+                              toast.info("Sending invoice email...");
+                            }}
+                          >
+                            <FileText className="size-4" />
+                          </Button>
+                        )}
+                        {invoice.paymentStatus === "draft" && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedInvoice(invoice);
+                                setIsViewDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(invoice.id)}
+                            >
+                              <Trash2 className="size-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(invoice.id)}
                         >
-                          <Trash2 className="size-4 text-destructive" />
+                          <span className="text-muted-foreground">⋯</span>
                         </Button>
                       </div>
                     </TableCell>
@@ -377,6 +381,19 @@ export default function InvoicesPage() {
                 ))}
               </TableBody>
             </Table>
+            <div className="flex items-center justify-between px-4 py-4">
+              <div className="text-sm text-muted-foreground">
+                Showing 1 to {filteredInvoices.length} of {invoices.length} results
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled>
+                  Previous
+                </Button>
+                <Button variant="outline" size="sm">
+                  Next
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
