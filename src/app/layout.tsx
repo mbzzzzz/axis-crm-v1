@@ -11,6 +11,9 @@ import ThemeToggle from "@/components/ui/theme-toggle";
 export const metadata: Metadata = {
   title: "Axis CRM - Real Estate Management Platform",
   description: "Comprehensive CRM for real estate agents and property managers",
+  icons: {
+    icon: "/next.svg",
+  },
 };
 
 export default function RootLayout({
