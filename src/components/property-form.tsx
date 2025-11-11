@@ -53,6 +53,9 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     "Elevator",
     "Fireplace",
     "Balcony",
+    "Near Schools",
+    "Near Hospital",
+    "Near Supermarkets",
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
