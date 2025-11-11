@@ -39,7 +39,21 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     estimatedValue: property?.estimatedValue || "",
     monthlyExpenses: property?.monthlyExpenses || "",
     commissionRate: property?.commissionRate || "",
+    amenities: Array.isArray(property?.amenities) ? property.amenities : [],
   });
+
+  const AMENITY_OPTIONS = [
+    "Swimming Pool",
+    "Gym",
+    "Garden",
+    "Parking",
+    "Security",
+    "Play Area",
+    "Club House",
+    "Elevator",
+    "Fireplace",
+    "Balcony",
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +80,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         commissionRate: formData.commissionRate
           ? parseFloat(formData.commissionRate as string)
           : undefined,
+        amenities: formData.amenities,
       };
 
       const url = property ? `/api/properties?id=${property.id}` : "/api/properties";
@@ -247,6 +262,32 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
               value={formData.bathrooms}
               onChange={(e) => setFormData({ ...formData, bathrooms: e.target.value })}
             />
+          </div>
+        </div>
+
+        {/* Amenities */}
+        <div className="space-y-2">
+          <Label>Amenities</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {AMENITY_OPTIONS.map((amenity) => {
+              const checked = (formData.amenities as string[]).includes(amenity);
+              return (
+                <label key={amenity} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={checked}
+                    onChange={(e) => {
+                      const next = new Set(formData.amenities as string[]);
+                      if (e.target.checked) next.add(amenity);
+                      else next.delete(amenity);
+                      setFormData({ ...formData, amenities: Array.from(next) });
+                    }}
+                  />
+                  {amenity}
+                </label>
+              );
+            })}
           </div>
         </div>
       </div>

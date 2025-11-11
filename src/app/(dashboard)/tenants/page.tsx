@@ -49,6 +49,7 @@ interface Tenant {
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [properties, setProperties] = useState<Array<{ id: number; title?: string; address?: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProperty, setSelectedProperty] = useState<string>("all");
@@ -65,12 +66,35 @@ export default function TenantsPage() {
     leaseEnd: "",
     leaseStatus: "active" as "active" | "expired" | "pending",
     monthlyRent: "",
+    yearlyIncreaseRate: "10",
+    expectedNextYearRent: "",
     deposit: "",
   });
 
   useEffect(() => {
     fetchTenants();
   }, [selectedProperty, selectedLeaseStatus]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/properties?limit=100");
+        const data = await res.json();
+        setProperties(Array.isArray(data) ? data : []);
+      } catch {
+        setProperties([]);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    const rent = parseFloat(newTenant.monthlyRent || "0");
+    const rate = parseFloat(newTenant.yearlyIncreaseRate || "0");
+    if (!isNaN(rent) && !isNaN(rate)) {
+      const next = rent * (1 + rate / 100);
+      setNewTenant((t) => ({ ...t, expectedNextYearRent: next ? next.toFixed(2) : "" }));
+    }
+  }, [newTenant.monthlyRent, newTenant.yearlyIncreaseRate]);
 
   const fetchTenants = async () => {
     try {
@@ -108,6 +132,9 @@ export default function TenantsPage() {
           leaseStatus: newTenant.leaseStatus,
           monthlyRent: newTenant.monthlyRent ? parseFloat(newTenant.monthlyRent) : null,
           deposit: newTenant.deposit ? parseFloat(newTenant.deposit) : null,
+          notes: newTenant.yearlyIncreaseRate || newTenant.expectedNextYearRent
+            ? `increaseRate=${newTenant.yearlyIncreaseRate}%; expectedNextYear=${newTenant.expectedNextYearRent}`
+            : undefined,
         }),
       });
 
@@ -123,6 +150,8 @@ export default function TenantsPage() {
           leaseEnd: "",
           leaseStatus: "active",
           monthlyRent: "",
+          yearlyIncreaseRate: "10",
+          expectedNextYearRent: "",
           deposit: "",
         });
         fetchTenants();
@@ -247,6 +276,28 @@ export default function TenantsPage() {
                   placeholder="+1 (555) 000-0000"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="propertyId">Property</Label>
+                <Select
+                  value={newTenant.propertyId}
+                  onValueChange={(value) => setNewTenant({ ...newTenant, propertyId: value })}
+                >
+                  <SelectTrigger id="propertyId">
+                    <SelectValue placeholder="Select property (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.length === 0 ? (
+                      <SelectItem value="">No properties</SelectItem>
+                    ) : (
+                      properties.map((p) => (
+                        <SelectItem key={p.id} value={String(p.id)}>
+                          {p.title || p.address || `#${p.id}`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="leaseStart">Lease Start *</Label>
@@ -297,6 +348,28 @@ export default function TenantsPage() {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="yearlyIncreaseRate">Yearly Increase Rate (%)</Label>
+                  <Input
+                    id="yearlyIncreaseRate"
+                    type="number"
+                    value={newTenant.yearlyIncreaseRate}
+                    onChange={(e) =>
+                      setNewTenant({ ...newTenant, yearlyIncreaseRate: e.target.value })
+                    }
+                    placeholder="e.g., 10"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="expectedNextYearRent">Expected Next Year Rent</Label>
+                  <Input
+                    id="expectedNextYearRent"
+                    value={newTenant.expectedNextYearRent}
+                    readOnly
+                  />
+                </div>
+              </div>
               <Button onClick={handleCreateTenant} className="w-full">
                 Create Tenant
               </Button>
@@ -327,6 +400,11 @@ export default function TenantsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Properties</SelectItem>
+                {properties.map((p) => (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {p.title || p.address || `#${p.id}`}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={selectedLeaseStatus} onValueChange={setSelectedLeaseStatus}>
