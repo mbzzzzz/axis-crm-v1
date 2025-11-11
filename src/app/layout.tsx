@@ -22,7 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInUrl="/login"
+      signUpUrl="/register"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+    >
       <html lang="en" suppressHydrationWarning>
         <body className="antialiased">
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
