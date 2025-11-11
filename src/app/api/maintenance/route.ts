@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const urgency = searchParams.get('urgency');
     const propertyId = searchParams.get('propertyId');
 
-    const conditions = [eq(maintenanceRequests.userId, currentUser.id)];
+    const conditions = [eq(maintenanceRequests.userId, user.id)];
 
     if (search) {
       conditions.push(
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
           .where(
             and(
               eq(properties.id, propertyIdInt),
-              eq(properties.userId, currentUser.id)
+              eq(properties.userId, user.id)
             )
           )
           .limit(1);
@@ -325,7 +325,7 @@ export async function PUT(request: NextRequest) {
             .where(
               and(
                 eq(properties.id, propertyIdInt),
-                eq(properties.userId, currentUser.id)
+                eq(properties.userId, user.id)
               )
             )
             .limit(1);

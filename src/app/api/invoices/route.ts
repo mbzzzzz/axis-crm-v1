@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(propertyId)),
-          eq(properties.userId, currentUser.id)
+          eq(properties.userId, user.id)
         )
       )
       .limit(1);
@@ -439,7 +439,7 @@ export async function PUT(request: NextRequest) {
         .where(
           and(
             eq(properties.id, parseInt(propertyId)),
-            eq(properties.userId, currentUser.id)
+            eq(properties.userId, user.id)
           )
         )
         .limit(1);

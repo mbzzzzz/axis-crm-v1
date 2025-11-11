@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     const leaseStatus = searchParams.get('leaseStatus');
     const propertyId = searchParams.get('propertyId');
 
-    const conditions = [eq(tenants.userId, currentUser.id)];
+    const conditions = [eq(tenants.userId, user.id)];
 
     if (search) {
       conditions.push(
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
           .where(
             and(
               eq(properties.id, propertyIdInt),
-              eq(properties.userId, currentUser.id)
+              eq(properties.userId, user.id)
             )
           )
           .limit(1);
@@ -337,7 +337,7 @@ export async function PUT(request: NextRequest) {
             .where(
               and(
                 eq(properties.id, propertyIdInt),
-                eq(properties.userId, currentUser.id)
+                eq(properties.userId, user.id)
               )
             )
             .limit(1);
