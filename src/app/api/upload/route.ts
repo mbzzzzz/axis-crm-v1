@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const BUCKET_NAME = 'property-images';
+
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,6 +76,7 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(arrayBuffer);
 
       // Upload to Supabase Storage
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, buffer, {
@@ -149,6 +153,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const supabase = getSupabaseClient();
     const { error } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([filePath]);

@@ -35,8 +35,9 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
 CLERK_SECRET_KEY=YOUR_SECRET_KEY
 
 # New Supabase Project
-SUPABASE_URL=https://mzmcibaxgelkndbvopwa.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16bWNpYmF4Z2Vsa25kYnZvcHdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NzA5NzgsImV4cCI6MjA3ODM0Njk3OH0.SGzRv5pcSP2kZFCgSwpLu75Y-JR9uz3r_lTy07iXU1g
+# Note: Use NEXT_PUBLIC_ prefix for client-side access
+NEXT_PUBLIC_SUPABASE_URL=https://mzmcibaxgelkndbvopwa.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16bWNpYmF4Z2Vsa25kYnZvcHdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NzA5NzgsImV4cCI6MjA3ODM0Njk3OH0.SGzRv5pcSP2kZFCgSwpLu75Y-JR9uz3r_lTy07iXU1g
 
 # Database Connection String
 # Get your database password from Supabase Dashboard → Settings → Database

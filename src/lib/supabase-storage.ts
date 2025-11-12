@@ -1,14 +1,28 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Lazy initialization to avoid build-time errors when env vars are not available
+let supabaseClient: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+function getSupabaseClient(): SupabaseClient {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+  return supabaseClient;
 }
 
-// Client-side Supabase client for storage operations
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Export a getter function instead of direct client to avoid build-time initialization
+export function getSupabase() {
+  return getSupabaseClient();
+}
 
 const BUCKET_NAME = 'property-images';
 
@@ -31,6 +45,7 @@ export async function uploadPropertyImage(
     const filePath = `${fileName}`;
 
     // Upload file
+    const supabase = getSupabase();
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, file, {
@@ -68,6 +83,7 @@ export async function deletePropertyImage(imageUrl: string): Promise<void> {
     const urlParts = imageUrl.split('/');
     const filePath = urlParts.slice(urlParts.indexOf(BUCKET_NAME) + 1).join('/');
 
+    const supabase = getSupabase();
     const { error } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([filePath]);
