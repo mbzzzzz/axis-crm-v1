@@ -49,13 +49,20 @@ export default function DashboardPage() {
           fetch("/api/properties"),
           fetch("/api/invoices"),
           fetch("/api/tenants"),
-          fetch("/api/maintenance").catch(() => ({ json: async () => [] })),
+          fetch("/api/maintenance").catch(() => ({ ok: false, json: async () => ({ error: 'Failed to fetch' }) })),
         ]);
 
-        const properties = await propertiesRes.json();
-        const invoices = await invoicesRes.json();
-        const tenants = await tenantsRes.json();
-        const maintenance = await maintenanceRes.json();
+        // Check if responses are OK and parse JSON
+        const propertiesData = propertiesRes.ok ? await propertiesRes.json() : [];
+        const invoicesData = invoicesRes.ok ? await invoicesRes.json() : [];
+        const tenantsData = tenantsRes.ok ? await tenantsRes.json() : [];
+        const maintenanceData = maintenanceRes.ok ? await maintenanceRes.json() : [];
+
+        // Ensure all data is an array
+        const properties = Array.isArray(propertiesData) ? propertiesData : [];
+        const invoices = Array.isArray(invoicesData) ? invoicesData : [];
+        const tenants = Array.isArray(tenantsData) ? tenantsData : [];
+        const maintenance = Array.isArray(maintenanceData) ? maintenanceData : [];
 
         // Calculate stats
         const totalRevenue = invoices
