@@ -1,10 +1,7 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@clerk/nextjs/server";
 
 // Get current user from Clerk
 export async function getCurrentUser() {
   const user = await currentUser();
   return user;
 }
-
-// Get auth object for route protection
-export { auth };

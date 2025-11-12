@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/server';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
