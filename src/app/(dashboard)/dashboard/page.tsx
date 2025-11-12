@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import MagicBento, { BentoCardProps } from "@/components/magic-bento";
 
 interface DashboardStats {
   occupancyRate: number;
@@ -20,6 +21,9 @@ interface DashboardStats {
   averageRent: number;
   rentalIncomeTrend: number;
   propertyOccupancy: number;
+  totalProperties: number;
+  activeTenants: number;
+  pendingMaintenance: number;
 }
 
 interface TenantActivity {
@@ -36,19 +40,22 @@ export default function DashboardPage() {
   const [rentalIncomeData, setRentalIncomeData] = useState<any[]>([]);
   const [occupancyData, setOccupancyData] = useState<any[]>([]);
   const [tenantActivities, setTenantActivities] = useState<TenantActivity[]>([]);
+  const [bentoCards, setBentoCards] = useState<BentoCardProps[]>([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [propertiesRes, invoicesRes, tenantsRes] = await Promise.all([
+        const [propertiesRes, invoicesRes, tenantsRes, maintenanceRes] = await Promise.all([
           fetch("/api/properties"),
           fetch("/api/invoices"),
           fetch("/api/tenants"),
+          fetch("/api/maintenance").catch(() => ({ json: async () => [] })),
         ]);
 
         const properties = await propertiesRes.json();
         const invoices = await invoicesRes.json();
         const tenants = await tenantsRes.json();
+        const maintenance = await maintenanceRes.json();
 
         // Calculate stats
         const totalRevenue = invoices
@@ -121,13 +128,67 @@ export default function DashboardPage() {
           ? Math.round(((lastMonthIncome - prevMonthIncome) / prevMonthIncome) * 100)
           : 0;
 
+        // Calculate additional stats
+        const totalProperties = properties.length;
+        const activeTenants = tenants.filter((t: any) => t.leaseStatus === "active").length;
+        const pendingMaintenance = Array.isArray(maintenance) 
+          ? maintenance.filter((m: any) => m.status === "open" || m.status === "in_progress").length 
+          : 0;
+
         setStats({
           occupancyRate,
           totalRentalIncome: totalRevenue,
           averageRent,
           rentalIncomeTrend: trend,
           propertyOccupancy: occupancyRate,
+          totalProperties,
+          activeTenants,
+          pendingMaintenance,
         });
+
+        // Create Bento cards
+        const cards: BentoCardProps[] = [
+          {
+            color: '#060010',
+            label: 'Occupancy Rate',
+            description: 'Properties currently occupied',
+            value: `${occupancyRate}%`,
+            trend: occupancyRate > 0 ? 5 : 0,
+          },
+          {
+            color: '#060010',
+            label: 'Total Income',
+            description: 'Total rental income collected',
+            value: totalRevenue,
+            trend: trend,
+          },
+          {
+            color: '#060010',
+            label: 'Average Rent',
+            description: 'Average monthly rental amount',
+            value: averageRent,
+          },
+          {
+            color: '#060010',
+            label: 'Properties',
+            description: 'Total properties managed',
+            value: totalProperties,
+          },
+          {
+            color: '#060010',
+            label: 'Active Tenants',
+            description: 'Tenants with active leases',
+            value: activeTenants,
+          },
+          {
+            color: '#060010',
+            label: 'Maintenance',
+            description: 'Pending maintenance requests',
+            value: pendingMaintenance,
+            trend: pendingMaintenance > 0 ? -pendingMaintenance : 0,
+          },
+        ];
+        setBentoCards(cards);
 
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -148,10 +209,10 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Key Information Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
+      {/* Magic Bento Analytics Cards */}
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-4 w-32" />
@@ -160,46 +221,23 @@ export default function DashboardPage() {
                 <Skeleton className="h-8 w-24" />
               </CardContent>
             </Card>
-          ))
-        ) : (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Occupancy Rate
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats?.occupancyRate || 0}%</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Rental Income
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  ${(stats?.totalRentalIncome || 0).toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Average Rent
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">
-                  ${(stats?.averageRent || 0).toLocaleString()}
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <MagicBento
+          cards={bentoCards}
+          textAutoHide={true}
+          enableStars={true}
+          enableSpotlight={true}
+          enableBorderGlow={true}
+          enableTilt={false}
+          enableMagnetism={true}
+          clickEffect={true}
+          spotlightRadius={300}
+          particleCount={12}
+          glowColor="132, 0, 255"
+        />
+      )}
 
       {/* Key Metrics Section */}
       <div className="space-y-4">

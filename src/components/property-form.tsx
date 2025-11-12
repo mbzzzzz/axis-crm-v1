@@ -13,6 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useSession } from "@/lib/auth-client";
+import { CurrencyInput } from "@/components/currency-input";
+import { ImageUpload } from "@/components/image-upload";
+import { CURRENCIES, type CurrencyCode } from "@/lib/currency-formatter";
 
 interface PropertyFormProps {
   property?: any;
@@ -20,6 +24,9 @@ interface PropertyFormProps {
 }
 
 export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
+  const { data: session } = useSession();
+  const userId = session?.user?.id || "";
+  
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: property?.title || "",
@@ -30,16 +37,18 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     zipCode: property?.zipCode || "",
     propertyType: property?.propertyType || "residential",
     status: property?.status || "available",
-    price: property?.price || "",
+    price: property?.price || 0,
+    currency: (property?.currency as CurrencyCode) || "USD",
     sizeSqft: property?.sizeSqft || "",
     bedrooms: property?.bedrooms || "",
     bathrooms: property?.bathrooms || "",
     yearBuilt: property?.yearBuilt || "",
-    purchasePrice: property?.purchasePrice || "",
-    estimatedValue: property?.estimatedValue || "",
-    monthlyExpenses: property?.monthlyExpenses || "",
+    purchasePrice: property?.purchasePrice || 0,
+    estimatedValue: property?.estimatedValue || 0,
+    monthlyExpenses: property?.monthlyExpenses || 0,
     commissionRate: property?.commissionRate || "",
     amenities: Array.isArray(property?.amenities) ? property.amenities : [],
+    images: Array.isArray(property?.images) ? property.images : [],
   });
 
   const AMENITY_OPTIONS = [
@@ -62,28 +71,35 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     e.preventDefault();
     setIsLoading(true);
 
+    if (!userId) {
+      toast.error("Please log in to continue");
+      return;
+    }
+
     try {
       const payload = {
-        ...formData,
-        userId: 1, // In real app, get from session
-        price: parseFloat(formData.price as string),
+        title: formData.title,
+        description: formData.description,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        propertyType: formData.propertyType,
+        status: formData.status,
+        price: typeof formData.price === "number" ? formData.price : parseFloat(formData.price as string),
+        currency: formData.currency,
         sizeSqft: formData.sizeSqft ? parseInt(formData.sizeSqft as string) : undefined,
         bedrooms: formData.bedrooms ? parseInt(formData.bedrooms as string) : undefined,
         bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms as string) : undefined,
         yearBuilt: formData.yearBuilt ? parseInt(formData.yearBuilt as string) : undefined,
-        purchasePrice: formData.purchasePrice
-          ? parseFloat(formData.purchasePrice as string)
-          : undefined,
-        estimatedValue: formData.estimatedValue
-          ? parseFloat(formData.estimatedValue as string)
-          : undefined,
-        monthlyExpenses: formData.monthlyExpenses
-          ? parseFloat(formData.monthlyExpenses as string)
-          : undefined,
+        purchasePrice: typeof formData.purchasePrice === "number" ? formData.purchasePrice : (formData.purchasePrice ? parseFloat(formData.purchasePrice as string) : undefined),
+        estimatedValue: typeof formData.estimatedValue === "number" ? formData.estimatedValue : (formData.estimatedValue ? parseFloat(formData.estimatedValue as string) : undefined),
+        monthlyExpenses: typeof formData.monthlyExpenses === "number" ? formData.monthlyExpenses : (formData.monthlyExpenses ? parseFloat(formData.monthlyExpenses as string) : undefined),
         commissionRate: formData.commissionRate
           ? parseFloat(formData.commissionRate as string)
           : undefined,
         amenities: formData.amenities,
+        images: formData.images,
       };
 
       const url = property ? `/api/properties?id=${property.id}` : "/api/properties";
@@ -201,13 +217,30 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
         <h3 className="font-semibold">Property Details</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="price">Listing Price *</Label>
-            <Input
+            <Label htmlFor="currency">Currency *</Label>
+            <Select
+              value={formData.currency}
+              onValueChange={(value) => setFormData({ ...formData, currency: value as CurrencyCode })}
+            >
+              <SelectTrigger id="currency">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.values(CURRENCIES).map((currency) => (
+                  <SelectItem key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.name} ({currency.code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <CurrencyInput
               id="price"
-              type="number"
-              step="0.01"
+              label="Listing Price *"
               value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              onChange={(value) => setFormData({ ...formData, price: value })}
+              currency={formData.currency}
               required
             />
           </div>
@@ -293,42 +326,44 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
             })}
           </div>
         </div>
+
+        {/* Property Images */}
+        {userId && (
+          <ImageUpload
+            images={formData.images as string[]}
+            onChange={(images) => setFormData({ ...formData, images })}
+            userId={userId}
+            propertyId={property?.id}
+            maxImages={10}
+          />
+        )}
       </div>
 
       {/* Financial Information */}
       <div className="space-y-4">
         <h3 className="font-semibold">Financial Information</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="purchasePrice">Purchase Price</Label>
-            <Input
-              id="purchasePrice"
-              type="number"
-              step="0.01"
-              value={formData.purchasePrice}
-              onChange={(e) => setFormData({ ...formData, purchasePrice: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="estimatedValue">Estimated Value</Label>
-            <Input
-              id="estimatedValue"
-              type="number"
-              step="0.01"
-              value={formData.estimatedValue}
-              onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="monthlyExpenses">Monthly Expenses</Label>
-            <Input
-              id="monthlyExpenses"
-              type="number"
-              step="0.01"
-              value={formData.monthlyExpenses}
-              onChange={(e) => setFormData({ ...formData, monthlyExpenses: e.target.value })}
-            />
-          </div>
+          <CurrencyInput
+            id="purchasePrice"
+            label="Purchase Price"
+            value={formData.purchasePrice}
+            onChange={(value) => setFormData({ ...formData, purchasePrice: value })}
+            currency={formData.currency}
+          />
+          <CurrencyInput
+            id="estimatedValue"
+            label="Estimated Value"
+            value={formData.estimatedValue}
+            onChange={(value) => setFormData({ ...formData, estimatedValue: value })}
+            currency={formData.currency}
+          />
+          <CurrencyInput
+            id="monthlyExpenses"
+            label="Monthly Expenses"
+            value={formData.monthlyExpenses}
+            onChange={(value) => setFormData({ ...formData, monthlyExpenses: value })}
+            currency={formData.currency}
+          />
           <div className="space-y-2">
             <Label htmlFor="commissionRate">Commission Rate (%)</Label>
             <Input

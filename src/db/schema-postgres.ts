@@ -14,6 +14,7 @@ export const properties = pgTable('properties', {
   propertyType: text('property_type').notNull(), // 'residential', 'commercial', 'land', 'multi_family'
   status: text('status').notNull(), // 'available', 'under_contract', 'sold', 'rented', 'pending'
   price: real('price').notNull(),
+  currency: text('currency').default('USD'), // Currency code: USD, INR, EUR, etc.
   sizeSqft: integer('size_sqft'),
   bedrooms: integer('bedrooms'),
   bathrooms: real('bathrooms'),

@@ -303,6 +303,7 @@ export async function POST(request: NextRequest) {
       propertyType: body.propertyType,
       status: body.status,
       price: body.price,
+      currency: body.currency || 'USD', // Default to USD if not provided
       createdAt: now,
       updatedAt: now,
     };
@@ -326,7 +327,7 @@ export async function POST(request: NextRequest) {
     if (body.amenities !== undefined) {
       insertData.amenities = body.amenities;
     }
-    if (body.images !== undefined) {
+    if (body.images !== undefined && Array.isArray(body.images)) {
       insertData.images = body.images;
     }
     if (body.purchasePrice !== undefined && body.purchasePrice !== null) {
@@ -490,6 +491,10 @@ export async function PUT(request: NextRequest) {
       updates.price = body.price;
     }
 
+    if (body.currency !== undefined) {
+      updates.currency = body.currency;
+    }
+
     if (body.sizeSqft !== undefined) {
       if (body.sizeSqft !== null && (!Number.isInteger(body.sizeSqft) || body.sizeSqft <= 0)) {
         return NextResponse.json(
@@ -534,7 +539,7 @@ export async function PUT(request: NextRequest) {
       updates.amenities = body.amenities;
     }
 
-    if (body.images !== undefined) {
+    if (body.images !== undefined && Array.isArray(body.images)) {
       updates.images = body.images;
     }
 
