@@ -1,18 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseClient, createClient } from '@supabase/supabase-js';
 
 const BUCKET_NAME = 'property-images';
 
-function getSupabaseClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let supabaseClient: SupabaseClient | null = null;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+function getSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
     throw new Error('Missing Supabase environment variables');
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey);
+  supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  return supabaseClient;
 }
 
 export async function POST(request: NextRequest) {
@@ -65,6 +78,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const supabase = getSupabaseClient();
+
     // Upload files
     const uploadPromises = files.map(async (file) => {
       const fileExt = file.name.split('.').pop();
@@ -76,8 +91,7 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(arrayBuffer);
 
       // Upload to Supabase Storage
-      const supabase = getSupabaseClient();
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from(BUCKET_NAME)
         .upload(filePath, buffer, {
           contentType: file.type,
@@ -86,6 +100,12 @@ export async function POST(request: NextRequest) {
         });
 
       if (error) {
+        if (error.message?.toLowerCase().includes('row-level security')) {
+          throw new Error(
+            `Upload failed for ${file.name}: Storage bucket row-level security blocked the request. ` +
+            'Verify that the `SUPABASE_SERVICE_ROLE_KEY` is configured on the server or adjust the bucket policies.'
+          );
+        }
         throw new Error(`Upload failed for ${file.name}: ${error.message}`);
       }
 

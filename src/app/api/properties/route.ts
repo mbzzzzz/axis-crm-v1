@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
-    const now = new Date().toISOString();
+    const now = new Date();
     const insertData: any = {
       userId: user.id, // CRITICAL: Use Clerk user ID
       title: body.title.trim(),
@@ -397,7 +397,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const updates: any = {
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
     };
 
     // Validate and add fields if provided

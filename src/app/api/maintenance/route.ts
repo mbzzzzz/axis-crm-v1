@@ -175,7 +175,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
     const insertData: any = {
       userId: user.id,
       title: body.title.trim(),
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
       urgency: body.urgency,
       status: body.status,
       location: body.location?.trim() || null,
-      reportedDate: body.reportedDate || now.split('T')[0],
+      reportedDate: body.reportedDate || today,
       completedDate: body.completedDate || null,
       notes: body.notes?.trim() || null,
       createdAt: now,
@@ -249,7 +250,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const updates: any = {
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
     };
 
     if (body.title !== undefined) {

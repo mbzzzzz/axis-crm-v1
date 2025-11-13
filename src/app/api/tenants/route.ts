@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
     const insertData: any = {
       userId: user.id,
       name: body.name.trim(),
@@ -268,7 +268,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const updates: any = {
-      updatedAt: new Date().toISOString(),
+      updatedAt: new Date(),
     };
 
     if (body.name !== undefined) {

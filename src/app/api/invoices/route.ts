@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare insert data - CRITICAL: Use authenticated user's ID
-    const now = new Date().toISOString();
+    const now = new Date();
     const insertData: any = {
       invoiceNumber: invoiceNumber.trim(),
       propertyId: parseInt(propertyId),
@@ -586,7 +586,7 @@ export async function PUT(request: NextRequest) {
       updates.items = items || null;
     }
 
-    updates.updatedAt = new Date().toISOString();
+    updates.updatedAt = new Date();
 
     const updatedInvoice = await db.update(invoices)
       .set(updates)
