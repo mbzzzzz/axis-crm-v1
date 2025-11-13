@@ -292,8 +292,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
+    // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
+    // NOTE: createdAt and updatedAt have defaults, but we set them explicitly for consistency
     const now = new Date();
-    const insertData: any = {
+    const insertData: Record<string, any> = {
       userId: user.id, // CRITICAL: Use Clerk user ID
       title: body.title.trim(),
       address: body.address.trim(),
@@ -303,14 +305,18 @@ export async function POST(request: NextRequest) {
       propertyType: body.propertyType,
       status: body.status,
       price: body.price,
-      currency: body.currency || 'USD', // Default to USD if not provided
       createdAt: now,
       updatedAt: now,
     };
 
-    // Add optional fields if provided
-    if (body.description !== undefined) {
-      insertData.description = body.description;
+    // Add currency if provided, otherwise let default handle it
+    if (body.currency) {
+      insertData.currency = body.currency;
+    }
+
+    // Add optional fields only if they are explicitly provided and not null/empty
+    if (body.description !== undefined && body.description !== null && body.description.trim() !== '') {
+      insertData.description = body.description.trim();
     }
     if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
       insertData.sizeSqft = body.sizeSqft;
@@ -324,25 +330,28 @@ export async function POST(request: NextRequest) {
     if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
       insertData.yearBuilt = body.yearBuilt;
     }
-    if (body.amenities !== undefined) {
+    // Only include amenities if it's a non-empty array
+    if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities) && body.amenities.length > 0) {
       insertData.amenities = body.amenities;
     }
-    if (body.images !== undefined && Array.isArray(body.images)) {
+    // Only include images if it's a non-empty array
+    if (body.images !== undefined && body.images !== null && Array.isArray(body.images) && body.images.length > 0) {
       insertData.images = body.images;
     }
-    if (body.purchasePrice !== undefined && body.purchasePrice !== null) {
+    if (body.purchasePrice !== undefined && body.purchasePrice !== null && body.purchasePrice > 0) {
       insertData.purchasePrice = body.purchasePrice;
     }
-    if (body.estimatedValue !== undefined && body.estimatedValue !== null) {
+    if (body.estimatedValue !== undefined && body.estimatedValue !== null && body.estimatedValue > 0) {
       insertData.estimatedValue = body.estimatedValue;
     }
-    if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null) {
+    if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null && body.monthlyExpenses > 0) {
       insertData.monthlyExpenses = body.monthlyExpenses;
     }
-    if (body.commissionRate !== undefined && body.commissionRate !== null) {
+    if (body.commissionRate !== undefined && body.commissionRate !== null && body.commissionRate > 0) {
       insertData.commissionRate = body.commissionRate;
     }
 
+    // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
     const newProperty = await db.insert(properties).values(insertData).returning();
 
     return NextResponse.json(newProperty[0], { status: 201 });

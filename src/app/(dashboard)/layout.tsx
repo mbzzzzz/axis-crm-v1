@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CardThemeProvider } from "@/components/card-theme-provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +41,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     .toUpperCase() || "U";
 
   return (
-    <CardThemeProvider userId={session.user.id}>
     <div className="min-h-screen bg-background">
       <SidebarProvider>
         <AppSidebar />
@@ -101,6 +99,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Toaster />
       </SidebarProvider>
     </div>
-    </CardThemeProvider>
   );
 }

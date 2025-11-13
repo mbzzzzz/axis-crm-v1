@@ -7,6 +7,7 @@ import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 import ThemeToggle from "@/components/ui/theme-toggle";
+import { GlobalThemeProvider } from "@/components/global-theme-provider";
 
 export const metadata: Metadata = {
   title: "Axis CRM - Real Estate Management Platform",
@@ -31,24 +32,26 @@ export default function RootLayout({
       <html lang="en" suppressHydrationWarning>
         <body className="antialiased">
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <ErrorReporter />
-            <Script
-              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
-              strategy="afterInteractive"
-              data-target-origin="*"
-              data-message-type="ROUTE_CHANGE"
-              data-include-search-params="true"
-              data-only-in-iframe="true"
-              data-debug="true"
-              data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-            />
-            {/* Global theme toggle */}
-            <div className="fixed right-4 top-4 z-50">
-              <ThemeToggle />
-            </div>
-            {children}
-            <Toaster />
-            <VisualEditsMessenger />
+            <GlobalThemeProvider>
+              <ErrorReporter />
+              <Script
+                src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+                strategy="afterInteractive"
+                data-target-origin="*"
+                data-message-type="ROUTE_CHANGE"
+                data-include-search-params="true"
+                data-only-in-iframe="true"
+                data-debug="true"
+                data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+              />
+              {/* Global theme toggle */}
+              <div className="fixed right-4 top-4 z-50">
+                <ThemeToggle />
+              </div>
+              {children}
+              <Toaster />
+              <VisualEditsMessenger />
+            </GlobalThemeProvider>
           </ThemeProvider>
         </body>
       </html>

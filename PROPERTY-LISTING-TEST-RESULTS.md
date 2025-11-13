@@ -29,7 +29,7 @@
   "address": "123 Main Street",
   "city": "New York",
   "state": "NY",
-  "zipCode": "10001",
+  "zipCode": "0001",
   "propertyType": "residential",
   "status": "available",
   "price": 2500000,
@@ -61,7 +61,7 @@
    - Shows "0 / 10 images" counter
    - Ready for image upload
 
-### ⚠️ Submission Error
+### ⚠️ Submission1 Error
 
 **Error:** Clerk middleware error when submitting form:
 ```

@@ -36,7 +36,13 @@ export function CardThemeProvider({ userId, children }: CardThemeProviderProps) 
   }, []);
 
   useEffect(() => {
-    if (!userId) return;
+    // Apply default theme immediately to prevent flash
+    syncCssVariables(getCardTheme(DEFAULT_CARD_THEME_KEY));
+
+    if (!userId) {
+      setIsLoading(false);
+      return;
+    }
 
     let ignore = false;
 
@@ -54,12 +60,14 @@ export function CardThemeProvider({ userId, children }: CardThemeProviderProps) 
           setThemeKey(data.themeKey as CardThemeKey);
           syncCssVariables(getCardTheme(data.themeKey));
         } else if (!ignore) {
-          syncCssVariables(getCardTheme(DEFAULT_CARD_THEME_KEY));
+          // Keep default theme if no preference found
+          setThemeKey(DEFAULT_CARD_THEME_KEY);
         }
       } catch (error) {
-        console.error(error);
+        console.error("Failed to load theme preference:", error);
         if (!ignore) {
-          syncCssVariables(getCardTheme(DEFAULT_CARD_THEME_KEY));
+          // Keep default theme on error
+          setThemeKey(DEFAULT_CARD_THEME_KEY);
         }
       } finally {
         if (!ignore) {
