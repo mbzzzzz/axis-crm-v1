@@ -11,13 +11,13 @@ const sizeMap = {
   sm: { width: 32, height: 32, maxHeight: "32px" },
   md: { width: 40, height: 40, maxHeight: "40px" },
   lg: { width: 56, height: 56, maxHeight: "56px" },
-  navbar: { width: 36, height: 36, maxHeight: "36px" }, // Optimized for navbar (fits in h-12 button with padding)
+  navbar: { width: 45, height: 45, maxHeight: "45px" }, // App logo in sidebar
 };
 
 const fullLogoSizeMap = {
   sm: { width: 140, height: 50, maxHeight: "50px" },
   md: { width: 180, height: 64, maxHeight: "64px" },
-  lg: { width: 260, height: 93, maxHeight: "93px" },
+  lg: { width: 350, height: 180, maxHeight: "200px" }, // Landing page and sign in logo
   navbar: { width: 160, height: 48, maxHeight: "48px" }, // Optimized for navbar header
 };
 
@@ -45,8 +45,8 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
           style={{ 
             maxHeight: dimensions.maxHeight,
             maxWidth: dimensions.maxHeight,
-            height: '100%',
-            width: 'auto'
+            height: dimensions.maxHeight,
+            width: dimensions.maxHeight
           }}
           priority
           unoptimized
@@ -62,8 +62,18 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
   const dimensions = fullLogoSizeMap[size];
   const src = getImageSrc("full");
   
+  // Special handling for landing page logo (lg size)
+  const isLandingPageLogo = size === "lg";
+  
   return (
-    <div className={`flex items-center shrink-0 ${className}`} style={{ maxHeight: dimensions.maxHeight, height: dimensions.maxHeight }}>
+    <div 
+      className={`flex items-center shrink-0 ${className}`} 
+      style={{ 
+        maxHeight: dimensions.maxHeight, 
+        height: isLandingPageLogo ? "180px" : dimensions.maxHeight,
+        width: isLandingPageLogo ? "350px" : "auto"
+      }}
+    >
       <Image
         src={src}
         alt="Axis CRM"
@@ -72,8 +82,8 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
         className="object-contain"
         style={{ 
           maxHeight: dimensions.maxHeight,
-          height: '100%',
-          width: 'auto'
+          height: isLandingPageLogo ? "180px" : "100%",
+          width: isLandingPageLogo ? "350px" : "auto"
         }}
         priority
         unoptimized
