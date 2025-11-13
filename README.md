@@ -14,6 +14,7 @@ A comprehensive CRM system for real estate agents and property managers, built w
 ## 📋 Features
 
 - ✅ Property Management
+- ✅ AI-Powered Property Description Generation (using Groq's low-token model)
 - ✅ Tenant Management
 - ✅ Invoice Generation & Tracking
 - ✅ Maintenance Request Tracking
@@ -31,8 +32,22 @@ A comprehensive CRM system for real estate agents and property managers, built w
    ```
 
 3. **Configure environment variables:**
-   - Copy `.env.local.example` to `.env.local`
-   - Add your Clerk and Supabase credentials
+   - Create `.env.local` file with the following variables:
+   ```env
+   # Clerk Authentication
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   
+   # Supabase Database
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_DATABASE_URL=your_supabase_database_url
+   
+   # Groq API (for AI-powered property description generation via Composio MCP)
+   GROQ_API_KEY=your_groq_api_key
+   ```
+   - Get your Groq API key from [https://console.groq.com](https://console.groq.com)
+   - For production (Vercel), add this as an environment variable in your Vercel project settings
 
 4. **Run the development server:**
    ```bash
@@ -44,6 +59,7 @@ A comprehensive CRM system for real estate agents and property managers, built w
 - [Supabase Setup Guide](./SUPABASE-SETUP.md) - Complete Supabase project setup
 - [Migration Guide](./MIGRATION-GUIDE.md) - Migration from better-auth to Clerk
 - [MCP Setup Guide](./MCP-SETUP.md) - Composio MCP server configuration
+- [Vercel Deployment Guide](./VERCEL-DEPLOYMENT.md) - Environment variables and deployment instructions
 
 ## 🔧 MCP Server Configuration
 

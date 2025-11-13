@@ -28,6 +28,7 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
   const userId = session?.user?.id || "";
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [formData, setFormData] = useState({
     title: property?.title || "",
     description: property?.description || "",
@@ -125,6 +126,49 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
     }
   };
 
+  const handleGenerateDescription = async () => {
+    // Validate required fields for description generation
+    if (!formData.title || !formData.address || !formData.city || !formData.state || !formData.propertyType || !formData.price) {
+      toast.error("Please fill in title, address, city, state, property type, and price before generating description");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const response = await fetch('/api/properties/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          propertyType: formData.propertyType,
+          price: typeof formData.price === "number" ? formData.price : parseFloat(formData.price as string),
+          currency: formData.currency,
+          sizeSqft: formData.sizeSqft ? parseInt(formData.sizeSqft as string) : undefined,
+          bedrooms: formData.bedrooms ? parseInt(formData.bedrooms as string) : undefined,
+          bathrooms: formData.bathrooms ? parseFloat(formData.bathrooms as string) : undefined,
+          yearBuilt: formData.yearBuilt ? parseInt(formData.yearBuilt as string) : undefined,
+          amenities: formData.amenities,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({ ...formData, description: data.description });
+        toast.success("Description generated successfully!");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to generate description");
+      }
+    } catch (error) {
+      toast.error("An error occurred while generating description");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Information */}
@@ -159,12 +203,25 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="description">Description</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateDescription}
+              disabled={isGeneratingDescription || !formData.title || !formData.address || !formData.city || !formData.state || !formData.propertyType || !formData.price}
+              className="text-xs"
+            >
+              {isGeneratingDescription ? "Generating..." : "✨ Auto Generate"}
+            </Button>
+          </div>
           <Textarea
             id="description"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             rows={3}
+            placeholder="Enter property description or click 'Auto Generate' to create one using AI"
           />
         </div>
       </div>
