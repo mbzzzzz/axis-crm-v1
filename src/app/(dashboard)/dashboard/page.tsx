@@ -14,6 +14,7 @@ import {
 import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import MagicBento, { BentoCardProps } from "@/components/magic-bento";
+import { useCardTheme } from "@/components/card-theme-provider";
 
 interface DashboardStats {
   occupancyRate: number;
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [occupancyData, setOccupancyData] = useState<any[]>([]);
   const [tenantActivities, setTenantActivities] = useState<TenantActivity[]>([]);
   const [bentoCards, setBentoCards] = useState<BentoCardProps[]>([]);
+  const { theme } = useCardTheme();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -156,39 +158,33 @@ export default function DashboardPage() {
         // Create Bento cards
         const cards: BentoCardProps[] = [
           {
-            color: '#060010',
             label: 'Occupancy Rate',
             description: 'Properties currently occupied',
             value: `${occupancyRate}%`,
             trend: occupancyRate > 0 ? 5 : 0,
           },
           {
-            color: '#060010',
             label: 'Total Income',
             description: 'Total rental income collected',
             value: totalRevenue,
             trend: trend,
           },
           {
-            color: '#060010',
             label: 'Average Rent',
             description: 'Average monthly rental amount',
             value: averageRent,
           },
           {
-            color: '#060010',
             label: 'Properties',
             description: 'Total properties managed',
             value: totalProperties,
           },
           {
-            color: '#060010',
             label: 'Active Tenants',
             description: 'Tenants with active leases',
             value: activeTenants,
           },
           {
-            color: '#060010',
             label: 'Maintenance',
             description: 'Pending maintenance requests',
             value: pendingMaintenance,
@@ -242,7 +238,7 @@ export default function DashboardPage() {
           clickEffect={true}
           spotlightRadius={300}
           particleCount={12}
-          glowColor="132, 0, 255"
+          theme={theme}
         />
       )}
 
@@ -250,14 +246,16 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Key Metrics</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card className="themed-panel border-0 shadow-none">
             <CardHeader>
               <CardTitle>Rental Income Trend</CardTitle>
               <div className="flex items-baseline gap-2">
                 <div className="text-3xl font-bold">
                   ${(stats?.totalRentalIncome || 0).toLocaleString()}
                 </div>
-                <div className="text-sm text-green-600">Last 12 Months +{stats?.rentalIncomeTrend || 0}%</div>
+                <div className="text-sm" style={{ color: theme.muted }}>
+                  Last 12 Months +{stats?.rentalIncomeTrend || 0}%
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -266,23 +264,29 @@ export default function DashboardPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={rentalIncomeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={2} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis dataKey="month" tick={{ fill: theme.muted }} stroke="transparent" />
+                    <YAxis tick={{ fill: theme.muted }} stroke="transparent" />
+                    <Tooltip
+                      contentStyle={{ background: theme.surface, borderRadius: 12, border: theme.border }}
+                      labelStyle={{ color: theme.text }}
+                      itemStyle={{ color: theme.accent }}
+                    />
+                    <Line type="monotone" dataKey="income" stroke={theme.accent} strokeWidth={2} dot={{ stroke: theme.accent }} />
                   </LineChart>
                 </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="themed-panel border-0 shadow-none">
             <CardHeader>
               <CardTitle>Property Occupancy</CardTitle>
               <div className="flex items-baseline gap-2">
                 <div className="text-3xl font-bold">{stats?.propertyOccupancy || 0}%</div>
-                <div className="text-sm text-red-600">Current -2%</div>
+                <div className="text-sm" style={{ color: theme.muted }}>
+                  Current -2%
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -291,11 +295,15 @@ export default function DashboardPage() {
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={occupancyData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="property" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="occupancy" fill="#94a3b8" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                    <XAxis dataKey="property" tick={{ fill: theme.muted }} stroke="transparent" />
+                    <YAxis tick={{ fill: theme.muted }} stroke="transparent" />
+                    <Tooltip
+                      contentStyle={{ background: theme.surface, borderRadius: 12, border: theme.border }}
+                      labelStyle={{ color: theme.text }}
+                      itemStyle={{ color: theme.accent }}
+                    />
+                    <Bar dataKey="occupancy" fill={theme.accent} radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

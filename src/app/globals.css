@@ -83,6 +83,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --card-theme-surface: linear-gradient(135deg, rgba(38, 8, 70, 0.95), rgba(12, 3, 28, 0.92));
+  --card-theme-border: rgba(168, 85, 247, 0.45);
+  --card-theme-text: rgba(248, 250, 255, 0.95);
+  --card-theme-muted: rgba(226, 232, 255, 0.6);
+  --card-theme-accent: #a855f7;
+  --card-theme-glow-rgb: 132, 0, 255;
 }
 
 .dark {
@@ -117,6 +123,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --card-theme-surface: linear-gradient(135deg, rgba(38, 8, 70, 0.95), rgba(12, 3, 28, 0.92));
+  --card-theme-border: rgba(168, 85, 247, 0.45);
+  --card-theme-text: rgba(248, 250, 255, 0.95);
+  --card-theme-muted: rgba(226, 232, 255, 0.6);
+  --card-theme-accent: #a855f7;
+  --card-theme-glow-rgb: 132, 0, 255;
 }
 
 @layer base {
@@ -131,4 +143,28 @@
 /* Hide Next.js error overlay portal */
 nextjs-portal {
   display: none !important;
+}
+
+.themed-panel {
+  background: var(--card-theme-surface);
+  border: 1px solid var(--card-theme-border);
+  color: var(--card-theme-text);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 24px 48px rgba(var(--card-theme-glow-rgb), 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.themed-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top left, rgba(var(--card-theme-glow-rgb), 0.22), transparent 60%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.themed-panel .text-muted-foreground,
+.themed-panel .card__description {
+  color: var(--card-theme-muted) !important;
 }

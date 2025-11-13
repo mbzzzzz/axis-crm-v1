@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
+import { CardTheme, getCardTheme } from '@/lib/card-themes';
 
 export interface BentoCardProps {
   color?: string;
@@ -27,6 +28,7 @@ export interface MagicBentoProps {
   glowColor?: string;
   clickEffect?: boolean;
   enableMagnetism?: boolean;
+  theme?: CardTheme;
 }
 
 const DEFAULT_PARTICLE_COUNT = 12;
@@ -491,13 +493,16 @@ const MagicBento: React.FC<MagicBentoProps> = ({
   spotlightRadius = DEFAULT_SPOTLIGHT_RADIUS,
   particleCount = DEFAULT_PARTICLE_COUNT,
   enableTilt = false,
-  glowColor = DEFAULT_GLOW_COLOR,
+  glowColor,
   clickEffect = true,
-  enableMagnetism = true
+  enableMagnetism = true,
+  theme,
 }) => {
   const gridRef = useRef<HTMLDivElement>(null);
   const isMobile = useMobileDetection();
   const shouldDisableAnimations = disableAnimations || isMobile;
+  const resolvedTheme = theme ?? getCardTheme();
+  const resolvedGlow = glowColor ?? resolvedTheme.glowRgb;
 
   return (
     <>
@@ -508,13 +513,13 @@ const MagicBento: React.FC<MagicBentoProps> = ({
             --glow-y: 50%;
             --glow-intensity: 0;
             --glow-radius: 200px;
-            --glow-color: ${glowColor};
-            --border-color: #392e4e;
-            --background-dark: #060010;
-            --white: hsl(0, 0%, 100%);
-            --purple-primary: rgba(132, 0, 255, 1);
-            --purple-glow: rgba(132, 0, 255, 0.2);
-            --purple-border: rgba(132, 0, 255, 0.8);
+            --glow-color: ${resolvedGlow};
+            --border-color: ${resolvedTheme.border};
+            --background-dark: ${resolvedTheme.surface};
+            --white: ${resolvedTheme.text};
+            --purple-primary: ${resolvedTheme.accent};
+            --purple-glow: rgba(${resolvedGlow}, 0.2);
+            --purple-border: ${resolvedTheme.border};
           }
           
           .card-responsive {
@@ -555,8 +560,8 @@ const MagicBento: React.FC<MagicBentoProps> = ({
             inset: 0;
             padding: 6px;
             background: radial-gradient(var(--glow-radius) circle at var(--glow-x) var(--glow-y),
-                rgba(${glowColor}, calc(var(--glow-intensity) * 0.8)) 0%,
-                rgba(${glowColor}, calc(var(--glow-intensity) * 0.4)) 30%,
+                rgba(${resolvedGlow}, calc(var(--glow-intensity) * 0.8)) 0%,
+                rgba(${resolvedGlow}, calc(var(--glow-intensity) * 0.4)) 30%,
                 transparent 60%);
             border-radius: inherit;
             mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -573,7 +578,7 @@ const MagicBento: React.FC<MagicBentoProps> = ({
           }
           
           .card--border-glow:hover {
-            box-shadow: 0 4px 20px rgba(46, 24, 78, 0.4), 0 0 30px rgba(${glowColor}, 0.2);
+            box-shadow: 0 4px 20px rgba(46, 24, 78, 0.4), 0 0 30px rgba(${resolvedGlow}, 0.2);
           }
           
           .particle::before {
@@ -583,13 +588,13 @@ const MagicBento: React.FC<MagicBentoProps> = ({
             left: -2px;
             right: -2px;
             bottom: -2px;
-            background: rgba(${glowColor}, 0.2);
+            background: rgba(${resolvedGlow}, 0.2);
             border-radius: 50%;
             z-index: -1;
           }
           
           .particle-container:hover {
-            box-shadow: 0 4px 20px rgba(46, 24, 78, 0.2), 0 0 30px rgba(${glowColor}, 0.2);
+            box-shadow: 0 4px 20px rgba(46, 24, 78, 0.2), 0 0 30px rgba(${resolvedGlow}, 0.2);
           }
           
           .text-clamp-1 {
@@ -632,7 +637,7 @@ const MagicBento: React.FC<MagicBentoProps> = ({
           disableAnimations={shouldDisableAnimations}
           enabled={enableSpotlight}
           spotlightRadius={spotlightRadius}
-          glowColor={glowColor}
+          glowColor={resolvedGlow}
         />
       )}
 
@@ -649,9 +654,9 @@ const MagicBento: React.FC<MagicBentoProps> = ({
             }`;
 
             const cardStyle = {
-              backgroundColor: card.color || 'var(--background-dark)',
-              borderColor: 'var(--border-color)',
-              color: 'var(--white)',
+              background: card.color || resolvedTheme.surface,
+              borderColor: resolvedTheme.border,
+              color: resolvedTheme.text,
               '--glow-x': '50%',
               '--glow-y': '50%',
               '--glow-intensity': '0',
@@ -666,15 +671,15 @@ const MagicBento: React.FC<MagicBentoProps> = ({
                   style={cardStyle}
                   disableAnimations={shouldDisableAnimations}
                   particleCount={particleCount}
-                  glowColor={glowColor}
+                  glowColor={resolvedGlow}
                   enableTilt={enableTilt}
                   clickEffect={clickEffect}
                   enableMagnetism={enableMagnetism}
                 >
-                  <div className="card__header flex justify-between gap-3 relative text-white">
+                  <div className="card__header flex justify-between gap-3 relative text-[color:var(--white)]">
                     <span className="card__label text-sm font-medium opacity-80">{card.label}</span>
                   </div>
-                  <div className="card__content flex flex-col relative text-white">
+                  <div className="card__content flex flex-col relative text-[color:var(--white)]">
                     <h3 className={`card__title font-semibold text-2xl m-0 mb-2 ${textAutoHide ? 'text-clamp-1' : ''}`}>
                       {card.value !== undefined ? (
                         typeof card.value === 'string' 
@@ -794,7 +799,7 @@ const MagicBento: React.FC<MagicBentoProps> = ({
                       width: ${maxDistance * 2}px;
                       height: ${maxDistance * 2}px;
                       border-radius: 50%;
-                      background: radial-gradient(circle, rgba(${glowColor}, 0.4) 0%, rgba(${glowColor}, 0.2) 30%, transparent 70%);
+                      background: radial-gradient(circle, rgba(${resolvedGlow}, 0.4) 0%, rgba(${resolvedGlow}, 0.2) 30%, transparent 70%);
                       left: ${x - maxDistance}px;
                       top: ${y - maxDistance}px;
                       pointer-events: none;
@@ -824,10 +829,10 @@ const MagicBento: React.FC<MagicBentoProps> = ({
                   el.addEventListener('click', handleClick);
                 }}
               >
-                <div className="card__header flex justify-between gap-3 relative text-white">
+                <div className="card__header flex justify-between gap-3 relative text-[color:var(--white)]">
                   <span className="card__label text-sm font-medium opacity-80">{card.label}</span>
                 </div>
-                <div className="card__content flex flex-col relative text-white">
+                <div className="card__content flex flex-col relative text-[color:var(--white)]">
                   <h3 className={`card__title font-semibold text-2xl m-0 mb-2 ${textAutoHide ? 'text-clamp-1' : ''}`}>
                     {card.value !== undefined ? (
                       typeof card.value === 'string' 

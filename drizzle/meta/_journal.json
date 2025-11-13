@@ -15,6 +15,13 @@
       "when": 1762364560872,
       "tag": "0001_right_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763050794000,
+      "tag": "0003_add_user_preferences",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,9 @@ import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import MagicBento from "@/components/magic-bento";
+import { useCardTheme } from "@/components/card-theme-provider";
+import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -23,6 +26,7 @@ export default function SettingsPage() {
     email: "",
     currentPlan: "Free",
   });
+  const { theme, themeKey, setTheme, isSaving } = useCardTheme();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -133,6 +137,52 @@ export default function SettingsPage() {
         </Card>
       </div>
 
+      {/* Theme Customization */}
+      <Card className="themed-panel border-0 shadow-none">
+        <CardHeader>
+          <CardTitle>Dashboard Theme</CardTitle>
+          <CardDescription>
+            Choose a glow palette for your analytics cards. Your selection is saved to your account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {CARD_THEME_OPTIONS.map((option) => {
+              const isActive = option.key === themeKey;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setTheme(option.key)}
+                  disabled={isSaving || isActive}
+                  className={`relative flex flex-col items-start justify-between rounded-2xl border p-5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                    isActive ? "ring-2 ring-offset-2 ring-offset-background ring-white/60" : "border-transparent"
+                  }`}
+                  style={{
+                    background: option.surface,
+                    borderColor: isActive ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
+                    color: option.text,
+                    boxShadow: isActive ? `0 12px 35px rgba(${option.glowRgb}, 0.25)` : `0 8px 24px rgba(0,0,0,0.2)`,
+                    opacity: isSaving && !isActive ? 0.6 : 1,
+                  }}
+                >
+                  <span className="text-sm uppercase tracking-wide opacity-80">{option.name}</span>
+                  <span className="mt-3 text-xs opacity-70">{option.description}</span>
+                  {isActive && (
+                    <span className="mt-4 rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
+                      Active theme
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Colors update across your dashboard analytics, charts, and insight cards.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Key Stats */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Key Stats</h2>
@@ -150,38 +200,30 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Properties Managed
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.totalProperties}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Number of Tenants
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.totalTenants}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Average Rating
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stats.averageRating}</div>
-              </CardContent>
-            </Card>
-          </div>
+          <MagicBento
+            cards={[
+              {
+                label: "Total Properties",
+                description: "Properties actively managed",
+                value: stats.totalProperties,
+              },
+              {
+                label: "Total Tenants",
+                description: "Tenants with current leases",
+                value: stats.totalTenants,
+              },
+              {
+                label: "Average Rating",
+                description: "Feedback from recent surveys",
+                value: stats.averageRating,
+              },
+            ]}
+            theme={theme}
+            enableTilt={false}
+            particleCount={8}
+            enableSpotlight={true}
+            enableBorderGlow={true}
+          />
         )}
       </div>
     </div>

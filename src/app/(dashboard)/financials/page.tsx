@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Bar, BarChart, Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import MagicBento from "@/components/magic-bento";
+import { useCardTheme } from "@/components/card-theme-provider";
 
 export default function FinancialsPage() {
   const [salePrice, setSalePrice] = useState("");
@@ -19,6 +21,7 @@ export default function FinancialsPage() {
   const [netProfit, setNetProfit] = useState(0);
   const [incomeVsExpensesData, setIncomeVsExpensesData] = useState<any[]>([]);
   const [rentalRevenueData, setRentalRevenueData] = useState<any[]>([]);
+  const { theme } = useCardTheme();
 
   useEffect(() => {
     const fetchFinancialData = async () => {
@@ -118,52 +121,45 @@ export default function FinancialsPage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Revenue
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">${totalRevenue.toLocaleString()}</div>
-                <div className="text-sm text-green-600 mt-1">+15%</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Expenses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">${totalExpenses.toLocaleString()}</div>
-                <div className="text-sm text-red-600 mt-1">-10%</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Net Profit
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">${netProfit.toLocaleString()}</div>
-                <div className="text-sm text-green-600 mt-1">+20%</div>
-              </CardContent>
-            </Card>
-          </div>
+          <MagicBento
+            cards={[
+              {
+                label: "Total Revenue",
+                description: "Combined paid invoices",
+                value: totalRevenue,
+                trend: 15,
+              },
+              {
+                label: "Total Expenses",
+                description: "Annualized property expenses",
+                value: totalExpenses,
+                trend: -10,
+              },
+              {
+                label: "Net Profit",
+                description: "Revenue minus expenses",
+                value: netProfit,
+                trend: netProfit >= 0 ? 12 : -12,
+              },
+            ]}
+            theme={theme}
+            enableTilt={false}
+            particleCount={10}
+            enableMagnetism={true}
+            enableSpotlight={true}
+            enableBorderGlow={true}
+          />
         )}
       </div>
 
       {/* Income vs Expenses Section */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Income vs. Expenses</h2>
-        <Card>
+        <Card className="themed-panel border-0 shadow-none">
           <CardHeader>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-bold">${totalRevenue.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">This Year +15%</div>
+              <div className="text-sm" style={{ color: theme.muted }}>This Year +15%</div>
             </div>
           </CardHeader>
           <CardContent>
@@ -172,11 +168,15 @@ export default function FinancialsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={incomeVsExpensesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="income" fill="#94a3b8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="month" tick={{ fill: theme.muted }} stroke="transparent" />
+                  <YAxis tick={{ fill: theme.muted }} stroke="transparent" />
+                  <Tooltip
+                    contentStyle={{ background: theme.surface, borderRadius: 12, border: theme.border }}
+                    labelStyle={{ color: theme.text }}
+                    itemStyle={{ color: theme.accent }}
+                  />
+                  <Bar dataKey="income" fill={theme.accent} radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -187,11 +187,11 @@ export default function FinancialsPage() {
       {/* Rental Revenue Trends Section */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Rental Revenue Trends</h2>
-        <Card>
+        <Card className="themed-panel border-0 shadow-none">
           <CardHeader>
             <div className="flex items-baseline gap-2">
               <div className="text-3xl font-bold">$1,000,000</div>
-              <div className="text-sm text-muted-foreground">Last 12 Months +12%</div>
+              <div className="text-sm" style={{ color: theme.muted }}>Last 12 Months +12%</div>
             </div>
           </CardHeader>
           <CardContent>
@@ -202,18 +202,22 @@ export default function FinancialsPage() {
                 <AreaChart data={rentalRevenueData}>
                   <defs>
                     <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      <stop offset="5%" stopColor={theme.accent} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={theme.accent} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                  <XAxis dataKey="month" tick={{ fill: theme.muted }} stroke="transparent" />
+                  <YAxis tick={{ fill: theme.muted }} stroke="transparent" />
+                  <Tooltip
+                    contentStyle={{ background: theme.surface, borderRadius: 12, border: theme.border }}
+                    labelStyle={{ color: theme.text }}
+                    itemStyle={{ color: theme.accent }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="#3b82f6"
+                    stroke={theme.accent}
                     fillOpacity={1}
                     fill="url(#colorRevenue)"
                   />
@@ -267,10 +271,10 @@ export default function FinancialsPage() {
               Calculate Profit
             </Button>
             {profit !== null && (
-              <Card className="bg-muted">
+              <Card className="themed-panel border-0">
                 <CardContent className="pt-6">
                   <div className="space-y-2">
-                    <div className="text-sm text-muted-foreground">Profit from Sale</div>
+                    <div className="text-sm" style={{ color: theme.muted }}>Profit from Sale</div>
                     <div className="text-3xl font-bold">${profit.toLocaleString()}</div>
                   </div>
                 </CardContent>

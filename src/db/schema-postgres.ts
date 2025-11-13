@@ -84,6 +84,14 @@ export const maintenanceRequests = pgTable('maintenance_requests', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const userPreferences = pgTable('user_preferences', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').unique().notNull(),
+  cardTheme: text('card_theme').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Relations
 export const propertiesRelations = relations(properties, ({ many }) => ({
   invoices: many(invoices),
