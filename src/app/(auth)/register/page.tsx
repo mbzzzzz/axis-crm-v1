@@ -2,8 +2,8 @@
 
 import { SignUp } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2 } from "lucide-react";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
+import { AxisLogo } from "@/components/axis-logo";
 
 export default function RegisterPage() {
   return (
@@ -15,10 +15,9 @@ export default function RegisterPage() {
 
       <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
         <CardHeader className="space-y-1 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-white/20 border border-white/20">
-            <Building2 className="size-8 text-white" />
+          <div className="mx-auto mb-4 flex items-center justify-center">
+            <AxisLogo variant="full" size="lg" className="text-white" />
           </div>
-          <CardTitle className="text-3xl font-extrabold text-white drop-shadow">Axis CRM</CardTitle>
           <CardDescription className="text-base text-white/80">
             Create your account to get started
           </CardDescription>

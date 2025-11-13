@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Building2, BarChart3, FileText, Mail } from "lucide-react";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
+import { AxisLogo } from "@/components/axis-logo";
 
 export default function Home() {
   const router = useRouter();
@@ -17,10 +18,7 @@ export default function Home() {
       {/* Header */}
       <header className="relative z-10 border-b border-white/20 bg-black/30 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="size-8 text-white" />
-            <span className="text-xl font-bold text-white">Axis CRM</span>
-          </div>
+          <AxisLogo variant="full" size="md" className="text-white" />
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.push("/login")} className="text-white hover:bg-white/20 hover:text-white">
               Sign in

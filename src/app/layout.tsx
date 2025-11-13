@@ -13,7 +13,10 @@ export const metadata: Metadata = {
   title: "Axis CRM - Real Estate Management Platform",
   description: "Comprehensive CRM for real estate agents and property managers",
   icons: {
-    icon: "/next.svg",
+    icon: [
+      { url: "/icon logo.png", type: "image/png" },
+    ],
+    apple: "/icon logo.png",
   },
 };
 

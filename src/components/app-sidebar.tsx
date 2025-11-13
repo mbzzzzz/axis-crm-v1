@@ -39,6 +39,7 @@ import {
 import { useSession } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@clerk/nextjs";
+import { AxisLogo } from "@/components/axis-logo";
 
 const navItems = [
   {
@@ -97,9 +98,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <div className="flex items-center gap-2">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Building2 className="size-4" />
-                </div>
+                <AxisLogo variant="icon" size="sm" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Axis CRM</span>
                   <span className="truncate text-xs">Real Estate Management</span>
