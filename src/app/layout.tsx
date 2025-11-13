@@ -6,7 +6,7 @@ import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
-import ThemeToggle from "@/components/ui/theme-toggle";
+import { ConditionalThemeToggle } from "@/components/conditional-theme-toggle";
 import { GlobalThemeProvider } from "@/components/global-theme-provider";
 
 export const metadata: Metadata = {
@@ -47,10 +47,8 @@ export default function RootLayout({
                 data-debug="true"
                 data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
               />
-              {/* Global theme toggle */}
-              <div className="fixed right-4 top-4 z-50">
-                <ThemeToggle />
-              </div>
+              {/* Global theme toggle - hidden on landing page */}
+              <ConditionalThemeToggle />
               {children}
               <Toaster />
               <VisualEditsMessenger />

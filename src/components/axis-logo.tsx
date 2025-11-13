@@ -18,7 +18,7 @@ const fullLogoSizeMap = {
   sm: { width: 140, height: 50, maxHeight: "50px" },
   md: { width: 180, height: 64, maxHeight: "64px" },
   lg: { width: 180, height: 350, maxHeight: "200px" }, // Landing page and sign in logo
-  navbar: { width: 160, height: 48, maxHeight: "48px" }, // Optimized for navbar header
+  navbar: { width: 350, height: 180, maxHeight: "200px" }, // Landing page header logo
 };
 
 // Use the provided logo files
@@ -62,16 +62,16 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
   const dimensions = fullLogoSizeMap[size];
   const src = getImageSrc("full");
   
-  // Special handling for landing page logo (lg size)
-  const isLandingPageLogo = size === "lg";
+  // Special handling for landing page logos
+  const isLandingPageLogo = size === "lg" || size === "navbar";
   
   return (
     <div 
       className={`flex items-center shrink-0 ${className}`} 
       style={{ 
         maxHeight: dimensions.maxHeight, 
-        height: isLandingPageLogo ? "350px" : dimensions.maxHeight,
-        width: isLandingPageLogo ? "180px" : "auto"
+        height: isLandingPageLogo ? (size === "lg" ? "350px" : "180px") : dimensions.maxHeight,
+        width: isLandingPageLogo ? (size === "lg" ? "180px" : "350px") : "auto"
       }}
     >
       <Image
@@ -83,8 +83,8 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
         style={{ 
           color: "transparent",
           maxHeight: dimensions.maxHeight,
-          height: isLandingPageLogo ? "350px" : "100%",
-          width: isLandingPageLogo ? "180px" : "auto"
+          height: isLandingPageLogo ? (size === "lg" ? "350px" : "180px") : "100%",
+          width: isLandingPageLogo ? (size === "lg" ? "180px" : "350px") : "auto"
         }}
         priority
         unoptimized
