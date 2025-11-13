@@ -18,7 +18,7 @@ export default function Home() {
       {/* Header */}
       <header className="relative z-10 border-b border-white/20 bg-black/30 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <AxisLogo variant="full" size="md" className="text-white" />
+          <AxisLogo variant="full" size="navbar" className="text-white" />
           <div className="flex items-center gap-4">
             <Button variant="ghost" onClick={() => router.push("/login")} className="text-white hover:bg-white/20 hover:text-white">
               Sign in

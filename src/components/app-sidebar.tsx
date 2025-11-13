@@ -98,7 +98,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <div className="flex items-center gap-2">
-                <AxisLogo variant="icon" size="sm" />
+                <AxisLogo variant="icon" size="navbar" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">Axis CRM</span>
                   <span className="truncate text-xs">Real Estate Management</span>
