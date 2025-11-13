@@ -314,41 +314,77 @@ export async function POST(request: NextRequest) {
       insertData.currency = body.currency;
     }
 
-    // Add optional fields only if they are explicitly provided and not null/empty
+    // Add optional fields - explicitly set to null if not provided to avoid Drizzle default issues
     if (body.description !== undefined && body.description !== null && body.description.trim() !== '') {
       insertData.description = body.description.trim();
+    } else {
+      insertData.description = null;
     }
+    
     if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
       insertData.sizeSqft = body.sizeSqft;
+    } else {
+      insertData.sizeSqft = null;
     }
+    
     if (body.bedrooms !== undefined && body.bedrooms !== null) {
       insertData.bedrooms = body.bedrooms;
+    } else {
+      insertData.bedrooms = null;
     }
+    
     if (body.bathrooms !== undefined && body.bathrooms !== null) {
       insertData.bathrooms = body.bathrooms;
+    } else {
+      insertData.bathrooms = null;
     }
+    
     if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
       insertData.yearBuilt = body.yearBuilt;
+    } else {
+      insertData.yearBuilt = null;
     }
-    // Only include amenities if it's a non-empty array
+    
+    // Handle amenities - set to null if not provided or empty array
     if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities) && body.amenities.length > 0) {
       insertData.amenities = body.amenities;
+    } else {
+      insertData.amenities = null;
     }
-    // Only include images if it's a non-empty array
+    
+    // Handle images - set to null if not provided or empty array
     if (body.images !== undefined && body.images !== null && Array.isArray(body.images) && body.images.length > 0) {
       insertData.images = body.images;
+    } else {
+      insertData.images = null;
     }
+    
+    // Handle purchasePrice - set to null if not provided or 0
     if (body.purchasePrice !== undefined && body.purchasePrice !== null && body.purchasePrice > 0) {
       insertData.purchasePrice = body.purchasePrice;
+    } else {
+      insertData.purchasePrice = null;
     }
+    
+    // Handle estimatedValue - set to null if not provided or 0
     if (body.estimatedValue !== undefined && body.estimatedValue !== null && body.estimatedValue > 0) {
       insertData.estimatedValue = body.estimatedValue;
+    } else {
+      insertData.estimatedValue = null;
     }
+    
+    // Handle monthlyExpenses - set to null if not provided or 0
     if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null && body.monthlyExpenses > 0) {
       insertData.monthlyExpenses = body.monthlyExpenses;
+    } else {
+      insertData.monthlyExpenses = null;
     }
+    
+    // Handle commissionRate - set to null if not provided or 0
     if (body.commissionRate !== undefined && body.commissionRate !== null && body.commissionRate > 0) {
       insertData.commissionRate = body.commissionRate;
+    } else {
+      insertData.commissionRate = null;
     }
 
     // Use type-safe insert - Drizzle will handle serial fields and defaults correctly

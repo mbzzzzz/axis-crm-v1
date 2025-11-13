@@ -107,15 +107,31 @@ export function CardThemeProvider({ userId, children }: CardThemeProviderProps) 
         });
 
         if (!response.ok) {
-          throw new Error("Failed to save theme preference");
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData?.error || `Failed to save theme preference (${response.status})`;
+          
+          // Check if it's a table not found error
+          if (errorData?.code === "TABLE_NOT_FOUND") {
+            console.error("Database table not found. Migration required:", errorData);
+            toast.error("Database setup required. Please contact support.", {
+              description: "The user_preferences table needs to be created.",
+            });
+          } else {
+            console.error("Theme update error:", errorData);
+            toast.error(errorMessage);
+          }
+          
+          throw new Error(errorMessage);
         }
 
         toast.success("Dashboard theme updated");
       } catch (error) {
-        console.error(error);
-        toast.error("Unable to update theme");
-        setThemeKey(previousKey);
-        syncCssVariables(getCardTheme(previousKey));
+        console.error("Theme update failed:", error);
+        // Only revert if it's not a network error (user might want to retry)
+        if (error instanceof Error && !error.message.includes("fetch")) {
+          setThemeKey(previousKey);
+          syncCssVariables(getCardTheme(previousKey));
+        }
       } finally {
         setIsSaving(false);
       }

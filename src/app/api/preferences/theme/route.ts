@@ -58,21 +58,52 @@ export async function PUT(request: NextRequest) {
 
     const now = new Date();
 
-    await db
-      .insert(userPreferences)
-      .values({
-        userId: user.id,
-        cardTheme: requestedTheme,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: userPreferences.userId,
-        set: {
+    try {
+      // Check if preference already exists
+      const existing = await db
+        .select({ id: userPreferences.id })
+        .from(userPreferences)
+        .where(eq(userPreferences.userId, user.id))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing preference
+        await db
+          .update(userPreferences)
+          .set({
+            cardTheme: requestedTheme,
+            updatedAt: now,
+          })
+          .where(eq(userPreferences.userId, user.id));
+      } else {
+        // Insert new preference
+        await db.insert(userPreferences).values({
+          userId: user.id,
           cardTheme: requestedTheme,
+          createdAt: now,
           updatedAt: now,
-        },
+        });
+      }
+    } catch (dbError: any) {
+      // Check if it's a table doesn't exist error
+      if (dbError?.message?.includes("does not exist") || dbError?.code === "42P01") {
+        console.error("Database table 'user_preferences' does not exist. Please run the migration:", dbError);
+        return NextResponse.json(
+          { 
+            error: "Database table not found. Please run the migration: drizzle/0003_add_user_preferences.sql",
+            code: "TABLE_NOT_FOUND",
+            details: dbError.message 
+          },
+          { status: 500 }
+        );
+      }
+      console.error("Database error details:", {
+        message: dbError?.message,
+        code: dbError?.code,
+        stack: dbError?.stack,
       });
+      throw dbError;
+    }
 
     return NextResponse.json({
       themeKey: requestedTheme,
@@ -80,8 +111,9 @@ export async function PUT(request: NextRequest) {
     });
   } catch (error) {
     console.error("PUT /api/preferences/theme error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal server error: " + (error as Error).message },
+      { error: "Internal server error: " + errorMessage, code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
