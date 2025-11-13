@@ -17,7 +17,7 @@ const sizeMap = {
 const fullLogoSizeMap = {
   sm: { width: 140, height: 50, maxHeight: "50px" },
   md: { width: 180, height: 64, maxHeight: "64px" },
-  lg: { width: 350, height: 180, maxHeight: "200px" }, // Landing page and sign in logo
+  lg: { width: 180, height: 350, maxHeight: "200px" }, // Landing page and sign in logo
   navbar: { width: 160, height: 48, maxHeight: "48px" }, // Optimized for navbar header
 };
 
@@ -70,8 +70,8 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
       className={`flex items-center shrink-0 ${className}`} 
       style={{ 
         maxHeight: dimensions.maxHeight, 
-        height: isLandingPageLogo ? "180px" : dimensions.maxHeight,
-        width: isLandingPageLogo ? "350px" : "auto"
+        height: isLandingPageLogo ? "350px" : dimensions.maxHeight,
+        width: isLandingPageLogo ? "180px" : "auto"
       }}
     >
       <Image
@@ -81,9 +81,10 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
         height={dimensions.height}
         className="object-contain"
         style={{ 
+          color: "transparent",
           maxHeight: dimensions.maxHeight,
-          height: isLandingPageLogo ? "180px" : "100%",
-          width: isLandingPageLogo ? "350px" : "auto"
+          height: isLandingPageLogo ? "350px" : "100%",
+          width: isLandingPageLogo ? "180px" : "auto"
         }}
         priority
         unoptimized
