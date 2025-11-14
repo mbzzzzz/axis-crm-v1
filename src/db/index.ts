@@ -12,6 +12,10 @@ if (!connectionString) {
 // Create the connection
 const client = postgres(connectionString, {
   max: 1, // Connection pool size
+  onnotice: () => {}, // Suppress notices
+  transform: {
+    undefined: null, // Transform undefined to null for PostgreSQL
+  },
 });
 
 export const db = drizzle(client, { schema });

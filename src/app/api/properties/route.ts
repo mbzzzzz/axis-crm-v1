@@ -293,8 +293,7 @@ export async function POST(request: NextRequest) {
 
     // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
     // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
-    // NOTE: createdAt and updatedAt have defaults, but we set them explicitly for consistency
-    const now = new Date();
+    // NOTE: createdAt and updatedAt have defaults in the schema, let the database handle them
     const insertData: Record<string, any> = {
       userId: user.id, // CRITICAL: Use Clerk user ID
       title: body.title.trim(),
@@ -305,8 +304,6 @@ export async function POST(request: NextRequest) {
       propertyType: body.propertyType,
       status: body.status,
       price: body.price,
-      createdAt: now,
-      updatedAt: now,
     };
 
     // Add currency if provided, otherwise let default handle it
@@ -388,13 +385,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
+    // Note: Do not include 'id', 'createdAt', or 'updatedAt' in insertData
+    // They are handled by the database (SERIAL for id, defaultNow() for timestamps)
     const newProperty = await db.insert(properties).values(insertData).returning();
 
     return NextResponse.json(newProperty[0], { status: 201 });
   } catch (error) {
     console.error('POST error:', error);
+    
+    // Extract PostgreSQL-specific error details
+    let errorMessage = 'Unknown error';
+    let errorDetails: any = {};
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      };
+      
+      // Check if it's a postgres error with additional properties
+      const pgError = error as any;
+      if (pgError.code) errorDetails.code = pgError.code;
+      if (pgError.detail) errorDetails.detail = pgError.detail;
+      if (pgError.hint) errorDetails.hint = pgError.hint;
+      if (pgError.position) errorDetails.position = pgError.position;
+      if (pgError.internalPosition) errorDetails.internalPosition = pgError.internalPosition;
+      if (pgError.internalQuery) errorDetails.internalQuery = pgError.internalQuery;
+      if (pgError.where) errorDetails.where = pgError.where;
+      if (pgError.schema) errorDetails.schema = pgError.schema;
+      if (pgError.table) errorDetails.table = pgError.table;
+      if (pgError.column) errorDetails.column = pgError.column;
+      if (pgError.dataType) errorDetails.dataType = pgError.dataType;
+      if (pgError.constraint) errorDetails.constraint = pgError.constraint;
+    } else {
+      errorMessage = String(error);
+      errorDetails = { raw: error };
+    }
+    
+    console.error('POST error details:', errorDetails);
+    
     return NextResponse.json(
-      { error: 'Internal server error: ' + (error as Error).message },
+      { 
+        error: 'Internal server error: ' + errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+      },
       { status: 500 }
     );
   }

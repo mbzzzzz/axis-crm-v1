@@ -6,7 +6,8 @@
         "dev": "next dev --turbopack",
         "build": "next build",
         "start": "next start",
-        "lint": "next lint"
+        "lint": "next lint",
+        "check-db": "tsx scripts/check-supabase-structure.ts"
     },
     "dependencies": {
         "@babel/parser": "^7.28.5",
