@@ -41,29 +41,54 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            // CRITICAL: Filter by userId to ensure data isolation
+            // CRITICAL SECURITY: Filter by userId to ensure data isolation
+            // This ensures users can ONLY access properties they created
+            if (!user.id || typeof user.id !== 'string') {
+                console.error('Invalid user ID in GET /api/properties?id=', id, user.id);
+                return NextResponse.json(
+                    { error: 'Invalid user authentication', code: 'INVALID_USER' },
+                    { status: 401 }
+                );
+            }
+
             const property = await db
                 .select()
                 .from(properties)
                 .where(
                     and(
                         eq(properties.id, parseInt(id)),
-                        eq(properties.userId, user.id) // Use Clerk user ID
+                        eq(properties.userId, user.id) // REQUIRED: Use Clerk user ID for security
                     )
                 )
                 .limit(1);
 
             if (property.length === 0) {
+                // Property doesn't exist OR doesn't belong to this user
+                // We return "not found" to avoid revealing if property exists for other users
                 return NextResponse.json(
                     { error: 'Property not found', code: 'NOT_FOUND' },
                     { status: 404 }
                 );
             }
 
+            // Log for debugging (only in development)
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[GET /api/properties?id=${id}] User ${user.id} accessed property ${id}`);
+            }
+
             return NextResponse.json(property[0], { status: 200 });
         }
 
         // List properties - CRITICAL: Only return current user's properties
+        // SECURITY: This ensures users can ONLY see their own properties
+        if (!user.id || typeof user.id !== 'string') {
+            console.error('Invalid user ID in GET /api/properties:', user.id);
+            return NextResponse.json(
+                { error: 'Invalid user authentication', code: 'INVALID_USER' },
+                { status: 401 }
+            );
+        }
+
         const limit = Math.min(parseInt(searchParams.get('limit') ?? '100'), 100);
         const offset = parseInt(searchParams.get('offset') ?? '0');
         const search = searchParams.get('search');
@@ -71,9 +96,10 @@ export async function GET(request: NextRequest) {
         const status = searchParams.get('status');
         const city = searchParams.get('city');
 
+        // CRITICAL SECURITY: Always filter by current user's ID - this is the PRIMARY security check
+        // This ensures that users can ONLY see properties they created
         const conditions = [
-            // CRITICAL: Always filter by current user's ID
-            eq(properties.userId, user.id) // Use Clerk user ID
+            eq(properties.userId, user.id) // Use Clerk user ID - REQUIRED for data isolation
         ];
 
         // Search across title, address, city
@@ -102,13 +128,19 @@ export async function GET(request: NextRequest) {
             conditions.push(eq(properties.city, city));
         }
 
+        // Execute query with user_id filter - this ensures data isolation
         const results = await db
             .select()
             .from(properties)
-            .where(and(...conditions))
+            .where(and(...conditions)) // conditions always includes user.id filter
             .orderBy(desc(properties.createdAt))
             .limit(limit)
             .offset(offset);
+
+        // Log for debugging (only in development)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[GET /api/properties] User ${user.id} retrieved ${results.length} properties`);
+        }
 
         return NextResponse.json(results, { status: 200 });
     } catch (error) {
@@ -305,10 +337,19 @@ export async function POST(request: NextRequest) {
         }
 
         // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
+        // SECURITY: This ensures properties are always associated with the creating user
+        if (!user.id || typeof user.id !== 'string') {
+            console.error('Invalid user ID in POST /api/properties:', user.id);
+            return NextResponse.json(
+                { error: 'Invalid user authentication', code: 'INVALID_USER' },
+                { status: 401 }
+            );
+        }
+
         // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
         // NOTE: createdAt and updatedAt have defaults in the schema, let the database handle them
         const insertData: Record<string, any> = {
-            userId: user.id, // CRITICAL: Use Clerk user ID
+            userId: user.id, // CRITICAL SECURITY: Use Clerk user ID - REQUIRED for data isolation
             title: body.title.trim(),
             address: body.address.trim(),
             city: body.city.trim(),
@@ -325,10 +366,11 @@ export async function POST(request: NextRequest) {
         }
 
         // Add optional fields - explicitly set to null if not provided to avoid Drizzle default issues
-        if (body.description !== undefined && body.description !== null && body.description.trim() !== '') {
+        // Handle description - convert empty strings to null
+        if (body.description !== undefined && body.description !== null && typeof body.description === 'string' && body.description.trim() !== '') {
             insertData.description = body.description.trim();
         } else {
-            insertData.description = null;
+            insertData.description = null; // Store null instead of empty string
         }
 
         if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
@@ -355,16 +397,38 @@ export async function POST(request: NextRequest) {
             insertData.yearBuilt = null;
         }
 
-        // Handle amenities - set to empty array if not provided
-        if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities)) {
-            insertData.amenities = body.amenities;
+        // Handle amenities - ensure it's a proper array (not a string)
+        if (body.amenities !== undefined && body.amenities !== null) {
+            if (Array.isArray(body.amenities)) {
+                insertData.amenities = body.amenities;
+            } else if (typeof body.amenities === 'string') {
+                // Parse if it's a JSON string
+                try {
+                    insertData.amenities = JSON.parse(body.amenities);
+                } catch {
+                    insertData.amenities = [];
+                }
+            } else {
+                insertData.amenities = [];
+            }
         } else {
             insertData.amenities = [];
         }
 
-        // Handle images - set to empty array if not provided
-        if (body.images !== undefined && body.images !== null && Array.isArray(body.images)) {
-            insertData.images = body.images;
+        // Handle images - ensure it's a proper array (not a string)
+        if (body.images !== undefined && body.images !== null) {
+            if (Array.isArray(body.images)) {
+                insertData.images = body.images;
+            } else if (typeof body.images === 'string') {
+                // Parse if it's a JSON string
+                try {
+                    insertData.images = JSON.parse(body.images);
+                } catch {
+                    insertData.images = [];
+                }
+            } else {
+                insertData.images = [];
+            }
         } else {
             insertData.images = [];
         }
@@ -400,7 +464,13 @@ export async function POST(request: NextRequest) {
         // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
         // Note: Do not include 'id', 'createdAt', or 'updatedAt' in insertData
         // They are handled by the database (SERIAL for id, defaultNow() for timestamps)
+        // SECURITY: insertData.userId is always set to the authenticated user's ID
         const newProperty = await db.insert(properties).values(insertData).returning();
+
+        // Log for debugging (only in development)
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`[POST /api/properties] User ${user.id} created property ${newProperty[0].id}`);
+        }
 
         return NextResponse.json(newProperty[0], { status: 201 });
     } catch (error) {
@@ -520,7 +590,14 @@ export async function PUT(request: NextRequest) {
     }
 
     if (body.description !== undefined) {
-      updates.description = body.description;
+      // Convert empty strings to null
+      if (typeof body.description === 'string' && body.description.trim() === '') {
+        updates.description = null;
+      } else if (body.description === null || body.description === '') {
+        updates.description = null;
+      } else {
+        updates.description = typeof body.description === 'string' ? body.description.trim() : body.description;
+      }
     }
 
     if (body.address !== undefined) {
@@ -644,11 +721,35 @@ export async function PUT(request: NextRequest) {
     }
 
     if (body.amenities !== undefined) {
-      updates.amenities = Array.isArray(body.amenities) ? body.amenities : [];
+      // Ensure it's a proper array (not a string)
+      if (Array.isArray(body.amenities)) {
+        updates.amenities = body.amenities;
+      } else if (typeof body.amenities === 'string') {
+        // Parse if it's a JSON string
+        try {
+          updates.amenities = JSON.parse(body.amenities);
+        } catch {
+          updates.amenities = [];
+        }
+      } else {
+        updates.amenities = [];
+      }
     }
 
     if (body.images !== undefined) {
-      updates.images = Array.isArray(body.images) ? body.images : [];
+      // Ensure it's a proper array (not a string)
+      if (Array.isArray(body.images)) {
+        updates.images = body.images;
+      } else if (typeof body.images === 'string') {
+        // Parse if it's a JSON string
+        try {
+          updates.images = JSON.parse(body.images);
+        } catch {
+          updates.images = [];
+        }
+      } else {
+        updates.images = [];
+      }
     }
 
     if (body.purchasePrice !== undefined) {
