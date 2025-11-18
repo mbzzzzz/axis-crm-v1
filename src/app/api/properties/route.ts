@@ -9,431 +9,444 @@ const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pendin
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
-  const user = await currentUser();
-  if (!user) return null;
-  return {
-    id: user.id,
-    name: user.fullName || user.firstName || 'User',
-    email: user.primaryEmailAddress?.emailAddress || '',
-  };
+    const user = await currentUser();
+    if (!user) return null;
+    return {
+        id: user.id,
+        name: user.fullName || user.firstName || 'User',
+        email: user.primaryEmailAddress?.emailAddress || '',
+    };
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    // CRITICAL: Authenticate user first
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
-    }
+    try {
+        // CRITICAL: Authenticate user first
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
+                { status: 401 }
+            );
+        }
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
 
-    // Single property by ID - with ownership check
-    if (id) {
-      if (!id || isNaN(parseInt(id))) {
-        return NextResponse.json(
-          { error: 'Valid ID is required', code: 'INVALID_ID' },
-          { status: 400 }
-        );
-      }
+        // Single property by ID - with ownership check
+        if (id) {
+            if (!id || isNaN(parseInt(id))) {
+                return NextResponse.json(
+                    { error: 'Valid ID is required', code: 'INVALID_ID' },
+                    { status: 400 }
+                );
+            }
 
-      // CRITICAL: Filter by userId to ensure data isolation
-      const property = await db
-        .select()
-        .from(properties)
-        .where(
-          and(
-            eq(properties.id, parseInt(id)),
+            // CRITICAL: Filter by userId to ensure data isolation
+            const property = await db
+                .select()
+                .from(properties)
+                .where(
+                    and(
+                        eq(properties.id, parseInt(id)),
+                        eq(properties.userId, user.id) // Use Clerk user ID
+                    )
+                )
+                .limit(1);
+
+            if (property.length === 0) {
+                return NextResponse.json(
+                    { error: 'Property not found', code: 'NOT_FOUND' },
+                    { status: 404 }
+                );
+            }
+
+            return NextResponse.json(property[0], { status: 200 });
+        }
+
+        // List properties - CRITICAL: Only return current user's properties
+        const limit = Math.min(parseInt(searchParams.get('limit') ?? '100'), 100);
+        const offset = parseInt(searchParams.get('offset') ?? '0');
+        const search = searchParams.get('search');
+        const propertyType = searchParams.get('propertyType');
+        const status = searchParams.get('status');
+        const city = searchParams.get('city');
+
+        const conditions = [
+            // CRITICAL: Always filter by current user's ID
             eq(properties.userId, user.id) // Use Clerk user ID
-          )
-        )
-        .limit(1);
+        ];
 
-      if (property.length === 0) {
+        // Search across title, address, city
+        if (search) {
+            conditions.push(
+                or(
+                    like(properties.title, `%${search}%`),
+                    like(properties.address, `%${search}%`),
+                    like(properties.city, `%${search}%`)
+                )
+            );
+        }
+
+        // Filter by propertyType
+        if (propertyType) {
+            conditions.push(eq(properties.propertyType, propertyType));
+        }
+
+        // Filter by status
+        if (status) {
+            conditions.push(eq(properties.status, status));
+        }
+
+        // Filter by city
+        if (city) {
+            conditions.push(eq(properties.city, city));
+        }
+
+        const results = await db
+            .select()
+            .from(properties)
+            .where(and(...conditions))
+            .orderBy(desc(properties.createdAt))
+            .limit(limit)
+            .offset(offset);
+
+        return NextResponse.json(results, { status: 200 });
+    } catch (error) {
+        console.error('GET error:', error);
         return NextResponse.json(
-          { error: 'Property not found', code: 'NOT_FOUND' },
-          { status: 404 }
+            { error: 'Internal server error: ' + (error as Error).message },
+            { status: 500 }
         );
-      }
-
-      return NextResponse.json(property[0], { status: 200 });
     }
-
-    // List properties - CRITICAL: Only return current user's properties
-    const limit = Math.min(parseInt(searchParams.get('limit') ?? '100'), 100);
-    const offset = parseInt(searchParams.get('offset') ?? '0');
-    const search = searchParams.get('search');
-    const propertyType = searchParams.get('propertyType');
-    const status = searchParams.get('status');
-    const city = searchParams.get('city');
-
-    const conditions = [
-      // CRITICAL: Always filter by current user's ID
-      eq(properties.userId, user.id) // Use Clerk user ID
-    ];
-
-    // Search across title, address, city
-    if (search) {
-      conditions.push(
-        or(
-          like(properties.title, `%${search}%`),
-          like(properties.address, `%${search}%`),
-          like(properties.city, `%${search}%`)
-        )
-      );
-    }
-
-    // Filter by propertyType
-    if (propertyType) {
-      conditions.push(eq(properties.propertyType, propertyType));
-    }
-
-    // Filter by status
-    if (status) {
-      conditions.push(eq(properties.status, status));
-    }
-
-    // Filter by city
-    if (city) {
-      conditions.push(eq(properties.city, city));
-    }
-
-    const results = await db
-      .select()
-      .from(properties)
-      .where(and(...conditions))
-      .orderBy(desc(properties.createdAt))
-      .limit(limit)
-      .offset(offset);
-
-    return NextResponse.json(results, { status: 200 });
-  } catch (error) {
-    console.error('GET error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error: ' + (error as Error).message },
-      { status: 500 }
-    );
-  }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // CRITICAL: Authenticate user first
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
-    }
+    try {
+        // CRITICAL: Authenticate user first
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json(
+                { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
+                { status: 401 }
+            );
+        }
 
-    const body = await request.json();
+        const body = await request.json();
 
-    // Validate required fields
-    if (!body.title || !body.title.trim()) {
-      return NextResponse.json(
-        { error: 'title is required', code: 'MISSING_TITLE' },
-        { status: 400 }
-      );
-    }
+        // Helper to sanitize numeric fields
+        const sanitizeNumeric = (val: any) => (val === '' ? null : val);
 
-    if (!body.address || !body.address.trim()) {
-      return NextResponse.json(
-        { error: 'address is required', code: 'MISSING_ADDRESS' },
-        { status: 400 }
-      );
-    }
+        // Sanitize optional numeric fields
+        body.sizeSqft = sanitizeNumeric(body.sizeSqft);
+        body.bedrooms = sanitizeNumeric(body.bedrooms);
+        body.bathrooms = sanitizeNumeric(body.bathrooms);
+        body.yearBuilt = sanitizeNumeric(body.yearBuilt);
+        body.purchasePrice = sanitizeNumeric(body.purchasePrice);
+        body.estimatedValue = sanitizeNumeric(body.estimatedValue);
+        body.monthlyExpenses = sanitizeNumeric(body.monthlyExpenses);
+        body.commissionRate = sanitizeNumeric(body.commissionRate);
 
-    if (!body.city || !body.city.trim()) {
-      return NextResponse.json(
-        { error: 'city is required', code: 'MISSING_CITY' },
-        { status: 400 }
-      );
-    }
+        // Validate required fields
+        if (!body.title || !body.title.trim()) {
+            return NextResponse.json(
+                { error: 'title is required', code: 'MISSING_TITLE' },
+                { status: 400 }
+            );
+        }
 
-    if (!body.state || !body.state.trim()) {
-      return NextResponse.json(
-        { error: 'state is required', code: 'MISSING_STATE' },
-        { status: 400 }
-      );
-    }
+        if (!body.address || !body.address.trim()) {
+            return NextResponse.json(
+                { error: 'address is required', code: 'MISSING_ADDRESS' },
+                { status: 400 }
+            );
+        }
 
-    if (!body.zipCode || !body.zipCode.trim()) {
-      return NextResponse.json(
-        { error: 'zipCode is required', code: 'MISSING_ZIP_CODE' },
-        { status: 400 }
-      );
-    }
+        if (!body.city || !body.city.trim()) {
+            return NextResponse.json(
+                { error: 'city is required', code: 'MISSING_CITY' },
+                { status: 400 }
+            );
+        }
 
-    if (!body.propertyType) {
-      return NextResponse.json(
-        { error: 'propertyType is required', code: 'MISSING_PROPERTY_TYPE' },
-        { status: 400 }
-      );
-    }
+        if (!body.state || !body.state.trim()) {
+            return NextResponse.json(
+                { error: 'state is required', code: 'MISSING_STATE' },
+                { status: 400 }
+            );
+        }
 
-    if (!VALID_PROPERTY_TYPES.includes(body.propertyType)) {
-      return NextResponse.json(
-        {
-          error: `propertyType must be one of: ${VALID_PROPERTY_TYPES.join(', ')}`,
-          code: 'INVALID_PROPERTY_TYPE',
-        },
-        { status: 400 }
-      );
-    }
+        if (!body.zipCode || !body.zipCode.trim()) {
+            return NextResponse.json(
+                { error: 'zipCode is required', code: 'MISSING_ZIP_CODE' },
+                { status: 400 }
+            );
+        }
 
-    if (!body.status) {
-      return NextResponse.json(
-        { error: 'status is required', code: 'MISSING_STATUS' },
-        { status: 400 }
-      );
-    }
+        if (!body.propertyType) {
+            return NextResponse.json(
+                { error: 'propertyType is required', code: 'MISSING_PROPERTY_TYPE' },
+                { status: 400 }
+            );
+        }
 
-    if (!VALID_STATUSES.includes(body.status)) {
-      return NextResponse.json(
-        {
-          error: `status must be one of: ${VALID_STATUSES.join(', ')}`,
-          code: 'INVALID_STATUS',
-        },
-        { status: 400 }
-      );
-    }
+        if (!VALID_PROPERTY_TYPES.includes(body.propertyType)) {
+            return NextResponse.json(
+                {
+                    error: `propertyType must be one of: ${VALID_PROPERTY_TYPES.join(', ')}`,
+                    code: 'INVALID_PROPERTY_TYPE',
+                },
+                { status: 400 }
+            );
+        }
 
-    if (body.price === undefined || body.price === null) {
-      return NextResponse.json(
-        { error: 'price is required', code: 'MISSING_PRICE' },
-        { status: 400 }
-      );
-    }
+        if (!body.status) {
+            return NextResponse.json(
+                { error: 'status is required', code: 'MISSING_STATUS' },
+                { status: 400 }
+            );
+        }
 
-    if (typeof body.price !== 'number' || body.price <= 0) {
-      return NextResponse.json(
-        { error: 'price must be a positive number', code: 'INVALID_PRICE' },
-        { status: 400 }
-      );
-    }
+        if (!VALID_STATUSES.includes(body.status)) {
+            return NextResponse.json(
+                {
+                    error: `status must be one of: ${VALID_STATUSES.join(', ')}`,
+                    code: 'INVALID_STATUS',
+                },
+                { status: 400 }
+            );
+        }
 
-    // Validate optional positive integers
-    if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
-      if (!Number.isInteger(body.sizeSqft) || body.sizeSqft <= 0) {
+        if (body.price === undefined || body.price === null) {
+            return NextResponse.json(
+                { error: 'price is required', code: 'MISSING_PRICE' },
+                { status: 400 }
+            );
+        }
+
+        if (typeof body.price !== 'number' || body.price <= 0) {
+            return NextResponse.json(
+                { error: 'price must be a positive number', code: 'INVALID_PRICE' },
+                { status: 400 }
+            );
+        }
+
+        // Validate optional positive integers
+        if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
+            if (!Number.isInteger(body.sizeSqft) || body.sizeSqft <= 0) {
+                return NextResponse.json(
+                    { error: 'sizeSqft must be a positive integer', code: 'INVALID_SIZE_SQFT' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.bedrooms !== undefined && body.bedrooms !== null) {
+            if (!Number.isInteger(body.bedrooms) || body.bedrooms <= 0) {
+                return NextResponse.json(
+                    { error: 'bedrooms must be a positive integer', code: 'INVALID_BEDROOMS' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
+            if (!Number.isInteger(body.yearBuilt) || body.yearBuilt <= 0) {
+                return NextResponse.json(
+                    { error: 'yearBuilt must be a positive integer', code: 'INVALID_YEAR_BUILT' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Validate optional positive numbers
+        if (body.bathrooms !== undefined && body.bathrooms !== null) {
+            if (typeof body.bathrooms !== 'number' || body.bathrooms <= 0) {
+                return NextResponse.json(
+                    { error: 'bathrooms must be a positive number', code: 'INVALID_BATHROOMS' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.purchasePrice !== undefined && body.purchasePrice !== null) {
+            if (typeof body.purchasePrice !== 'number' || body.purchasePrice < 0) {
+                return NextResponse.json(
+                    { error: 'purchasePrice must be a non-negative number', code: 'INVALID_PURCHASE_PRICE' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.estimatedValue !== undefined && body.estimatedValue !== null) {
+            if (typeof body.estimatedValue !== 'number' || body.estimatedValue < 0) {
+                return NextResponse.json(
+                    { error: 'estimatedValue must be a non-negative number', code: 'INVALID_ESTIMATED_VALUE' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null) {
+            if (typeof body.monthlyExpenses !== 'number' || body.monthlyExpenses < 0) {
+                return NextResponse.json(
+                    { error: 'monthlyExpenses must be a non-negative number', code: 'INVALID_MONTHLY_EXPENSES' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        if (body.commissionRate !== undefined && body.commissionRate !== null) {
+            if (typeof body.commissionRate !== 'number' || body.commissionRate < 0) {
+                return NextResponse.json(
+                    { error: 'commissionRate must be a non-negative number', code: 'INVALID_COMMISSION_RATE' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
+        // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
+        // NOTE: createdAt and updatedAt have defaults in the schema, let the database handle them
+        const insertData: Record<string, any> = {
+            userId: user.id, // CRITICAL: Use Clerk user ID
+            title: body.title.trim(),
+            address: body.address.trim(),
+            city: body.city.trim(),
+            state: body.state.trim(),
+            zipCode: body.zipCode.trim(),
+            propertyType: body.propertyType,
+            status: body.status,
+            price: body.price,
+        };
+
+        // Add currency if provided, otherwise let default handle it
+        if (body.currency) {
+            insertData.currency = body.currency;
+        }
+
+        // Add optional fields - explicitly set to null if not provided to avoid Drizzle default issues
+        if (body.description !== undefined && body.description !== null && body.description.trim() !== '') {
+            insertData.description = body.description.trim();
+        } else {
+            insertData.description = null;
+        }
+
+        if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
+            insertData.sizeSqft = body.sizeSqft;
+        } else {
+            insertData.sizeSqft = null;
+        }
+
+        if (body.bedrooms !== undefined && body.bedrooms !== null) {
+            insertData.bedrooms = body.bedrooms;
+        } else {
+            insertData.bedrooms = null;
+        }
+
+        if (body.bathrooms !== undefined && body.bathrooms !== null) {
+            insertData.bathrooms = body.bathrooms;
+        } else {
+            insertData.bathrooms = null;
+        }
+
+        if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
+            insertData.yearBuilt = body.yearBuilt;
+        } else {
+            insertData.yearBuilt = null;
+        }
+
+        // Handle amenities - set to empty array if not provided
+        if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities)) {
+            insertData.amenities = body.amenities;
+        } else {
+            insertData.amenities = [];
+        }
+
+        // Handle images - set to empty array if not provided
+        if (body.images !== undefined && body.images !== null && Array.isArray(body.images)) {
+            insertData.images = body.images;
+        } else {
+            insertData.images = [];
+        }
+
+        // Handle purchasePrice - set to null if not provided or 0
+        if (body.purchasePrice !== undefined && body.purchasePrice !== null && body.purchasePrice > 0) {
+            insertData.purchasePrice = body.purchasePrice;
+        } else {
+            insertData.purchasePrice = null;
+        }
+
+        // Handle estimatedValue - set to null if not provided or 0
+        if (body.estimatedValue !== undefined && body.estimatedValue !== null && body.estimatedValue > 0) {
+            insertData.estimatedValue = body.estimatedValue;
+        } else {
+            insertData.estimatedValue = null;
+        }
+
+        // Handle monthlyExpenses - set to null if not provided or 0
+        if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null && body.monthlyExpenses > 0) {
+            insertData.monthlyExpenses = body.monthlyExpenses;
+        } else {
+            insertData.monthlyExpenses = null;
+        }
+
+        // Handle commissionRate - set to null if not provided or 0
+        if (body.commissionRate !== undefined && body.commissionRate !== null && body.commissionRate > 0) {
+            insertData.commissionRate = body.commissionRate;
+        } else {
+            insertData.commissionRate = null;
+        }
+
+        // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
+        // Note: Do not include 'id', 'createdAt', or 'updatedAt' in insertData
+        // They are handled by the database (SERIAL for id, defaultNow() for timestamps)
+        const newProperty = await db.insert(properties).values(insertData).returning();
+
+        return NextResponse.json(newProperty[0], { status: 201 });
+    } catch (error) {
+        console.error('POST error:', error);
+
+        // Extract PostgreSQL-specific error details
+        let errorMessage = 'Unknown error';
+        let errorDetails: any = {};
+
+        if (error instanceof Error) {
+            errorMessage = error.message;
+            errorDetails = {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+            };
+
+            // Check if it's a postgres error with additional properties
+            const pgError = error as any;
+            if (pgError.code) errorDetails.code = pgError.code;
+            if (pgError.detail) errorDetails.detail = pgError.detail;
+            if (pgError.hint) errorDetails.hint = pgError.hint;
+            if (pgError.position) errorDetails.position = pgError.position;
+            if (pgError.internalPosition) errorDetails.internalPosition = pgError.internalPosition;
+            if (pgError.internalQuery) errorDetails.internalQuery = pgError.internalQuery;
+            if (pgError.where) errorDetails.where = pgError.where;
+            if (pgError.schema) errorDetails.schema = pgError.schema;
+            if (pgError.table) errorDetails.table = pgError.table;
+            if (pgError.column) errorDetails.column = pgError.column;
+            if (pgError.dataType) errorDetails.dataType = pgError.dataType;
+            if (pgError.constraint) errorDetails.constraint = pgError.constraint;
+        } else {
+            errorMessage = String(error);
+            errorDetails = { raw: error };
+        }
+
+        console.error('POST error details:', errorDetails);
+
         return NextResponse.json(
-          { error: 'sizeSqft must be a positive integer', code: 'INVALID_SIZE_SQFT' },
-          { status: 400 }
+            {
+                error: 'Internal server error: ' + errorMessage,
+                details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
+            },
+            { status: 500 }
         );
-      }
     }
-
-    if (body.bedrooms !== undefined && body.bedrooms !== null) {
-      if (!Number.isInteger(body.bedrooms) || body.bedrooms <= 0) {
-        return NextResponse.json(
-          { error: 'bedrooms must be a positive integer', code: 'INVALID_BEDROOMS' },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
-      if (!Number.isInteger(body.yearBuilt) || body.yearBuilt <= 0) {
-        return NextResponse.json(
-          { error: 'yearBuilt must be a positive integer', code: 'INVALID_YEAR_BUILT' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Validate optional positive numbers
-    if (body.bathrooms !== undefined && body.bathrooms !== null) {
-      if (typeof body.bathrooms !== 'number' || body.bathrooms <= 0) {
-        return NextResponse.json(
-          { error: 'bathrooms must be a positive number', code: 'INVALID_BATHROOMS' },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (body.purchasePrice !== undefined && body.purchasePrice !== null) {
-      if (typeof body.purchasePrice !== 'number' || body.purchasePrice < 0) {
-        return NextResponse.json(
-          { error: 'purchasePrice must be a non-negative number', code: 'INVALID_PURCHASE_PRICE' },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (body.estimatedValue !== undefined && body.estimatedValue !== null) {
-      if (typeof body.estimatedValue !== 'number' || body.estimatedValue < 0) {
-        return NextResponse.json(
-          { error: 'estimatedValue must be a non-negative number', code: 'INVALID_ESTIMATED_VALUE' },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null) {
-      if (typeof body.monthlyExpenses !== 'number' || body.monthlyExpenses < 0) {
-        return NextResponse.json(
-          { error: 'monthlyExpenses must be a non-negative number', code: 'INVALID_MONTHLY_EXPENSES' },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (body.commissionRate !== undefined && body.commissionRate !== null) {
-      if (typeof body.commissionRate !== 'number' || body.commissionRate < 0) {
-        return NextResponse.json(
-          { error: 'commissionRate must be a non-negative number', code: 'INVALID_COMMISSION_RATE' },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Prepare insert data - CRITICAL: Always use authenticated user's ID (text)
-    // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
-    // NOTE: createdAt and updatedAt have defaults in the schema, let the database handle them
-    const insertData: Record<string, any> = {
-      userId: user.id, // CRITICAL: Use Clerk user ID
-      title: body.title.trim(),
-      address: body.address.trim(),
-      city: body.city.trim(),
-      state: body.state.trim(),
-      zipCode: body.zipCode.trim(),
-      propertyType: body.propertyType,
-      status: body.status,
-      price: body.price,
-    };
-
-    // Add currency if provided, otherwise let default handle it
-    if (body.currency) {
-      insertData.currency = body.currency;
-    }
-
-    // Add optional fields - explicitly set to null if not provided to avoid Drizzle default issues
-    if (body.description !== undefined && body.description !== null && body.description.trim() !== '') {
-      insertData.description = body.description.trim();
-    } else {
-      insertData.description = null;
-    }
-
-    if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
-      insertData.sizeSqft = body.sizeSqft;
-    } else {
-      insertData.sizeSqft = null;
-    }
-
-    if (body.bedrooms !== undefined && body.bedrooms !== null) {
-      insertData.bedrooms = body.bedrooms;
-    } else {
-      insertData.bedrooms = null;
-    }
-
-    if (body.bathrooms !== undefined && body.bathrooms !== null) {
-      insertData.bathrooms = body.bathrooms;
-    } else {
-      insertData.bathrooms = null;
-    }
-
-    if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
-      insertData.yearBuilt = body.yearBuilt;
-    } else {
-      insertData.yearBuilt = null;
-    }
-
-    // Handle amenities - set to empty array if not provided
-    if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities)) {
-      insertData.amenities = body.amenities;
-    } else {
-      insertData.amenities = [];
-    }
-
-    // Handle images - set to empty array if not provided
-    if (body.images !== undefined && body.images !== null && Array.isArray(body.images)) {
-      insertData.images = body.images;
-    } else {
-      insertData.images = [];
-    }
-
-    // Handle purchasePrice - set to null if not provided or 0
-    if (body.purchasePrice !== undefined && body.purchasePrice !== null && body.purchasePrice > 0) {
-      insertData.purchasePrice = body.purchasePrice;
-    } else {
-      insertData.purchasePrice = null;
-    }
-
-    // Handle estimatedValue - set to null if not provided or 0
-    if (body.estimatedValue !== undefined && body.estimatedValue !== null && body.estimatedValue > 0) {
-      insertData.estimatedValue = body.estimatedValue;
-    } else {
-      insertData.estimatedValue = null;
-    }
-
-    // Handle monthlyExpenses - set to null if not provided or 0
-    if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null && body.monthlyExpenses > 0) {
-      insertData.monthlyExpenses = body.monthlyExpenses;
-    } else {
-      insertData.monthlyExpenses = null;
-    }
-
-    // Handle commissionRate - set to null if not provided or 0
-    if (body.commissionRate !== undefined && body.commissionRate !== null && body.commissionRate > 0) {
-      insertData.commissionRate = body.commissionRate;
-    } else {
-      insertData.commissionRate = null;
-    }
-
-    // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
-    // Note: Do not include 'id', 'createdAt', or 'updatedAt' in insertData
-    // They are handled by the database (SERIAL for id, defaultNow() for timestamps)
-    const newProperty = await db.insert(properties).values(insertData).returning();
-
-    return NextResponse.json(newProperty[0], { status: 201 });
-  } catch (error) {
-    console.error('POST error:', error);
-
-    // Extract PostgreSQL-specific error details
-    let errorMessage = 'Unknown error';
-    let errorDetails: any = {};
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      errorDetails = {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      };
-
-      // Check if it's a postgres error with additional properties
-      const pgError = error as any;
-      if (pgError.code) errorDetails.code = pgError.code;
-      if (pgError.detail) errorDetails.detail = pgError.detail;
-      if (pgError.hint) errorDetails.hint = pgError.hint;
-      if (pgError.position) errorDetails.position = pgError.position;
-      if (pgError.internalPosition) errorDetails.internalPosition = pgError.internalPosition;
-      if (pgError.internalQuery) errorDetails.internalQuery = pgError.internalQuery;
-      if (pgError.where) errorDetails.where = pgError.where;
-      if (pgError.schema) errorDetails.schema = pgError.schema;
-      if (pgError.table) errorDetails.table = pgError.table;
-      if (pgError.column) errorDetails.column = pgError.column;
-      if (pgError.dataType) errorDetails.dataType = pgError.dataType;
-      if (pgError.constraint) errorDetails.constraint = pgError.constraint;
-    } else {
-      errorMessage = String(error);
-      errorDetails = { raw: error };
-    }
-
-    console.error('POST error details:', errorDetails);
-
-    return NextResponse.json(
-      {
-        error: 'Internal server error: ' + errorMessage,
-        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
-      },
-      { status: 500 }
-    );
-  }
 }
 
 export async function PUT(request: NextRequest) {
@@ -477,6 +490,20 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Helper to sanitize numeric fields
+    const sanitizeNumeric = (val: any) => (val === '' ? null : val);
+
+    // Sanitize optional numeric fields if they are present
+    if (body.sizeSqft !== undefined) body.sizeSqft = sanitizeNumeric(body.sizeSqft);
+    if (body.bedrooms !== undefined) body.bedrooms = sanitizeNumeric(body.bedrooms);
+    if (body.bathrooms !== undefined) body.bathrooms = sanitizeNumeric(body.bathrooms);
+    if (body.yearBuilt !== undefined) body.yearBuilt = sanitizeNumeric(body.yearBuilt);
+    if (body.purchasePrice !== undefined) body.purchasePrice = sanitizeNumeric(body.purchasePrice);
+    if (body.estimatedValue !== undefined) body.estimatedValue = sanitizeNumeric(body.estimatedValue);
+    if (body.monthlyExpenses !== undefined) body.monthlyExpenses = sanitizeNumeric(body.monthlyExpenses);
+    if (body.commissionRate !== undefined) body.commissionRate = sanitizeNumeric(body.commissionRate);
+
     const updates: any = {
       updatedAt: new Date(),
     };
