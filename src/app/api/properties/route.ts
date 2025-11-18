@@ -317,66 +317,66 @@ export async function POST(request: NextRequest) {
     } else {
       insertData.description = null;
     }
-    
+
     if (body.sizeSqft !== undefined && body.sizeSqft !== null) {
       insertData.sizeSqft = body.sizeSqft;
     } else {
       insertData.sizeSqft = null;
     }
-    
+
     if (body.bedrooms !== undefined && body.bedrooms !== null) {
       insertData.bedrooms = body.bedrooms;
     } else {
       insertData.bedrooms = null;
     }
-    
+
     if (body.bathrooms !== undefined && body.bathrooms !== null) {
       insertData.bathrooms = body.bathrooms;
     } else {
       insertData.bathrooms = null;
     }
-    
+
     if (body.yearBuilt !== undefined && body.yearBuilt !== null) {
       insertData.yearBuilt = body.yearBuilt;
     } else {
       insertData.yearBuilt = null;
     }
-    
-    // Handle amenities - set to null if not provided or empty array
-    if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities) && body.amenities.length > 0) {
+
+    // Handle amenities - set to empty array if not provided
+    if (body.amenities !== undefined && body.amenities !== null && Array.isArray(body.amenities)) {
       insertData.amenities = body.amenities;
     } else {
-      insertData.amenities = null;
+      insertData.amenities = [];
     }
-    
-    // Handle images - set to null if not provided or empty array
-    if (body.images !== undefined && body.images !== null && Array.isArray(body.images) && body.images.length > 0) {
+
+    // Handle images - set to empty array if not provided
+    if (body.images !== undefined && body.images !== null && Array.isArray(body.images)) {
       insertData.images = body.images;
     } else {
-      insertData.images = null;
+      insertData.images = [];
     }
-    
+
     // Handle purchasePrice - set to null if not provided or 0
     if (body.purchasePrice !== undefined && body.purchasePrice !== null && body.purchasePrice > 0) {
       insertData.purchasePrice = body.purchasePrice;
     } else {
       insertData.purchasePrice = null;
     }
-    
+
     // Handle estimatedValue - set to null if not provided or 0
     if (body.estimatedValue !== undefined && body.estimatedValue !== null && body.estimatedValue > 0) {
       insertData.estimatedValue = body.estimatedValue;
     } else {
       insertData.estimatedValue = null;
     }
-    
+
     // Handle monthlyExpenses - set to null if not provided or 0
     if (body.monthlyExpenses !== undefined && body.monthlyExpenses !== null && body.monthlyExpenses > 0) {
       insertData.monthlyExpenses = body.monthlyExpenses;
     } else {
       insertData.monthlyExpenses = null;
     }
-    
+
     // Handle commissionRate - set to null if not provided or 0
     if (body.commissionRate !== undefined && body.commissionRate !== null && body.commissionRate > 0) {
       insertData.commissionRate = body.commissionRate;
@@ -392,11 +392,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newProperty[0], { status: 201 });
   } catch (error) {
     console.error('POST error:', error);
-    
+
     // Extract PostgreSQL-specific error details
     let errorMessage = 'Unknown error';
     let errorDetails: any = {};
-    
+
     if (error instanceof Error) {
       errorMessage = error.message;
       errorDetails = {
@@ -404,7 +404,7 @@ export async function POST(request: NextRequest) {
         stack: error.stack,
         name: error.name,
       };
-      
+
       // Check if it's a postgres error with additional properties
       const pgError = error as any;
       if (pgError.code) errorDetails.code = pgError.code;
@@ -423,11 +423,11 @@ export async function POST(request: NextRequest) {
       errorMessage = String(error);
       errorDetails = { raw: error };
     }
-    
+
     console.error('POST error details:', errorDetails);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error: ' + errorMessage,
         details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
       },
@@ -617,11 +617,11 @@ export async function PUT(request: NextRequest) {
     }
 
     if (body.amenities !== undefined) {
-      updates.amenities = body.amenities;
+      updates.amenities = Array.isArray(body.amenities) ? body.amenities : [];
     }
 
-    if (body.images !== undefined && Array.isArray(body.images)) {
-      updates.images = body.images;
+    if (body.images !== undefined) {
+      updates.images = Array.isArray(body.images) ? body.images : [];
     }
 
     if (body.purchasePrice !== undefined) {
