@@ -461,18 +461,42 @@ export async function POST(request: NextRequest) {
             insertData.commissionRate = null;
         }
 
-        // Use type-safe insert - Drizzle will handle serial fields and defaults correctly
-        // Note: Do not include 'id', 'createdAt', or 'updatedAt' in insertData
-        // They are handled by the database (SERIAL for id, defaultNow() for timestamps)
-        // SECURITY: insertData.userId is always set to the authenticated user's ID
-        const newProperty = await db.insert(properties).values(insertData).returning();
+        // Use explicit field mapping to exclude auto-generated fields (id, createdAt, updatedAt)
+        // This prevents Drizzle from including these fields in the INSERT statement
+        // SECURITY: userId is always set to the authenticated user's ID
+        const [newProperty] = await db
+            .insert(properties)
+            .values({
+                userId: insertData.userId,
+                title: insertData.title,
+                description: insertData.description,
+                address: insertData.address,
+                city: insertData.city,
+                state: insertData.state,
+                zipCode: insertData.zipCode,
+                propertyType: insertData.propertyType,
+                status: insertData.status,
+                price: insertData.price,
+                currency: insertData.currency,
+                sizeSqft: insertData.sizeSqft,
+                bedrooms: insertData.bedrooms,
+                bathrooms: insertData.bathrooms,
+                yearBuilt: insertData.yearBuilt,
+                amenities: insertData.amenities,
+                images: insertData.images,
+                purchasePrice: insertData.purchasePrice,
+                estimatedValue: insertData.estimatedValue,
+                monthlyExpenses: insertData.monthlyExpenses,
+                commissionRate: insertData.commissionRate,
+            })
+            .returning();
 
         // Log for debugging (only in development)
         if (process.env.NODE_ENV === 'development') {
-            console.log(`[POST /api/properties] User ${user.id} created property ${newProperty[0].id}`);
+            console.log(`[POST /api/properties] User ${user.id} created property ${newProperty.id}`);
         }
 
-        return NextResponse.json(newProperty[0], { status: 201 });
+        return NextResponse.json(newProperty, { status: 201 });
     } catch (error) {
         console.error('POST error:', error);
 
