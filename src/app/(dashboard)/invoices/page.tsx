@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload } from "lucide-react";
+import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ImportExportDialog } from "@/components/import-export-dialog";
@@ -185,6 +185,28 @@ export default function InvoicesPage() {
     }
   };
 
+  const handleSendInvoice = async (invoice: Invoice) => {
+    try {
+      const response = await fetch("/api/invoices/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Invoice sent to " + invoice.clientEmail);
+        fetchInvoices(); // Refresh to update status
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to send invoice");
+      }
+    } catch (error) {
+      toast.error("Failed to send invoice");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       draft: "bg-gray-500",
@@ -336,16 +358,14 @@ export default function InvoicesPage() {
                         >
                           <Download className="size-4" />
                         </Button>
-                        {invoice.paymentStatus === "overdue" && (
+                        {(invoice.paymentStatus === "overdue" || invoice.paymentStatus === "draft" || invoice.paymentStatus === "sent") && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              // Handle send email
-                              toast.info("Sending invoice email...");
-                            }}
+                            onClick={() => handleSendInvoice(invoice)}
+                            title="Send invoice via email"
                           >
-                            <FileText className="size-4" />
+                            <Mail className="size-4" />
                           </Button>
                         )}
                         {invoice.paymentStatus === "draft" && (

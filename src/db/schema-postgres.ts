@@ -33,10 +33,12 @@ export const invoices = pgTable('invoices', {
   id: serial('id').primaryKey(),
   invoiceNumber: text('invoice_number').notNull().unique(),
   propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
+  tenantId: integer('tenant_id').references(() => tenants.id, { onDelete: 'set null' }), // Link to tenant
   userId: text('user_id').notNull(), // Clerk user ID
   clientName: text('client_name').notNull(),
   clientEmail: text('client_email').notNull(),
   clientAddress: text('client_address'),
+  clientPhone: text('client_phone'),
   invoiceDate: text('invoice_date').notNull(),
   dueDate: text('due_date').notNull(),
   subtotal: real('subtotal').notNull(),
@@ -47,6 +49,22 @@ export const invoices = pgTable('invoices', {
   paymentDate: text('payment_date'),
   notes: text('notes'),
   items: jsonb('items'),
+  // Branding fields
+  logoMode: text('logo_mode').default('text'),
+  logoDataUrl: text('logo_data_url'),
+  logoWidth: integer('logo_width').default(40),
+  companyName: text('company_name').default('AXIS CRM'),
+  companyTagline: text('company_tagline').default('Real Estate Management'),
+  // Additional fields
+  agentName: text('agent_name'),
+  agentAgency: text('agent_agency'),
+  agentEmail: text('agent_email'),
+  agentPhone: text('agent_phone'),
+  ownerName: text('owner_name'),
+  ownerEmail: text('owner_email'),
+  ownerPhone: text('owner_phone'),
+  paymentTerms: text('payment_terms'),
+  lateFeePolicy: text('late_fee_policy'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -104,13 +122,18 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
     fields: [invoices.propertyId],
     references: [properties.id],
   }),
+  tenant: one(tenants, {
+    fields: [invoices.tenantId],
+    references: [tenants.id],
+  }),
 }));
 
-export const tenantsRelations = relations(tenants, ({ one }) => ({
+export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   property: one(properties, {
     fields: [tenants.propertyId],
     references: [properties.id],
   }),
+  invoices: many(invoices),
 }));
 
 export const maintenanceRequestsRelations = relations(maintenanceRequests, ({ one }) => ({

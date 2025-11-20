@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, properties } from '@/db/schema';
+import { invoices, properties, tenants } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { currentUser } from '@clerk/nextjs/server';
 
@@ -302,15 +302,45 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // If tenantId is provided, validate it belongs to user and get tenant data
+    let tenantData = null;
+    if (tenantId) {
+      const tenant = await db.select()
+        .from(tenants)
+        .where(
+          and(
+            eq(tenants.id, parseInt(tenantId)),
+            eq(tenants.userId, user.id)
+          )
+        )
+        .limit(1);
+      
+      if (tenant.length > 0) {
+        tenantData = tenant[0];
+        // Auto-fill client details from tenant if not provided
+        if (!clientName && tenantData.name) {
+          body.clientName = tenantData.name;
+        }
+        if (!clientEmail && tenantData.email) {
+          body.clientEmail = tenantData.email;
+        }
+        if (!clientPhone && tenantData.phone) {
+          body.clientPhone = tenantData.phone;
+        }
+      }
+    }
+
     // Prepare insert data - CRITICAL: Use authenticated user's ID
     const now = new Date();
     const insertData: any = {
       invoiceNumber: invoiceNumber.trim(),
       propertyId: parseInt(propertyId),
+      tenantId: tenantId ? parseInt(tenantId) : null,
       userId: user.id,
-      clientName: clientName.trim(),
-      clientEmail: clientEmail.trim().toLowerCase(),
+      clientName: (body.clientName || clientName)?.trim(),
+      clientEmail: (body.clientEmail || clientEmail)?.trim().toLowerCase(),
       clientAddress: clientAddress?.trim() || null,
+      clientPhone: (body.clientPhone || clientPhone)?.trim() || null,
       invoiceDate,
       dueDate,
       subtotal: parseFloat(subtotal),
@@ -321,6 +351,22 @@ export async function POST(request: NextRequest) {
       paymentDate: paymentDate || null,
       notes: notes?.trim() || null,
       items: items || null,
+      // Branding fields
+      logoMode: logoMode || 'text',
+      logoDataUrl: logoDataUrl || null,
+      logoWidth: logoWidth ? parseInt(logoWidth) : 40,
+      companyName: companyName || 'AXIS CRM',
+      companyTagline: companyTagline || 'Real Estate Management',
+      // Additional fields
+      agentName: agentName?.trim() || null,
+      agentAgency: agentAgency?.trim() || null,
+      agentEmail: agentEmail?.trim() || null,
+      agentPhone: agentPhone?.trim() || null,
+      ownerName: ownerName?.trim() || null,
+      ownerEmail: ownerEmail?.trim() || null,
+      ownerPhone: ownerPhone?.trim() || null,
+      paymentTerms: paymentTerms?.trim() || null,
+      lateFeePolicy: lateFeePolicy?.trim() || null,
       createdAt: now,
       updatedAt: now
     };
@@ -584,6 +630,58 @@ export async function PUT(request: NextRequest) {
 
     if (items !== undefined) {
       updates.items = items || null;
+    }
+
+    // Branding fields
+    if (logoMode !== undefined) {
+      updates.logoMode = logoMode || 'text';
+    }
+    if (logoDataUrl !== undefined) {
+      updates.logoDataUrl = logoDataUrl || null;
+    }
+    if (logoWidth !== undefined) {
+      updates.logoWidth = logoWidth ? parseInt(logoWidth) : 40;
+    }
+    if (companyName !== undefined) {
+      updates.companyName = companyName || 'AXIS CRM';
+    }
+    if (companyTagline !== undefined) {
+      updates.companyTagline = companyTagline || 'Real Estate Management';
+    }
+
+    // Additional fields
+    if (tenantId !== undefined) {
+      updates.tenantId = tenantId ? parseInt(tenantId) : null;
+    }
+    if (clientPhone !== undefined) {
+      updates.clientPhone = clientPhone?.trim() || null;
+    }
+    if (agentName !== undefined) {
+      updates.agentName = agentName?.trim() || null;
+    }
+    if (agentAgency !== undefined) {
+      updates.agentAgency = agentAgency?.trim() || null;
+    }
+    if (agentEmail !== undefined) {
+      updates.agentEmail = agentEmail?.trim() || null;
+    }
+    if (agentPhone !== undefined) {
+      updates.agentPhone = agentPhone?.trim() || null;
+    }
+    if (ownerName !== undefined) {
+      updates.ownerName = ownerName?.trim() || null;
+    }
+    if (ownerEmail !== undefined) {
+      updates.ownerEmail = ownerEmail?.trim() || null;
+    }
+    if (ownerPhone !== undefined) {
+      updates.ownerPhone = ownerPhone?.trim() || null;
+    }
+    if (paymentTerms !== undefined) {
+      updates.paymentTerms = paymentTerms?.trim() || null;
+    }
+    if (lateFeePolicy !== undefined) {
+      updates.lateFeePolicy = lateFeePolicy?.trim() || null;
     }
 
     updates.updatedAt = new Date();

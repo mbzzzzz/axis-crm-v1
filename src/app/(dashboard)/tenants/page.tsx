@@ -29,7 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, Eye, Edit, Trash2, Filter } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -180,6 +180,96 @@ export default function TenantsPage() {
       }
     } catch (error) {
       toast.error("Failed to delete tenant");
+    }
+  };
+
+  const handleGenerateInvoice = async (tenant: Tenant) => {
+    if (!tenant.propertyId || !tenant.monthlyRent) {
+      toast.error("Tenant must have a property and monthly rent to generate invoice");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/invoices/generate-rent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: tenant.id,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success("Rent invoice generated successfully");
+        // Optionally navigate to invoices page or show the invoice
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to generate invoice");
+      }
+    } catch (error) {
+      toast.error("Failed to generate invoice");
+    }
+  };
+
+  const handleSendInvoice = async (tenant: Tenant) => {
+    // First generate invoice if needed, then send
+    if (!tenant.propertyId || !tenant.monthlyRent) {
+      toast.error("Tenant must have a property and monthly rent");
+      return;
+    }
+
+    try {
+      // Generate invoice first
+      const generateResponse = await fetch("/api/invoices/generate-rent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: tenant.id,
+        }),
+      });
+
+      if (!generateResponse.ok) {
+        const error = await generateResponse.json();
+        // If invoice already exists, try to find it
+        if (error.code === 'DUPLICATE_INVOICE' && error.invoice) {
+          // Send existing invoice
+          const sendResponse = await fetch("/api/invoices/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              invoiceId: error.invoice.id,
+            }),
+          });
+
+          if (sendResponse.ok) {
+            toast.success("Invoice sent to tenant's email");
+          } else {
+            toast.error("Failed to send invoice");
+          }
+        } else {
+          toast.error(error.error || "Failed to generate invoice");
+        }
+        return;
+      }
+
+      const invoiceData = await generateResponse.json();
+      
+      // Send the invoice
+      const sendResponse = await fetch("/api/invoices/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: invoiceData.invoice.id,
+        }),
+      });
+
+      if (sendResponse.ok) {
+        toast.success("Rent invoice sent to tenant's email");
+      } else {
+        toast.error("Failed to send invoice");
+      }
+    } catch (error) {
+      toast.error("Failed to send invoice");
     }
   };
 
@@ -477,6 +567,22 @@ export default function TenantsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleGenerateInvoice(tenant)}
+                              title="Generate Rent Invoice"
+                            >
+                              <FileText className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSendInvoice(tenant)}
+                              title="Send Rent Invoice via Email"
+                            >
+                              <Mail className="size-4" />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"

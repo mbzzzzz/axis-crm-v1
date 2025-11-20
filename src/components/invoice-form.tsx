@@ -32,11 +32,14 @@ interface InvoiceFormProps {
 export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [properties, setProperties] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [selectedTenant, setSelectedTenant] = useState<any>(null);
   
   const [formData, setFormData] = useState({
     invoiceNumber: invoice?.invoiceNumber || `INV-${Date.now()}`,
     propertyId: invoice?.propertyId || "",
+    tenantId: invoice?.tenantId || "",
     clientName: invoice?.clientName || "",
     clientEmail: invoice?.clientEmail || "",
     clientAddress: invoice?.clientAddress || "",
@@ -71,6 +74,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
 
   useEffect(() => {
     fetchProperties();
+    fetchTenants();
   }, []);
 
   useEffect(() => {
@@ -79,6 +83,33 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       setSelectedProperty(property);
     }
   }, [formData.propertyId, properties]);
+
+  useEffect(() => {
+    if (formData.tenantId) {
+      const tenant = tenants.find((t) => t.id === parseInt(formData.tenantId));
+      setSelectedTenant(tenant);
+      if (tenant) {
+        // Auto-fill client details from tenant
+        setFormData(prev => ({
+          ...prev,
+          clientName: prev.clientName || tenant.name,
+          clientEmail: prev.clientEmail || tenant.email,
+          clientPhone: prev.clientPhone || tenant.phone || "",
+          propertyId: prev.propertyId || String(tenant.propertyId || ""),
+        }));
+      }
+    }
+  }, [formData.tenantId, tenants]);
+
+  const fetchTenants = async () => {
+    try {
+      const response = await fetch("/api/tenants");
+      const data = await response.json();
+      setTenants(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch tenants:", error);
+    }
+  };
 
   const fetchProperties = async () => {
     try {
@@ -349,6 +380,29 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
             required
           />
         </div>
+      </div>
+
+      {/* Tenant Selection (Optional - auto-fills client details) */}
+      <div className="space-y-2">
+        <Label htmlFor="tenantId">Select Tenant (Optional)</Label>
+        <Select
+          value={formData.tenantId}
+          onValueChange={(value) => setFormData({ ...formData, tenantId: value })}
+        >
+          <SelectTrigger id="tenantId">
+            <SelectValue placeholder="Choose a tenant to auto-fill details" />
+          </SelectTrigger>
+          <SelectContent>
+            {tenants.map((tenant) => (
+              <SelectItem key={tenant.id} value={tenant.id.toString()}>
+                {tenant.name} - {tenant.email}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Selecting a tenant will auto-fill client name, email, and property
+        </p>
       </div>
 
       {/* Property Selection */}

@@ -39,7 +39,9 @@ interface MaintenanceRequest {
 
 export default function MaintenancePage() {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
+  const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProperty, setSelectedProperty] = useState<string>("all");
   const [selectedUrgency, setSelectedUrgency] = useState<string>("all");
@@ -50,11 +52,34 @@ export default function MaintenancePage() {
     urgency: "medium" as "high" | "medium" | "low",
     location: "",
     propertyId: "",
+    tenantName: "",
+    tenantEmail: "",
+    tenantPhone: "",
   });
 
   useEffect(() => {
     fetchRequests();
+    fetchProperties();
   }, [selectedProperty, selectedUrgency]);
+
+  const fetchProperties = async () => {
+    try {
+      // Fetch properties with tenant information
+      const response = await fetch("/api/properties/with-tenants");
+      const data = await response.json();
+      setProperties(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch properties:", error);
+      // Fallback to regular properties endpoint
+      try {
+        const fallbackResponse = await fetch("/api/properties");
+        const fallbackData = await fallbackResponse.json();
+        setProperties(Array.isArray(fallbackData) ? fallbackData : []);
+      } catch (fallbackError) {
+        console.error("Failed to fetch properties (fallback):", fallbackError);
+      }
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -77,8 +102,89 @@ export default function MaintenancePage() {
     }
   };
 
-  const handleCreateRequest = async () => {
+  const handleGenerateDescription = async () => {
+    if (!newRequest.title) {
+      toast.error("Please enter a title first");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
     try {
+      const selectedPropertyData = properties.find(
+        (p) => p.id === parseInt(newRequest.propertyId)
+      );
+
+      const response = await fetch("/api/maintenance/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newRequest.title,
+          urgency: newRequest.urgency,
+          location: newRequest.location || selectedPropertyData?.address,
+          propertyAddress: selectedPropertyData?.address,
+          propertyType: selectedPropertyData?.propertyType,
+          tenantName: selectedPropertyData?.tenant?.name,
+          tenantEmail: selectedPropertyData?.tenant?.email,
+          tenantPhone: selectedPropertyData?.tenant?.phone,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setNewRequest({ ...newRequest, description: data.description });
+        toast.success("Description generated successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to generate description");
+      }
+    } catch (error) {
+      toast.error("Failed to generate description");
+      console.error(error);
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
+  const handleCreateRequest = async () => {
+    // Validate required fields
+    if (!newRequest.propertyId) {
+      toast.error("Please select a property");
+      return;
+    }
+
+    if (!newRequest.title.trim()) {
+      toast.error("Please enter a title");
+      return;
+    }
+
+    if (!newRequest.description.trim()) {
+      toast.error("Please enter a description or use Auto Generate");
+      return;
+    }
+
+    try {
+      const selectedProperty = properties.find(
+        (p) => p.id === parseInt(newRequest.propertyId)
+      );
+      
+      // Build location: property address + specific location if provided
+      let fullLocation = selectedProperty?.address || newRequest.location;
+      if (selectedProperty?.address && newRequest.location && newRequest.location !== selectedProperty.address) {
+        // If user added specific location, combine them
+        fullLocation = `${selectedProperty.address}, ${newRequest.location}`;
+      }
+      
+      // Build notes with tenant contact information if available
+      let notes = "";
+      if (selectedProperty?.tenant) {
+        notes = `Tenant Contact Information:\n`;
+        notes += `Name: ${selectedProperty.tenant.name}\n`;
+        notes += `Email: ${selectedProperty.tenant.email}\n`;
+        if (selectedProperty.tenant.phone) {
+          notes += `Phone: ${selectedProperty.tenant.phone}\n`;
+        }
+      }
+
       const response = await fetch("/api/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,10 +192,11 @@ export default function MaintenancePage() {
           title: newRequest.title,
           description: newRequest.description,
           urgency: newRequest.urgency,
-          location: newRequest.location,
+          location: fullLocation,
           status: "open",
           propertyId: newRequest.propertyId || null,
           reportedDate: new Date().toISOString().split('T')[0],
+          notes: notes || null,
         }),
       });
 
@@ -102,6 +209,9 @@ export default function MaintenancePage() {
           urgency: "medium",
           location: "",
           propertyId: "",
+          tenantName: "",
+          tenantEmail: "",
+          tenantPhone: "",
         });
         fetchRequests();
       } else {
@@ -200,12 +310,25 @@ export default function MaintenancePage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Description</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDescription || !newRequest.title}
+                    className="text-xs"
+                  >
+                    {isGeneratingDescription ? "Generating..." : "✨ Auto Generate"}
+                  </Button>
+                </div>
                 <Textarea
                   id="description"
                   value={newRequest.description}
                   onChange={(e) => setNewRequest({ ...newRequest, description: e.target.value })}
-                  placeholder="Describe the issue..."
+                  placeholder="Describe the issue or click 'Auto Generate' to create one using AI"
+                  rows={4}
                 />
               </div>
               <div className="space-y-2">
@@ -227,13 +350,121 @@ export default function MaintenancePage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="propertyId">Select Property *</Label>
+                <Select
+                  value={newRequest.propertyId}
+                  onValueChange={(value) => {
+                    const property = properties.find((p) => p.id === parseInt(value));
+                    if (property) {
+                      // Auto-fill property address and tenant information
+                      setNewRequest({
+                        ...newRequest,
+                        propertyId: value,
+                        location: property.address || newRequest.location,
+                        tenantName: property.tenant?.name || "",
+                        tenantEmail: property.tenant?.email || "",
+                        tenantPhone: property.tenant?.phone || "",
+                      });
+                    } else {
+                      // Clear tenant info if no property selected
+                      setNewRequest({
+                        ...newRequest,
+                        propertyId: value,
+                        tenantName: "",
+                        tenantEmail: "",
+                        tenantPhone: "",
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a property from your listings" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties.length === 0 ? (
+                      <SelectItem value="" disabled>No properties available. Create a property first.</SelectItem>
+                    ) : (
+                      properties.map((property) => (
+                        <SelectItem key={property.id} value={property.id.toString()}>
+                          {property.title} - {property.address}
+                          {property.tenant && ` (${property.tenant.name})`}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {newRequest.propertyId && (() => {
+                  const selectedProperty = properties.find((p) => p.id === parseInt(newRequest.propertyId));
+                  return selectedProperty?.tenant ? (
+                    <p className="text-xs text-muted-foreground">
+                      ✓ Tenant: {selectedProperty.tenant.name} ({selectedProperty.tenant.email})
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      ℹ No active tenant for this property
+                    </p>
+                  );
+                })()}
+              </div>
+
+              {/* Auto-filled Property Information */}
+              {newRequest.propertyId && (() => {
+                const selectedProperty = properties.find((p) => p.id === parseInt(newRequest.propertyId));
+                if (!selectedProperty) return null;
+                
+                return (
+                  <div className="rounded-lg border bg-muted/50 p-3 space-y-2">
+                    <div className="text-sm font-medium text-muted-foreground">Property Information</div>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Address:</span>
+                        <span>{selectedProperty.address}</span>
+                      </div>
+                      {selectedProperty.city && selectedProperty.state && (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">Location:</span>
+                          <span>{selectedProperty.city}, {selectedProperty.state}</span>
+                        </div>
+                      )}
+                      {selectedProperty.tenant && (
+                        <>
+                          <div className="pt-2 border-t">
+                            <div className="font-medium text-muted-foreground mb-1">Tenant Information</div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">Name:</span>
+                              <span>{selectedProperty.tenant.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">Email:</span>
+                              <span>{selectedProperty.tenant.email}</span>
+                            </div>
+                            {selectedProperty.tenant.phone && (
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">Phone:</span>
+                                <span>{selectedProperty.tenant.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Specific Location/Room</Label>
                 <Input
                   id="location"
                   value={newRequest.location}
                   onChange={(e) => setNewRequest({ ...newRequest, location: e.target.value })}
-                  placeholder="e.g., The Grand Plaza"
+                  placeholder={newRequest.propertyId ? "e.g., Kitchen, Bathroom, Unit 4B" : "e.g., 123 Main St, Kitchen"}
                 />
+                <p className="text-xs text-muted-foreground">
+                  {newRequest.propertyId 
+                    ? "Property address auto-filled. Add specific room/area details here."
+                    : "Enter full address or specific location/room"}
+                </p>
               </div>
               <Button onClick={handleCreateRequest} className="w-full">
                 Create Request
