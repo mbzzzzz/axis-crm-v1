@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { currentUser } from '@clerk/nextjs/server';
+import postgres from 'postgres';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
@@ -461,42 +462,69 @@ export async function POST(request: NextRequest) {
             insertData.commissionRate = null;
         }
 
-        // Use explicit field mapping to exclude auto-generated fields (id, createdAt, updatedAt)
-        // This prevents Drizzle from including these fields in the INSERT statement
+        // Use raw SQL to explicitly exclude auto-generated fields (id, createdAt, updatedAt)
+        // This ensures these fields are NOT included in the INSERT statement at all
         // SECURITY: userId is always set to the authenticated user's ID
-        const [newProperty] = await db
-            .insert(properties)
-            .values({
-                userId: insertData.userId,
-                title: insertData.title,
-                description: insertData.description,
-                address: insertData.address,
-                city: insertData.city,
-                state: insertData.state,
-                zipCode: insertData.zipCode,
-                propertyType: insertData.propertyType,
-                status: insertData.status,
-                price: insertData.price,
-                currency: insertData.currency,
-                sizeSqft: insertData.sizeSqft,
-                bedrooms: insertData.bedrooms,
-                bathrooms: insertData.bathrooms,
-                yearBuilt: insertData.yearBuilt,
-                amenities: insertData.amenities,
-                images: insertData.images,
-                purchasePrice: insertData.purchasePrice,
-                estimatedValue: insertData.estimatedValue,
-                monthlyExpenses: insertData.monthlyExpenses,
-                commissionRate: insertData.commissionRate,
-            })
-            .returning();
-
-        // Log for debugging (only in development)
-        if (process.env.NODE_ENV === 'development') {
-            console.log(`[POST /api/properties] User ${user.id} created property ${newProperty.id}`);
+        // We use the postgres client directly to have full control over the INSERT statement
+        const connectionString = process.env.SUPABASE_DATABASE_URL;
+        if (!connectionString) {
+            throw new Error('SUPABASE_DATABASE_URL environment variable is not set');
         }
+        
+        const pgClient = postgres(connectionString, { 
+            max: 1,
+            transform: {
+                undefined: null, // Transform undefined to null for PostgreSQL
+            },
+        });
+        
+        try {
+            // Prepare JSONB values - ensure they're arrays
+            const amenitiesJson = Array.isArray(insertData.amenities) ? insertData.amenities : [];
+            const imagesJson = Array.isArray(insertData.images) ? insertData.images : [];
+            
+            // Use raw SQL with proper JSONB casting
+            // postgres-js will handle the parameterization automatically
+            const [property] = await pgClient`
+                INSERT INTO properties (
+                    user_id, title, description, address, city, state, zip_code,
+                    property_type, status, price, currency, size_sqft, bedrooms,
+                    bathrooms, year_built, amenities, images, purchase_price,
+                    estimated_value, monthly_expenses, commission_rate
+                ) VALUES (
+                    ${insertData.userId}, 
+                    ${insertData.title}, 
+                    ${insertData.description ?? null},
+                    ${insertData.address}, 
+                    ${insertData.city}, 
+                    ${insertData.state}, 
+                    ${insertData.zipCode},
+                    ${insertData.propertyType}, 
+                    ${insertData.status}, 
+                    ${insertData.price}, 
+                    ${insertData.currency || 'USD'},
+                    ${insertData.sizeSqft ?? null}, 
+                    ${insertData.bedrooms ?? null}, 
+                    ${insertData.bathrooms ?? null}, 
+                    ${insertData.yearBuilt ?? null},
+                    ${JSON.stringify(amenitiesJson)}::jsonb, 
+                    ${JSON.stringify(imagesJson)}::jsonb,
+                    ${insertData.purchasePrice ?? null}, 
+                    ${insertData.estimatedValue ?? null}, 
+                    ${insertData.monthlyExpenses ?? null}, 
+                    ${insertData.commissionRate ?? null}
+                ) RETURNING *
+            `;
 
-        return NextResponse.json(newProperty, { status: 201 });
+            // Log for debugging (only in development)
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[POST /api/properties] User ${user.id} created property ${property.id}`);
+            }
+
+            return NextResponse.json(property, { status: 201 });
+        } finally {
+            await pgClient.end();
+        }
     } catch (error) {
         console.error('POST error:', error);
 

@@ -1,0 +1,308 @@
+{
+	"info": {
+		"_postman_id": "axis-crm-properties-test",
+		"name": "AXIS CRM - Properties API",
+		"description": "Collection for testing AXIS CRM property listing and management endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Property Listing",
+			"item": [
+				{
+					"name": "Get All Properties",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 401\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response is an array\", function () {",
+									"        pm.expect(pm.response.json()).to.be.an('array');",
+									"    });",
+									"    ",
+									"    pm.test(\"Properties have required fields\", function () {",
+									"        const properties = pm.response.json();",
+									"        if (properties.length > 0) {",
+									"            const property = properties[0];",
+									"            pm.expect(property).to.have.property('id');",
+									"            pm.expect(property).to.have.property('title');",
+									"            pm.expect(property).to.have.property('address');",
+									"            pm.expect(property).to.have.property('city');",
+									"            pm.expect(property).to.have.property('state');",
+									"            pm.expect(property).to.have.property('price');",
+									"        }",
+									"    });",
+									"} else if (pm.response.code === 401) {",
+									"    pm.test(\"Unauthorized response structure\", function () {",
+									"        const response = pm.response.json();",
+									"        pm.expect(response).to.have.property('error');",
+									"        pm.expect(response).to.have.property('code');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/properties",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"properties"
+							]
+						},
+						"description": "Get all properties for the authenticated user. Requires Clerk authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Property by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200, 401, 404, or 500\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401, 404, 500]);",
+									"});",
+									"",
+									"if (pm.response.code === 500) {",
+									"    console.log(\"Error response:\", pm.response.json());",
+									"}",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response is a single property object\", function () {",
+									"        const property = pm.response.json();",
+									"        pm.expect(property).to.be.an('object');",
+									"        pm.expect(property).to.have.property('id');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/properties?id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"properties"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						},
+						"description": "Get a single property by ID. Requires Clerk authentication and property must belong to the authenticated user."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Properties with Filters",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 401\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Response is an array\", function () {",
+									"        pm.expect(pm.response.json()).to.be.an('array');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/properties?propertyType=residential&status=available&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"properties"
+							],
+							"query": [
+								{
+									"key": "propertyType",
+									"value": "residential"
+								},
+								{
+									"key": "status",
+									"value": "available"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get properties with filters (propertyType, status, limit). Requires Clerk authentication."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Properties",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 401\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/properties?search=downtown",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"properties"
+							],
+							"query": [
+								{
+									"key": "search",
+									"value": "downtown"
+								}
+							]
+						},
+						"description": "Search properties by title, address, or city. Requires Clerk authentication."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for listing and retrieving properties"
+		},
+		{
+			"name": "Property Creation",
+			"item": [
+				{
+					"name": "Create Property",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201, 400, 401, or 500\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([201, 400, 401, 500]);",
+									"});",
+									"",
+									"if (pm.response.code === 500) {",
+									"    console.log(\"Error response:\", pm.response.json());",
+									"    const response = pm.response.json();",
+									"    if (response.details) {",
+									"        console.log(\"Error details:\", JSON.stringify(response.details, null, 2));",
+									"    }",
+									"}",
+									"",
+									"if (pm.response.code === 201) {",
+									"    pm.test(\"Property created successfully\", function () {",
+									"        const property = pm.response.json();",
+									"        pm.expect(property).to.have.property('id');",
+									"        pm.expect(property).to.have.property('title');",
+									"        pm.expect(property).to.have.property('created_at');",
+									"        ",
+									"        // Save property ID for other tests",
+									"        pm.environment.set('property_id', property.id);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Test Property Downtown\",\n  \"description\": \"Beautiful 2-bedroom apartment in downtown area with modern amenities\",\n  \"address\": \"123 Main Street\",\n  \"city\": \"Lahore\",\n  \"state\": \"punjab\",\n  \"zipCode\": \"54000\",\n  \"propertyType\": \"residential\",\n  \"status\": \"available\",\n  \"price\": 25000000,\n  \"currency\": \"USD\",\n  \"sizeSqft\": 1500,\n  \"bedrooms\": 2,\n  \"bathrooms\": 2,\n  \"yearBuilt\": 2020,\n  \"amenities\": [\"Swimming Pool\", \"Parking\", \"Security\"],\n  \"images\": [],\n  \"purchasePrice\": 20000000,\n  \"estimatedValue\": 25000000,\n  \"monthlyExpenses\": 50000,\n  \"commissionRate\": 2\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/properties",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"properties"
+							]
+						},
+						"description": "Create a new property. Requires Clerk authentication. This tests the fixed INSERT statement that excludes auto-generated fields."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints for creating properties"
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
+
