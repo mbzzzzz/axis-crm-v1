@@ -10,9 +10,15 @@ export default function App() {
   const [state, setState] = useState<ExtensionState | null>(null);
 
   async function refreshState() {
-    const response = await sendRuntimeMessage({ type: "GET_STATE" });
-    if (response.ok) {
-      setState(response.state);
+    try {
+      const response = await sendRuntimeMessage({ type: "GET_STATE" });
+      if (response.ok && response.type === "STATE") {
+        setState(response.state);
+      } else if (response.type === "ERROR") {
+        console.error("Failed to get state:", response.error);
+      }
+    } catch (error) {
+      console.error("Error refreshing state:", error);
     }
   }
 
@@ -77,24 +83,28 @@ export default function App() {
       return;
     }
 
+    try {
     const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
     if (!response.ok) {
       const errorMsg = response.error || "Autofill failed";
-      if (errorMsg.includes("Receiving end does not exist")) {
-        alert(
-          "Content script not loaded.\n\n" +
-          "1. Refresh the current page (F5)\n" +
-          "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
-          "3. Try autofill again"
-        );
+        // TODO: Replace string matching with error codes from response
+        if (errorMsg.includes("Receiving end does not exist")) {
+          alert(
+            "Content script not loaded.\n\n" +
+            "1. Refresh the current page (F5)\n" +
+            "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
+            "3. Try autofill again"
+          );
+        } else {
+          alert(`Autofill failed: ${errorMsg}`);
+        }
       } else {
-        alert(`Autofill failed: ${errorMsg}`);
+        alert("Autofill completed! Check the form to verify the data was filled.");
       }
-    } else {
-      alert("Autofill completed! Check the form to verify the data was filled.");
+    } catch (error) {
+      alert(`Autofill failed: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-
   function openDashboard() {
     const url = state?.settings.apiBaseUrl || "https://axis-crm-v1.vercel.app";
     browser.tabs.create({ url });

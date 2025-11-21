@@ -8,20 +8,40 @@ type Props = {
 };
 
 export function PropertyCard({ property, active, onSelect }: Props) {
+  const formatPrice = (price: number, currency?: string | null): string => {
+    const currencyCode = currency && /^[A-Z]{3}$/.test(currency) ? currency : "USD";
+    try {
+      const hasFraction = price % 1 !== 0;
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: currencyCode,
+        maximumFractionDigits: hasFraction ? 2 : 0,
+      }).format(price);
+    } catch (error) {
+      return new Intl.NumberFormat(undefined, {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(price);
+    }
+  };
+
+  const locationParts = [property.city, property.state].filter(Boolean);
+  const locationText = locationParts.length > 0 ? locationParts.join(", ") : "—";
+
   return (
-    <button className={clsx("property-card", active && "active")} onClick={onSelect}>
+    <button
+      type="button"
+      className={clsx("property-card", active && "active")}
+      onClick={onSelect}
+      aria-label={`Select property: ${property.title}`}
+    >
       <p className="property-title">{property.title}</p>
       <div className="property-meta">
-        <span>{property.city}, {property.state}</span>
-        <span>{property.propertyType}</span>
+        <span>{locationText}</span>
+        <span>{property.propertyType ?? "Unknown"}</span>
         {typeof property.price === "number" && (
-          <span>
-            {new Intl.NumberFormat(undefined, {
-              style: "currency",
-              currency: property.currency ?? "USD",
-              maximumFractionDigits: 0,
-            }).format(property.price)}
-          </span>
+          <span>{formatPrice(property.price, property.currency)}</span>
         )}
       </div>
     </button>

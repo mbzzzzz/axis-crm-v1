@@ -12,14 +12,19 @@ const OptionsApp = () => {
   });
   const [theme, setTheme] = useState<ExtensionTheme | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    sendRuntimeMessage({ type: "GET_STATE" }).then((response) => {
-      if (response.ok) {
-        setSettings(response.state.settings);
-        setTheme(response.state.theme);
-      }
-    });
+    sendRuntimeMessage({ type: "GET_STATE" })
+      .then((response) => {
+        if (response.ok && response.type === "STATE") {
+          setSettings(response.state.settings);
+          setTheme(response.state.theme);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load extension state:", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -34,16 +39,25 @@ const OptionsApp = () => {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("saving");
-    const response = await sendRuntimeMessage({
-      type: "UPDATE_SETTINGS",
-      payload: settings,
-    });
-    if (!response.ok) {
+    setErrorMessage(null);
+    try {
+      const response = await sendRuntimeMessage({
+        type: "UPDATE_SETTINGS",
+        payload: settings,
+      });
+      if (!response.ok) {
+        setStatus("error");
+        setErrorMessage(response.error || "Failed to save settings");
+        return;
+      }
+      setStatus("saved");
+      setTimeout(() => setStatus("idle"), 2000);
+    } catch (error) {
       setStatus("error");
-      return;
+      const errorMsg = error instanceof Error ? error.message : "Failed to save settings";
+      setErrorMessage(errorMsg);
+      console.error("Settings save error:", error);
     }
-    setStatus("saved");
-    setTimeout(() => setStatus("idle"), 2000);
   }
 
   return (
@@ -69,8 +83,11 @@ const OptionsApp = () => {
         <p style={{ fontSize: 13, color: "rgba(248, 250, 255, 0.5)", marginTop: 8 }}>
           We use this URL for Clerk authentication, property sync, and theme mirroring.
         </p>
+        {errorMessage && (
+          <p style={{ color: "#f87171", fontSize: 13, marginTop: 8 }}>{errorMessage}</p>
+        )}
         <button type="submit" style={{ marginTop: 16 }}>
-          {status === "saving" ? "Saving..." : status === "saved" ? "Saved" : "Save changes"}
+          {status === "saving" ? "Saving..." : status === "saved" ? "Saved" : status === "error" ? "Save failed" : "Save changes"}
         </button>
       </form>
 
@@ -81,7 +98,7 @@ const OptionsApp = () => {
             <div key={site.key} className="site-card">
               <strong>{site.label}</strong>
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "rgba(248, 250, 255, 0.6)" }}>
-                Autofills price, address, photos, amenities, and description.
+                {site.description || "Autofills price, address, photos, amenities, and description."}
               </p>
             </div>
           ))}
@@ -91,11 +108,15 @@ const OptionsApp = () => {
   );
 };
 
-const container = document.getElementById("root")!;
-const root = createRoot(container);
-root.render(
-  <React.StrictMode>
-    <OptionsApp />
-  </React.StrictMode>,
-);
+const container = document.getElementById("root");
+if (!container) {
+  console.error("Root element not found. Cannot mount React app.");
+} else {
+  const root = createRoot(container);
+  root.render(
+    <React.StrictMode>
+      <OptionsApp />
+    </React.StrictMode>,
+  );
+}
 

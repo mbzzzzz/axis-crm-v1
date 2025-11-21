@@ -11,11 +11,28 @@ function toAbsoluteUrl(baseUrl: string, path: string) {
 }
 
 async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
-  const response = await fetch(toAbsoluteUrl(baseUrl, path), {
-    method: "GET",
-    headers: DEFAULT_HEADERS,
-    credentials: "include",
-  });
+  const FETCH_TIMEOUT = 30000; // 30 seconds
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  let response: Response;
+  try {
+    response = await fetch(toAbsoluteUrl(baseUrl, path), {
+      method: "GET",
+      headers: DEFAULT_HEADERS,
+      credentials: "include",
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    if (fetchError instanceof Error && fetchError.name === "AbortError") {
+      const timeoutError = new Error("Request timed out");
+      (timeoutError as any).status = 408;
+      throw timeoutError;
+    }
+    throw fetchError;
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
@@ -50,8 +67,29 @@ export async function fetchTheme(baseUrl: string): Promise<ExtensionTheme> {
 }
 
 export async function fetchProperties(baseUrl: string): Promise<AxisPropertyRecord[]> {
-  const results = await axisFetch<AxisPropertyRecord[]>(baseUrl, "/api/properties?limit=200");
-  return results.map((item) => ({
+  const limit = 200;
+  const allResults: AxisPropertyRecord[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const results = await axisFetch<AxisPropertyRecord[]>(
+      baseUrl,
+      `/api/properties?limit=${limit}&offset=${offset}`
+    );
+    
+    if (results.length === 0) {
+      hasMore = false;
+    } else {
+      allResults.push(...results);
+      offset += limit;
+      if (results.length < limit) {
+        hasMore = false;
+      }
+    }
+  }
+
+  return allResults.map((item) => ({
     ...item,
     images: Array.isArray(item.images) ? item.images : [],
     amenities: Array.isArray(item.amenities) ? item.amenities : [],

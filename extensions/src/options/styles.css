@@ -38,6 +38,14 @@ input {
   color: inherit;
   font-size: 15px;
   padding: 12px 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+input:focus-visible {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 button {
@@ -48,6 +56,23 @@ button {
   font-weight: 600;
   padding: 12px 20px;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+button:hover {
+  background: #4f46e5;
+}
+
+button:focus,
+button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+button:active {
+  transform: scale(0.98);
+  background: #4338ca;
 }
 
 .site-list {

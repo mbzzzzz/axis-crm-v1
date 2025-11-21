@@ -25,18 +25,23 @@ export default function SettingsPage() {
     companyName: "",
     email: "",
     currentPlan: "Free",
+    agentName: "",
+    agentAgency: "",
   });
+  const [isSavingAgent, setIsSavingAgent] = useState(false);
   const { theme, themeKey, setTheme, isSaving } = useCardTheme();
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [propertiesRes, tenantsRes] = await Promise.all([
+        const [propertiesRes, tenantsRes, preferencesRes] = await Promise.all([
           fetch("/api/properties"),
           fetch("/api/tenants"),
+          fetch("/api/preferences"),
         ]);
         const properties = await propertiesRes.json();
         const tenants = await tenantsRes.json();
+        const preferences = await preferencesRes.json();
         
         setStats({
           totalProperties: Array.isArray(properties) ? properties.length : 0,
@@ -50,6 +55,8 @@ export default function SettingsPage() {
             companyName: "",
             email: session.user.email || "",
             currentPlan: "Free",
+            agentName: preferences?.agentName || "",
+            agentAgency: preferences?.agentAgency || "",
           });
         }
       } catch (error) {
@@ -65,6 +72,32 @@ export default function SettingsPage() {
   const handleSave = () => {
     toast.success("Settings saved successfully");
     // In a real app, this would call an API to save settings
+  };
+
+  const handleSaveAgentInfo = async () => {
+    setIsSavingAgent(true);
+    try {
+      const response = await fetch("/api/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentName: formData.agentName,
+          agentAgency: formData.agentAgency,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Agent information saved successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to save agent information");
+      }
+    } catch (error) {
+      console.error("Failed to save agent info:", error);
+      toast.error("Failed to save agent information");
+    } finally {
+      setIsSavingAgent(false);
+    }
   };
 
   return (
@@ -113,6 +146,44 @@ export default function SettingsPage() {
             <Button onClick={handleSave} className="w-full">
               Save Changes
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Agent Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Agent Information</CardTitle>
+            <CardDescription>Set default agent details for invoices</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="agentName">Agent Name</Label>
+              <Input
+                id="agentName"
+                value={formData.agentName}
+                onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}
+                placeholder="Enter agent name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agentAgency">Organization / Agency</Label>
+              <Input
+                id="agentAgency"
+                value={formData.agentAgency}
+                onChange={(e) => setFormData({ ...formData, agentAgency: e.target.value })}
+                placeholder="Enter organization name"
+              />
+            </div>
+            <Button 
+              onClick={handleSaveAgentInfo} 
+              className="w-full"
+              disabled={isSavingAgent}
+            >
+              {isSavingAgent ? "Saving..." : "Save Agent Information"}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              This information will be used as defaults when creating new invoices. You can override it per invoice if needed.
+            </p>
           </CardContent>
         </Card>
 

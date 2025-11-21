@@ -15,7 +15,7 @@
       "@axis/*": ["src/*"],
       "@/*": ["../src/*"]
     },
-    "types": ["chrome", "webextension-polyfill"]
+    "types": ["chrome"]
   },
   "include": ["src/**/*", "../src/lib/card-themes.ts"]
 }

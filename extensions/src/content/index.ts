@@ -1,5 +1,5 @@
 import browser from "webextension-polyfill";
-import type { AutofillAdapter } from "./adapters/types";
+import type { AutofillAdapter, AutofillPayload } from "./adapters/types";
 import ZillowAdapter from "./adapters/zillow";
 import ZameenAdapter from "./adapters/zameen";
 import RealtorAdapter from "./adapters/realtor";
@@ -14,6 +14,8 @@ function getAdapter(siteKey?: string): AutofillAdapter | undefined {
   const matchedKey = matchSiteFromLocation(window.location);
   return ADAPTERS.find((adapter) => adapter.key === matchedKey);
 }
+
+let toastTimeout: number | undefined;
 
 function showToast(message: string) {
   let toast = document.getElementById("axis-autofill-toast");
@@ -30,28 +32,68 @@ function showToast(message: string) {
     toast.style.boxShadow = "0 15px 40px rgba(0,0,0,0.35)";
     toast.style.color = "#050505";
     toast.style.background = "#a855f7";
+    toast.style.transition = "opacity 300ms ease";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.setAttribute("aria-atomic", "true");
+    toast.setAttribute("tabindex", "-1");
     document.body.appendChild(toast);
   }
+  
+  if (toastTimeout !== undefined) {
+    clearTimeout(toastTimeout);
+  }
+  
   toast.textContent = message;
   toast.style.opacity = "1";
-  setTimeout(() => {
+  toastTimeout = window.setTimeout(() => {
     if (toast) toast.style.opacity = "0";
+    toastTimeout = undefined;
   }, 2600);
 }
 
-browser.runtime.onMessage.addListener(async (message) => {
-  if (message.type !== "AXIS_AUTOFILL") return;
-  const adapter = getAdapter(message.payload?.site);
-  if (!adapter) {
-    showToast("AXIS Autofill: Unsupported site");
-    return;
+interface PingMessage {
+  type: "AXIS_PING";
+}
+
+interface AutofillMessage {
+  type: "AXIS_AUTOFILL";
+  payload: AutofillPayload;
+}
+
+type RuntimeMessage = PingMessage | AutofillMessage;
+
+browser.runtime.onMessage.addListener(
+  async (
+    message: RuntimeMessage,
+    sender: browser.Runtime.MessageSender
+  ): Promise<{ ready?: boolean; success?: boolean; error?: string }> => {
+    if (message.type === "AXIS_PING") {
+      return { ready: true };
+    }
+
+    if (message.type !== "AXIS_AUTOFILL") {
+      return { success: false, error: "Unknown message type" };
+    }
+
+    const adapter = getAdapter();
+    if (!adapter) {
+      showToast("AXIS Autofill: Unsupported site");
+      return { success: false, error: "Unsupported site" };
+    }
+
+    try {
+      await adapter.apply(message.payload);
+      showToast("AXIS Autofill complete");
+      return { success: true };
+    } catch (error) {
+      console.error("AXIS Autofill error", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      showToast(`AXIS Autofill failed: ${errorMsg}`);
+      return { success: false, error: errorMsg };
+    }
   }
-  try {
-    await adapter.apply(message.payload);
-    showToast("AXIS Autofill complete");
-  } catch (error) {
-    console.error("AXIS Autofill error", error);
-    showToast("AXIS Autofill failed. Check console.");
-  }
-});
+);
+
+console.log("AXIS CRM Autofill content script loaded");
 

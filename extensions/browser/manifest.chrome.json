@@ -33,7 +33,6 @@
     "https://*.axiscrm.app/*",
     "https://axis-crm.vercel.app/*",
     "https://axis-crm-v1.vercel.app/*",
-    "https://localhost:3000/*",
     "https://*.zillow.com/*",
     "https://zillow.com/*",
     "https://*.zameen.com/*",

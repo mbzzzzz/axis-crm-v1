@@ -3,6 +3,26 @@ import { setInputValue, uploadImages, waitForSelector } from "./utils";
 
 async function fillZillowForm(payload: AutofillPayload) {
   const { property } = payload;
+  
+  // Validate required fields
+  const requiredFields = {
+    price: property.price,
+    address: property.address,
+    city: property.city,
+    state: property.state,
+    zipCode: property.zipCode,
+  };
+  
+  const missingFields = Object.entries(requiredFields)
+    .filter(([_, value]) => value === null || value === undefined || (typeof value === "string" && value.trim() === ""))
+    .map(([key]) => key);
+  
+  if (missingFields.length > 0) {
+    const errorMsg = `Missing required fields: ${missingFields.join(", ")}`;
+    console.warn("Zillow autofill validation failed:", errorMsg);
+    throw new Error(errorMsg);
+  }
+  
   setInputValue('input[name="price"]', property.price);
   setInputValue('input[name="streetAddress"]', property.address);
   setInputValue('input[name="city"]', property.city);

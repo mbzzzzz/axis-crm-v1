@@ -79,18 +79,37 @@ async function fillZameenForm(payload: AutofillPayload) {
     (areaInput as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  // Find the filter panel container for bedrooms/bathrooms
+  const filterPanel = document.querySelector('[class*="filter"], [class*="Filter"], [data-testid*="filter"], section[aria-label*="filter" i]') as HTMLElement | null;
+  const searchContainer = filterPanel || document.body;
+
   if (property.bedrooms) {
-    const bedroomBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.trim() === String(property.bedrooms)
-    );
-    bedroomBtn?.click();
+    const bedroomBtn = Array.from(searchContainer.querySelectorAll("button")).find((btn) => {
+      const text = btn.textContent?.trim();
+      const matchesText = text === String(property.bedrooms);
+      if (filterPanel) {
+        return matchesText && filterPanel.contains(btn);
+      }
+      return matchesText;
+    });
+    if (bedroomBtn) {
+      bedroomBtn.click();
+    }
   }
 
-  if (property.bathrooms) {
-    const bathroomBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.trim() === String(Math.floor(property.bathrooms))
-    );
-    bathroomBtn?.click();
+  if (property.bathrooms != null) {
+    const bathroomCount = Math.floor(property.bathrooms);
+    const bathroomBtn = Array.from(searchContainer.querySelectorAll("button")).find((btn) => {
+      const text = btn.textContent?.trim();
+      const matchesText = text === String(bathroomCount);
+      if (filterPanel) {
+        return matchesText && filterPanel.contains(btn);
+      }
+      return matchesText;
+    });
+    if (bathroomBtn) {
+      bathroomBtn.click();
+    }
   }
 
   if (property.images?.length) {

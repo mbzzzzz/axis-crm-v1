@@ -21,9 +21,29 @@ export async function uploadImages(selector: string, urls: string[]) {
   if (!input) return;
 
   const dataTransfer = new DataTransfer();
+  const FETCH_TIMEOUT = 10000; // 10 seconds
+  
   for (const url of urls.slice(0, input.multiple ? urls.length : 1)) {
     try {
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+      
+      let response: Response;
+      try {
+        response = await fetch(url, { signal: controller.signal });
+        clearTimeout(timeoutId);
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === "AbortError") {
+          throw new Error(`Request timed out after ${FETCH_TIMEOUT}ms`);
+        }
+        throw fetchError;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
       const fileName = url.split("/").pop() || "axis-media.jpg";
       const file = new File([blob], fileName, { type: blob.type });

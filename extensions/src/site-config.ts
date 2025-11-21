@@ -8,6 +8,7 @@ export type FieldMapping = {
 export type SiteAdapterConfig = {
   key: ListingSiteKey;
   label: string;
+  description?: string;
   hostPatterns: RegExp[];
 };
 
@@ -15,17 +16,20 @@ export const SUPPORTED_SITES: SiteAdapterConfig[] = [
   {
     key: "zillow",
     label: "Zillow",
-    hostPatterns: [/\.zillow\.com$/i, /^www\.zillow\.com$/i],
+    description: "Autofills price, address, city, state, zip code, bedrooms, bathrooms, square footage, description, and photos.",
+    hostPatterns: [/^(.*\.)?zillow\.com$/i],
   },
   {
     key: "zameen",
     label: "Zameen",
+    description: "Autofills price, address, location, city, property type, purpose (rent/sell), bedrooms, bathrooms, area, description, and photos.",
     hostPatterns: [/\.zameen\.com$/i, /^zameen\.com$/i],
   },
   {
     key: "realtor",
     label: "Realtor",
-    hostPatterns: [/\.realtor\.com$/i, /^www\.realtor\.com$/i],
+    description: "Autofills price, address, city, state, zip code, bedrooms, bathrooms, square footage, description, and photos.",
+    hostPatterns: [/^(.*\.)?realtor\.com$/i],
   },
 ];
 

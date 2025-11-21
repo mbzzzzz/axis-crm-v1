@@ -75,7 +75,28 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
   useEffect(() => {
     fetchProperties();
     fetchTenants();
+    fetchUserPreferences();
   }, []);
+
+  const fetchUserPreferences = async () => {
+    try {
+      const response = await fetch("/api/preferences");
+      if (response.ok) {
+        const preferences = await response.json();
+        // Only set defaults from preferences when creating a new invoice (not editing)
+        // and if the fields are empty
+        if (!invoice) {
+          setFormData(prev => ({
+            ...prev,
+            agentName: prev.agentName || preferences.agentName || "",
+            agentAgency: prev.agentAgency || preferences.agentAgency || "",
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch user preferences:", error);
+    }
+  };
 
   useEffect(() => {
     if (formData.propertyId) {

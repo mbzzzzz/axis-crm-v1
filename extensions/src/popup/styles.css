@@ -40,12 +40,29 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--axis-accent, #6366f1);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+.button:active {
+  transform: scale(0.98);
 }
 
 .button.secondary {
   background: transparent;
   border: 1px solid var(--axis-border, rgba(99, 102, 241, 0.4));
   color: var(--axis-text, #f8fafc);
+}
+
+.button.secondary:focus-visible {
+  outline: 2px solid var(--axis-border, rgba(99, 102, 241, 0.4));
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 
 .property-list {
@@ -62,7 +79,17 @@ body {
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.02);
   padding: 12px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.property-card:focus-visible {
+  outline: 2px solid var(--axis-accent, #6366f1);
+  outline-offset: 2px;
+  border-color: var(--axis-accent, #6366f1);
+}
+
+.property-card:active {
+  transform: translateY(-1px);
 }
 
 .property-card.active {

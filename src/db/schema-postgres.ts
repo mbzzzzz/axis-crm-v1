@@ -106,6 +106,8 @@ export const userPreferences = pgTable('user_preferences', {
   id: serial('id').primaryKey(),
   userId: text('user_id').unique().notNull(),
   cardTheme: text('card_theme').notNull(),
+  agentName: text('agent_name'),
+  agentAgency: text('agent_agency'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -50,8 +50,8 @@ export type RuntimeMessage =
   | { type: "UPDATE_SETTINGS"; payload: Partial<ExtensionSettings> };
 
 export type RuntimeMessageResponse =
-  | { ok: true; state: ExtensionState }
-  | { ok: true; property: AxisPropertyRecord | null; theme: ExtensionTheme | null }
-  | { ok: true; message: string }
-  | { ok: false; error: string };
+  | { ok: true; type: "STATE"; state: ExtensionState }
+  | { ok: true; type: "PROPERTY"; property: AxisPropertyRecord | null; theme: ExtensionTheme | null }
+  | { ok: true; type: "MESSAGE"; message: string }
+  | { ok: false; type: "ERROR"; error: string };
 
