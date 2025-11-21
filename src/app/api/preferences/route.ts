@@ -86,15 +86,24 @@ export async function PUT(request: NextRequest) {
       if (themeKey !== undefined) {
         updateData.cardTheme = themeKey;
       }
+      // Always allow updating agent fields, even if they're empty (to clear them)
       if (agentName !== undefined) {
-        updateData.agentName = agentName?.trim() || null;
+        // Convert empty string to null, otherwise use trimmed value
+        const trimmedName = typeof agentName === 'string' ? agentName.trim() : agentName;
+        updateData.agentName = trimmedName === "" || trimmedName === null || trimmedName === undefined ? null : trimmedName;
       }
       if (agentAgency !== undefined) {
-        updateData.agentAgency = agentAgency?.trim() || null;
+        // Convert empty string to null, otherwise use trimmed value
+        const trimmedAgency = typeof agentAgency === 'string' ? agentAgency.trim() : agentAgency;
+        updateData.agentAgency = trimmedAgency === "" || trimmedAgency === null || trimmedAgency === undefined ? null : trimmedAgency;
       }
+      
+      // If only agent fields are being updated (no theme), ensure we still update
+      // This allows users to update agent info independently
 
       if (existing.length > 0) {
-        // Update existing preference
+        // Update existing preference - always update if we have agent fields
+        // Even if only updatedAt, we still want to update the timestamp
         await db
           .update(userPreferences)
           .set(updateData)
@@ -104,8 +113,8 @@ export async function PUT(request: NextRequest) {
         await db.insert(userPreferences).values({
           userId: user.id,
           cardTheme: themeKey || DEFAULT_CARD_THEME_KEY,
-          agentName: agentName?.trim() || null,
-          agentAgency: agentAgency?.trim() || null,
+          agentName: agentName === "" || agentName === null ? null : (agentName?.trim() || null),
+          agentAgency: agentAgency === "" || agentAgency === null ? null : (agentAgency?.trim() || null),
           createdAt: now,
           updatedAt: now,
         });
@@ -131,7 +140,20 @@ export async function PUT(request: NextRequest) {
         agentAgency: prefs.agentAgency,
       });
     } catch (dbError: any) {
-      if (dbError?.message?.includes("does not exist") || dbError?.code === "42P01") {
+      // Check for column doesn't exist error (migration not run)
+      if (dbError?.message?.includes("does not exist") || dbError?.code === "42P01" || dbError?.code === "42703") {
+        const isColumnError = dbError?.message?.includes("agent_name") || dbError?.message?.includes("agent_agency");
+        if (isColumnError) {
+          console.error("Database columns 'agent_name' or 'agent_agency' do not exist. Please run the migration:", dbError);
+          return NextResponse.json(
+            { 
+              error: "Database columns not found. Please run the migration: drizzle/0008_add_agent_fields_to_preferences.sql",
+              code: "COLUMN_NOT_FOUND",
+              details: dbError.message 
+            },
+            { status: 500 }
+          );
+        }
         console.error("Database table 'user_preferences' does not exist. Please run the migration:", dbError);
         return NextResponse.json(
           { 
@@ -146,6 +168,7 @@ export async function PUT(request: NextRequest) {
         message: dbError?.message,
         code: dbError?.code,
         stack: dbError?.stack,
+        updateData,
       });
       throw dbError;
     }

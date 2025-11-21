@@ -84,10 +84,11 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       if (response.ok) {
         const preferences = await response.json();
         // Only set defaults from preferences when creating a new invoice (not editing)
-        // and if the fields are empty
+        // Always use preferences if form fields are empty
         if (!invoice) {
           setFormData(prev => ({
             ...prev,
+            // Use preference value if form field is empty, otherwise keep form value
             agentName: prev.agentName || preferences.agentName || "",
             agentAgency: prev.agentAgency || preferences.agentAgency || "",
           }));
@@ -95,6 +96,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       }
     } catch (error) {
       console.error("Failed to fetch user preferences:", error);
+      // Don't block form if preferences can't be loaded
     }
   };
 

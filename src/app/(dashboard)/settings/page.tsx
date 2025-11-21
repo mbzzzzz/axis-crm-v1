@@ -81,20 +81,35 @@ export default function SettingsPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          agentName: formData.agentName,
-          agentAgency: formData.agentAgency,
+          agentName: formData.agentName || null,
+          agentAgency: formData.agentAgency || null,
         }),
       });
 
       if (response.ok) {
+        const savedData = await response.json();
+        // Update form data with saved values to reflect any server-side processing
+        setFormData(prev => ({
+          ...prev,
+          agentName: savedData.agentName || "",
+          agentAgency: savedData.agentAgency || "",
+        }));
         toast.success("Agent information saved successfully");
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to save agent information");
+        const errorMessage = error.error || error.details || "Failed to save agent information";
+        
+        // Show more helpful error messages
+        if (error.code === "COLUMN_NOT_FOUND") {
+          toast.error("Database migration required. Please contact support or run the migration: drizzle/0008_add_agent_fields_to_preferences.sql");
+        } else {
+          toast.error(errorMessage);
+        }
+        console.error("Save error:", error);
       }
     } catch (error) {
       console.error("Failed to save agent info:", error);
-      toast.error("Failed to save agent information");
+      toast.error("Network error. Please check your connection and try again.");
     } finally {
       setIsSavingAgent(false);
     }
@@ -153,7 +168,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Agent Information</CardTitle>
-            <CardDescription>Set default agent details for invoices</CardDescription>
+            <CardDescription>Set default agent details for invoices. You can update these anytime.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -163,6 +178,7 @@ export default function SettingsPage() {
                 value={formData.agentName}
                 onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}
                 placeholder="Enter agent name"
+                disabled={isSavingAgent}
               />
             </div>
             <div className="space-y-2">
@@ -172,6 +188,7 @@ export default function SettingsPage() {
                 value={formData.agentAgency}
                 onChange={(e) => setFormData({ ...formData, agentAgency: e.target.value })}
                 placeholder="Enter organization name"
+                disabled={isSavingAgent}
               />
             </div>
             <Button 
@@ -182,7 +199,7 @@ export default function SettingsPage() {
               {isSavingAgent ? "Saving..." : "Save Agent Information"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              This information will be used as defaults when creating new invoices. You can override it per invoice if needed.
+              This information will be used as defaults when creating new invoices. You can override it per invoice if needed. Changes are saved immediately.
             </p>
           </CardContent>
         </Card>
