@@ -1,0 +1,115 @@
+import type { AutofillAdapter, AutofillPayload } from "./types";
+import { setInputValue, setSelectValue, uploadImages, waitForSelector } from "./utils";
+
+function clickButtonByText(text: string, partial = false): boolean {
+  const buttons = Array.from(document.querySelectorAll("button"));
+  const match = buttons.find((btn) => {
+    const btnText = btn.textContent?.trim() || "";
+    return partial ? btnText.includes(text) : btnText === text;
+  });
+  if (match) {
+    match.click();
+    return true;
+  }
+  return false;
+}
+
+function selectPropertyType(type: string) {
+  const typeMap: Record<string, string> = {
+    residential: "House",
+    multi_family: "House",
+    commercial: "Commercial",
+    land: "Plots",
+  };
+  const targetType = typeMap[type] || "House";
+  clickButtonByText(targetType, true);
+}
+
+function selectPurpose(status: string) {
+  const purpose = status === "rented" || status === "available" ? "Rent" : "Sell";
+  clickButtonByText(purpose, true);
+}
+
+async function fillZameenForm(payload: AutofillPayload) {
+  const { property } = payload;
+
+  await waitForSelector("body", 2000);
+
+  selectPurpose(property.status);
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  selectPropertyType(property.propertyType);
+
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  setInputValue('input[placeholder*="title" i], input[placeholder*="Title" i]', property.title);
+
+  setInputValue(
+    'textarea[placeholder*="description" i], textarea[placeholder*="Describe" i]',
+    property.description ?? ""
+  );
+
+  const cityInput = await waitForSelector('input[placeholder*="City" i], input[placeholder*="Select City" i]');
+  if (cityInput) {
+    (cityInput as HTMLInputElement).focus();
+    (cityInput as HTMLInputElement).value = property.city;
+    (cityInput as HTMLInputElement).dispatchEvent(new Event("input", { bubbles: true }));
+    (cityInput as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  const locationInput = await waitForSelector('input[placeholder*="Location" i], input[placeholder*="Search Location" i]');
+  if (locationInput) {
+    (locationInput as HTMLInputElement).value = `${property.address}, ${property.city}`;
+    (locationInput as HTMLInputElement).dispatchEvent(new Event("input", { bubbles: true }));
+    (locationInput as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  const priceInput = await waitForSelector('input[placeholder*="Price" i], input[placeholder*="Enter Price" i]');
+  if (priceInput) {
+    (priceInput as HTMLInputElement).value = String(property.price);
+    (priceInput as HTMLInputElement).dispatchEvent(new Event("input", { bubbles: true }));
+    (priceInput as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  const areaInput = await waitForSelector('input[placeholder*="Area" i], input[placeholder*="Unit" i]');
+  if (areaInput && property.sizeSqft) {
+    (areaInput as HTMLInputElement).value = String(property.sizeSqft);
+    (areaInput as HTMLInputElement).dispatchEvent(new Event("input", { bubbles: true }));
+    (areaInput as HTMLInputElement).dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  if (property.bedrooms) {
+    const bedroomBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.trim() === String(property.bedrooms)
+    );
+    bedroomBtn?.click();
+  }
+
+  if (property.bathrooms) {
+    const bathroomBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.trim() === String(Math.floor(property.bathrooms))
+    );
+    bathroomBtn?.click();
+  }
+
+  if (property.images?.length) {
+    const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.toLowerCase().includes("upload image")
+    );
+    if (uploadBtn) {
+      (uploadBtn as HTMLButtonElement).click();
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await uploadImages('input[type="file"]', property.images);
+    }
+  }
+}
+
+const ZameenAdapter: AutofillAdapter = {
+  key: "zameen",
+  matches: (location) => location.hostname.includes("zameen.com"),
+  apply: fillZameenForm,
+};
+
+export default ZameenAdapter;
+

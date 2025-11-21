@@ -7,7 +7,9 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "check-db": "tsx scripts/check-supabase-structure.ts"
+        "check-db": "tsx scripts/check-supabase-structure.ts",
+        "build:extension": "npm --prefix extensions run build",
+        "dev:extension": "npm --prefix extensions run dev"
     },
     "dependencies": {
         "@babel/parser": "^7.28.5",

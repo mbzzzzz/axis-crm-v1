@@ -1,0 +1,50 @@
+import browser from "webextension-polyfill";
+import type { AxisPropertyRecord, ExtensionSettings, ExtensionTheme } from "./types";
+
+const STORAGE_KEYS = {
+  PROPERTIES: "axis:properties",
+  THEME: "axis:theme",
+  SETTINGS: "axis:settings",
+  SELECTED: "axis:selected",
+} as const;
+
+export async function saveProperties(properties: AxisPropertyRecord[]) {
+  await browser.storage.local.set({ [STORAGE_KEYS.PROPERTIES]: properties });
+}
+
+export async function getProperties(): Promise<AxisPropertyRecord[]> {
+  const data = await browser.storage.local.get(STORAGE_KEYS.PROPERTIES);
+  return (data[STORAGE_KEYS.PROPERTIES] as AxisPropertyRecord[]) ?? [];
+}
+
+export async function saveTheme(theme: ExtensionTheme | null) {
+  await browser.storage.local.set({ [STORAGE_KEYS.THEME]: theme });
+}
+
+export async function getTheme(): Promise<ExtensionTheme | null> {
+  const data = await browser.storage.local.get(STORAGE_KEYS.THEME);
+  return (data[STORAGE_KEYS.THEME] as ExtensionTheme) ?? null;
+}
+
+export async function saveSettings(settings: ExtensionSettings) {
+  await browser.storage.local.set({ [STORAGE_KEYS.SETTINGS]: settings });
+}
+
+export async function getSettings(): Promise<ExtensionSettings> {
+  const data = await browser.storage.local.get(STORAGE_KEYS.SETTINGS);
+  return (
+    (data[STORAGE_KEYS.SETTINGS] as ExtensionSettings) ?? {
+      apiBaseUrl: "https://axis-crm-v1.vercel.app",
+    }
+  );
+}
+
+export async function saveSelectedProperty(propertyId: number | null) {
+  await browser.storage.local.set({ [STORAGE_KEYS.SELECTED]: propertyId });
+}
+
+export async function getSelectedProperty(): Promise<number | null> {
+  const data = await browser.storage.local.get(STORAGE_KEYS.SELECTED);
+  return (data[STORAGE_KEYS.SELECTED] as number | null) ?? null;
+}
+
