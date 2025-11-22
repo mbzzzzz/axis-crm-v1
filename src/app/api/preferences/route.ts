@@ -100,14 +100,17 @@ export async function PUT(request: NextRequest) {
       
       // If only agent fields are being updated (no theme), ensure we still update
       // This allows users to update agent info independently
+      // Ensure we have at least one field to update besides updatedAt
+      const hasUpdates = Object.keys(updateData).length > 1 || agentName !== undefined || agentAgency !== undefined;
 
       if (existing.length > 0) {
-        // Update existing preference - always update if we have agent fields
-        // Even if only updatedAt, we still want to update the timestamp
-        await db
-          .update(userPreferences)
-          .set(updateData)
-          .where(eq(userPreferences.userId, user.id));
+        // Update existing preference - always update if we have agent fields or theme
+        if (hasUpdates) {
+          await db
+            .update(userPreferences)
+            .set(updateData)
+            .where(eq(userPreferences.userId, user.id));
+        }
       } else {
         // Insert new preference
         await db.insert(userPreferences).values({

@@ -138,9 +138,11 @@ export async function POST(request: NextRequest) {
     const {
       invoiceNumber,
       propertyId,
+      tenantId,
       clientName,
       clientEmail,
       clientAddress,
+      clientPhone,
       invoiceDate,
       dueDate,
       subtotal,
@@ -150,7 +152,23 @@ export async function POST(request: NextRequest) {
       paymentStatus,
       paymentDate,
       notes,
-      items
+      items,
+      // Branding fields
+      logoMode,
+      logoDataUrl,
+      logoWidth,
+      companyName,
+      companyTagline,
+      // Additional fields
+      agentName,
+      agentAgency,
+      agentEmail,
+      agentPhone,
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      paymentTerms,
+      lateFeePolicy,
     } = body;
 
     // Validate required fields
@@ -427,9 +445,11 @@ export async function PUT(request: NextRequest) {
     const {
       invoiceNumber,
       propertyId,
+      tenantId,
       clientName,
       clientEmail,
       clientAddress,
+      clientPhone,
       invoiceDate,
       dueDate,
       subtotal,
@@ -439,7 +459,23 @@ export async function PUT(request: NextRequest) {
       paymentStatus,
       paymentDate,
       notes,
-      items
+      items,
+      // Branding fields
+      logoMode,
+      logoDataUrl,
+      logoWidth,
+      companyName,
+      companyTagline,
+      // Additional fields
+      agentName,
+      agentAgency,
+      agentEmail,
+      agentPhone,
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      paymentTerms,
+      lateFeePolicy,
     } = body;
 
     const updates: any = {};

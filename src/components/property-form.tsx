@@ -113,14 +113,19 @@ export function PropertyForm({ property, onSuccess }: PropertyFormProps) {
       });
 
       if (response.ok) {
+        const updatedProperty = await response.json();
         toast.success(property ? "Property updated successfully" : "Property added successfully");
         onSuccess();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to save property");
+        const errorMessage = error.error || error.message || "Failed to save property";
+        toast.error(errorMessage);
+        console.error("Property save error:", error);
       }
     } catch (error) {
-      toast.error("An error occurred");
+      console.error("Property save exception:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

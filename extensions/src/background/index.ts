@@ -137,6 +137,9 @@ async function autofillActiveTab(): Promise<RuntimeMessageResponse> {
   try {
     await ensureContentScript(tab.id);
     
+    // Give the content script a moment to fully initialize after injection
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    
     try {
       const response = await browser.tabs.sendMessage(tab.id, {
         type: "AXIS_AUTOFILL",
@@ -154,23 +157,31 @@ async function autofillActiveTab(): Promise<RuntimeMessageResponse> {
         };
       }
     } catch (msgError: any) {
-      if (msgError?.message?.includes("Receiving end does not exist") || msgError?.message?.includes("Could not establish connection")) {
+      if (msgError?.message?.includes("Receiving end does not exist") || 
+          msgError?.message?.includes("Could not establish connection") ||
+          msgError?.message?.includes("Extension context invalidated")) {
         return {
           ok: false,
           type: "ERROR" as const,
           error: "Content script not ready. Please refresh the page and try again.",
         };
       }
-      throw msgError;
+      // If it's a timeout or other error, provide more context
+      const errorMsg = msgError instanceof Error ? msgError.message : String(msgError);
+      return {
+        ok: false,
+        type: "ERROR" as const,
+        error: `Failed to communicate with page: ${errorMsg}. Try refreshing the page.`,
+      };
     }
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     return {
       ok: false,
       type: "ERROR" as const,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to communicate with the current page. Try refreshing the page.",
+      error: errorMsg.includes("injection failed") 
+        ? errorMsg 
+        : `Failed to communicate with the current page: ${errorMsg}. Try refreshing the page.`,
     };
   }
 
@@ -184,11 +195,55 @@ async function ensureContentScript(tabId: number): Promise<void> {
       throw new Error("Cannot inject into this page type");
     }
 
+    // Check if content script is already injected by trying to ping it first
+    try {
+      const pingResponse = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
+      if (pingResponse?.ready) {
+        return; // Content script is already loaded
+      }
+    } catch (pingError) {
+      // Content script not loaded, proceed with injection
+    }
+
+    // Try to inject the content script
     if ((browser as any).scripting?.executeScript) {
       try {
+        // Check if script is already registered in manifest (declarative content script)
+        // If so, we might need to reload the page or use a different approach
         await (browser as any).scripting.executeScript({
           target: { tabId },
           files: ["content/content.js"],
+        });
+      } catch (injectError: any) {
+        // Handle specific error cases
+        if (injectError?.message?.includes("Cannot access") || injectError?.message?.includes("Cannot access a chrome:// URL")) {
+          throw new Error("Page blocked content script injection. Try refreshing the page.");
+        }
+        if (injectError?.message?.includes("No tab with id")) {
+          throw new Error("Tab not found. Please try again.");
+        }
+        if (injectError?.message?.includes("Extension context invalidated")) {
+          throw new Error("Extension was reloaded. Please refresh the page and try again.");
+        }
+        // If injection fails, it might be because the declarative content script is already loaded
+        // Try to ping again to see if it's actually working
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          const pingResponse = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
+          if (pingResponse?.ready) {
+            return; // Content script is working despite injection error
+          }
+        } catch (pingError) {
+          // Content script is not responding, throw the original error
+        }
+        throw injectError;
+      }
+    } else if ((browser.tabs as any).executeScript) {
+      // Fallback for older browsers
+      try {
+        await (browser.tabs as any).executeScript(tabId, {
+          file: "content/content.js",
+          runAt: "document_idle",
         });
       } catch (injectError: any) {
         if (injectError?.message?.includes("Cannot access")) {
@@ -196,13 +251,11 @@ async function ensureContentScript(tabId: number): Promise<void> {
         }
         throw injectError;
       }
-    } else if ((browser.tabs as any).executeScript) {
-      await (browser.tabs as any).executeScript(tabId, {
-        file: "content/content.js",
-        runAt: "document_idle",
-      });
+    } else {
+      throw new Error("Scripting API not available");
     }
 
+    // Wait for content script to be ready
     await waitForContentScriptReady(tabId);
   } catch (error) {
     console.error("Failed to inject content script", error);
@@ -211,19 +264,26 @@ async function ensureContentScript(tabId: number): Promise<void> {
   }
 }
 
-async function waitForContentScriptReady(tabId: number, maxRetries = 10): Promise<void> {
+async function waitForContentScriptReady(tabId: number, maxRetries = 15): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
       if (response?.ready) {
         return;
       }
-    } catch (error) {
+    } catch (error: any) {
+      // If it's a connection error and we haven't exhausted retries, wait and retry
       if (i < maxRetries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        const waitTime = Math.min(200 + (i * 50), 500); // Progressive backoff
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
         continue;
       }
-      throw new Error("Content script did not respond. The page may need to be refreshed.");
+      // Check for specific error types
+      if (error?.message?.includes("Receiving end does not exist") || 
+          error?.message?.includes("Could not establish connection")) {
+        throw new Error("Content script did not respond. The page may need to be refreshed.");
+      }
+      throw error;
     }
   }
   throw new Error("Content script timeout. Please refresh the page and try again.");

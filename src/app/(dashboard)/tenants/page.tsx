@@ -33,6 +33,7 @@ import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail } from "lucide-
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { generateInvoicePDF } from "@/lib/pdf-generator";
 
 interface Tenant {
   id: number;
@@ -40,6 +41,7 @@ interface Tenant {
   email: string;
   phone?: string;
   property?: any;
+  propertyId?: number;
   leaseStatus: "active" | "expired" | "pending";
   leaseStart: string;
   leaseEnd: string;
@@ -47,9 +49,44 @@ interface Tenant {
   deposit?: number;
 }
 
+interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string;
+  totalAmount: number;
+  paymentStatus: string;
+  propertyId?: number;
+  tenantId?: number;
+  clientName: string;
+  clientEmail: string;
+  clientAddress?: string;
+  clientPhone?: string;
+  items?: any;
+  subtotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  notes?: string;
+  paymentTerms?: string;
+  lateFeePolicy?: string;
+  agentName?: string;
+  agentAgency?: string;
+  agentEmail?: string;
+  agentPhone?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerPhone?: string;
+  logoMode?: string;
+  logoDataUrl?: string;
+  logoWidth?: number;
+  companyName?: string;
+  companyTagline?: string;
+}
+
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [properties, setProperties] = useState<Array<{ id: number; title?: string; address?: string }>>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProperty, setSelectedProperty] = useState<string>("all");
@@ -73,7 +110,18 @@ export default function TenantsPage() {
 
   useEffect(() => {
     fetchTenants();
+    fetchInvoices();
   }, [selectedProperty, selectedLeaseStatus]);
+
+  const fetchInvoices = async () => {
+    try {
+      const response = await fetch("/api/invoices?limit=1000");
+      const data = await response.json();
+      setInvoices(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch invoices:", error);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -201,7 +249,7 @@ export default function TenantsPage() {
       if (response.ok) {
         const data = await response.json();
         toast.success("Rent invoice generated successfully");
-        // Optionally navigate to invoices page or show the invoice
+        fetchInvoices();
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to generate invoice");
@@ -243,6 +291,7 @@ export default function TenantsPage() {
 
           if (sendResponse.ok) {
             toast.success("Invoice sent to tenant's email");
+            fetchInvoices();
           } else {
             toast.error("Failed to send invoice");
           }
@@ -265,12 +314,69 @@ export default function TenantsPage() {
 
       if (sendResponse.ok) {
         toast.success("Rent invoice sent to tenant's email");
+        fetchInvoices();
       } else {
         toast.error("Failed to send invoice");
       }
     } catch (error) {
       toast.error("Failed to send invoice");
     }
+  };
+
+  const handlePreviewInvoice = async (invoice: Invoice) => {
+    try {
+      // Fetch property details if needed
+      let property = null;
+      if (invoice.propertyId) {
+        const propertyResponse = await fetch(`/api/properties?id=${invoice.propertyId}`);
+        if (propertyResponse.ok) {
+          property = await propertyResponse.json();
+        }
+      }
+
+      const pdfData = {
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoice.invoiceDate,
+        dueDate: invoice.dueDate,
+        propertyAddress: property?.address,
+        propertyUnit: property?.unit,
+        propertyType: property?.propertyType,
+        clientName: invoice.clientName,
+        clientEmail: invoice.clientEmail,
+        clientAddress: invoice.clientAddress,
+        clientPhone: invoice.clientPhone,
+        agentName: invoice.agentName,
+        agentAgency: invoice.agentAgency,
+        agentEmail: invoice.agentEmail,
+        agentPhone: invoice.agentPhone,
+        ownerName: invoice.ownerName,
+        ownerEmail: invoice.ownerEmail,
+        ownerPhone: invoice.ownerPhone,
+        items: invoice.items || [],
+        subtotal: invoice.subtotal || 0,
+        taxRate: invoice.taxRate || 0,
+        taxAmount: invoice.taxAmount || 0,
+        totalAmount: invoice.totalAmount,
+        paymentTerms: invoice.paymentTerms,
+        lateFeePolicy: invoice.lateFeePolicy,
+        notes: invoice.notes,
+        logoMode: invoice.logoMode,
+        logoDataUrl: invoice.logoDataUrl,
+        logoWidth: invoice.logoWidth,
+        companyName: invoice.companyName,
+        companyTagline: invoice.companyTagline,
+      } as any;
+
+      const pdf = generateInvoicePDF(pdfData);
+      pdf.output('dataurlnewwindow');
+    } catch (error) {
+      console.error("Failed to preview invoice:", error);
+      toast.error("Failed to preview invoice");
+    }
+  };
+
+  const getTenantInvoices = (tenantId: number) => {
+    return invoices.filter(inv => inv.tenantId === tenantId);
   };
 
   const getPaymentSummary = (tenant: Tenant) => {
@@ -583,16 +689,28 @@ export default function TenantsPage() {
                             >
                               <Mail className="size-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedTenant(tenant);
-                                setIsEditDialogOpen(true);
-                              }}
-                            >
-                              <Eye className="size-4" />
-                            </Button>
+                            {getTenantInvoices(tenant.id).length > 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const tenantInvoices = getTenantInvoices(tenant.id);
+                                  if (tenantInvoices.length === 1) {
+                                    handlePreviewInvoice(tenantInvoices[0]);
+                                  } else {
+                                    // Show dialog with list of invoices
+                                    toast.info(`${tenantInvoices.length} invoices found. Click to preview the latest.`);
+                                    const latestInvoice = tenantInvoices.sort((a, b) => 
+                                      new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+                                    )[0];
+                                    handlePreviewInvoice(latestInvoice);
+                                  }
+                                }}
+                                title={`Preview Invoice (${getTenantInvoices(tenant.id).length} available)`}
+                              >
+                                <Eye className="size-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
