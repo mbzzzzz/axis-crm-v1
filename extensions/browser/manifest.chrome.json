@@ -47,6 +47,7 @@
         "https://zillow.com/*",
         "https://*.zameen.com/*",
         "https://zameen.com/*",
+        "https://profolio.zameen.com/*",
         "https://*.realtor.com/*",
         "https://realtor.com/*"
       ],

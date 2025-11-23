@@ -20,11 +20,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Search } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Plus, Search, Clipboard, CheckCircle2, AlertCircle } from "lucide-react";
+import { SortableMaintenanceCard } from "@/components/sortable-maintenance-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { EmptyState } from "@/components/empty-state";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MaintenanceRequest {
   id: number;
@@ -232,13 +257,62 @@ export default function MaintenancePage() {
       });
 
       if (response.ok) {
+        // Optimistically update the UI
+        setRequests((prev) =>
+          prev.map((req) =>
+            req.id === id ? { ...req, status: newStatus as "open" | "in_progress" | "closed" } : req
+          )
+        );
         toast.success("Status updated successfully");
-        fetchRequests();
       } else {
         toast.error("Failed to update status");
+        fetchRequests(); // Revert on error
       }
     } catch (error) {
       toast.error("Failed to update status");
+      fetchRequests(); // Revert on error
+    }
+  };
+
+  const updateTicketStatus = async (ticketId: number, newStatus: string) => {
+    await handleStatusChange(ticketId, newStatus);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before dragging starts
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over) return;
+
+    const activeId = active.id as number;
+    const overId = over.id;
+
+    // Find the request being dragged
+    const activeRequest = requests.find((req) => req.id === activeId);
+    if (!activeRequest) return;
+
+    // Check if dropped on a column (status)
+    const targetColumn = columns.find((col) => col.id === overId);
+    if (targetColumn && targetColumn.status !== activeRequest.status) {
+      updateTicketStatus(activeId, targetColumn.status);
+      return;
+    }
+
+    // Check if dropped on another card
+    const overRequest = requests.find((req) => req.id === overId);
+    if (overRequest && overRequest.status !== activeRequest.status) {
+      updateTicketStatus(activeId, overRequest.status);
+      return;
     }
   };
 
@@ -520,64 +594,70 @@ export default function MaintenancePage() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {columns.map((column) => {
-            const columnRequests = getRequestsByStatus(column.status);
-            return (
-              <Card key={column.id} className="flex flex-col">
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base">{column.title}</CardTitle>
-                    <Badge variant="outline">{columnRequests.length}</Badge>
-                  </div>
-                  <Button variant="ghost" size="sm">⋯</Button>
-                </CardHeader>
-                <CardContent className="flex-1 space-y-3 overflow-y-auto max-h-[600px]">
-                  {columnRequests.map((request) => (
-                    <Card
-                      key={request.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => {
-                        // Cycle through statuses on click
-                        const statusOrder = ["open", "in_progress", "closed"];
-                        const currentIndex = statusOrder.indexOf(request.status);
-                        const nextStatus = statusOrder[(currentIndex + 1) % statusOrder.length];
-                        handleStatusChange(request.id, nextStatus);
-                      }}
-                    >
-                      <CardContent className="p-4 space-y-2">
-                        <div className="font-semibold text-sm">{request.title}</div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">
-                          {request.description}
-                        </p>
-                        <div className="flex items-center justify-between pt-2">
-                          <Badge className={getUrgencyColor(request.urgency)}>
-                            {formatUrgency(request.urgency)}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground pt-1">
-                          <div>{request.location || "N/A"}</div>
-                          <div>{formatDate(request.reportedDate)}</div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {columnRequests.length === 0 && (
-                    <div className="text-sm text-muted-foreground text-center py-8">
-                      No {column.title.toLowerCase()} requests
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+            {columns.map((column) => {
+              const columnRequests = getRequestsByStatus(column.status);
+              const columnIcon =
+                column.status === "open"
+                  ? AlertCircle
+                  : column.status === "in_progress"
+                  ? Clipboard
+                  : CheckCircle2;
+              const columnDescription =
+                column.status === "open"
+                  ? "New maintenance requests that need attention"
+                  : column.status === "in_progress"
+                  ? "Requests currently being worked on"
+                  : "Completed maintenance requests";
+
+              return (
+                <Card key={column.id} className="flex flex-col" id={column.id}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-3">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base">{column.title}</CardTitle>
+                      <Badge variant="outline">{columnRequests.length}</Badge>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-          <Card className="flex items-center justify-center border-dashed">
-            <Button variant="ghost" className="flex flex-col h-full w-full">
-              <Plus className="size-6 mb-2" />
-              <span>Add Column</span>
-            </Button>
-          </Card>
-        </div>
+                    <Button variant="ghost" size="sm">⋯</Button>
+                  </CardHeader>
+                  <CardContent className="flex-1 space-y-3 overflow-y-auto max-h-[600px]">
+                    <SortableContext
+                      items={columnRequests.map((req) => req.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {columnRequests.map((request) => (
+                        <SortableMaintenanceCard
+                          key={request.id}
+                          request={request}
+                          getUrgencyColor={getUrgencyColor}
+                          formatUrgency={formatUrgency}
+                          formatDate={formatDate}
+                        />
+                      ))}
+                    </SortableContext>
+                    {columnRequests.length === 0 && (
+                      <EmptyState
+                        icon={columnIcon}
+                        title={`No ${column.title.toLowerCase()} requests`}
+                        description={columnDescription}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            <Card className="flex items-center justify-center border-dashed">
+              <Button variant="ghost" className="flex flex-col h-full w-full">
+                <Plus className="size-6 mb-2" />
+                <span>Add Column</span>
+              </Button>
+            </Card>
+          </div>
+        </DndContext>
       )}
     </div>
   );

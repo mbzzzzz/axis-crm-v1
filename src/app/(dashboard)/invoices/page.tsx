@@ -125,13 +125,17 @@ export default function InvoicesPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
         toast.success("Invoice deleted successfully");
-        fetchInvoices();
+        fetchInvoices(); // Refresh the invoice list
       } else {
-        toast.error("Failed to delete invoice");
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete invoice");
+        console.error("Delete error:", error);
       }
     } catch (error) {
-      toast.error("An error occurred");
+      console.error("Delete error:", error);
+      toast.error("An error occurred while deleting the invoice");
     }
   };
 

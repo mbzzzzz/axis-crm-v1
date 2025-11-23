@@ -147,6 +147,12 @@ export async function POST(request: NextRequest) {
           rate: subtotal,
           amount: subtotal
         }],
+        // Branding fields with defaults
+        logoMode: 'text',
+        logoDataUrl: null,
+        logoWidth: 40,
+        companyName: 'AXIS CRM',
+        companyTagline: 'Real Estate Management',
         createdAt: new Date(),
         updatedAt: new Date()
       })

@@ -19,7 +19,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload } from "lucide-react";
+import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload, List, Map } from "lucide-react";
+import { PropertyMapView } from "@/components/property-map-view";
 import {
   Select,
   SelectContent,
@@ -65,6 +66,7 @@ export default function PropertiesPage() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isImportExportOpen, setIsImportExportOpen] = useState(false);
   const [tenants, setTenants] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const fetchProperties = async () => {
     try {
@@ -255,6 +257,26 @@ export default function PropertiesPage() {
             <SelectItem value="land">Land</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2 border rounded-lg p-1">
+          <Button
+            variant={viewMode === "list" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("list")}
+            className="h-8"
+          >
+            <List className="size-4 mr-1" />
+            List
+          </Button>
+          <Button
+            variant={viewMode === "map" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setViewMode("map")}
+            className="h-8"
+          >
+            <Map className="size-4 mr-1" />
+            Map
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -284,6 +306,14 @@ export default function PropertiesPage() {
             </p>
           </CardContent>
         </Card>
+      ) : viewMode === "map" ? (
+        <PropertyMapView
+          properties={filteredProperties}
+          onPropertyClick={(property) => {
+            setSelectedProperty(property);
+            setIsDetailsDialogOpen(true);
+          }}
+        />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {filteredProperties.map((property) => (

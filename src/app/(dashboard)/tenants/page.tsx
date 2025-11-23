@@ -29,7 +29,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -95,6 +95,7 @@ export default function TenantsPage() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExtractingLease, setIsExtractingLease] = useState(false);
   const [newTenant, setNewTenant] = useState({
     name: "",
     email: "",
@@ -144,6 +145,54 @@ export default function TenantsPage() {
       setNewTenant((t) => ({ ...t, expectedNextYearRent: next ? next.toFixed(2) : "" }));
     }
   }, [newTenant.monthlyRent, newTenant.yearlyIncreaseRate]);
+
+  const handleLeaseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+
+    setIsExtractingLease(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/ai/extract-lease", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success && result.data) {
+        const { startDate, endDate, rentAmount } = result.data;
+        
+        if (startDate) {
+          setNewTenant((t) => ({ ...t, leaseStart: startDate }));
+        }
+        if (endDate) {
+          setNewTenant((t) => ({ ...t, leaseEnd: endDate }));
+        }
+        if (rentAmount) {
+          setNewTenant((t) => ({ ...t, monthlyRent: String(rentAmount) }));
+        }
+
+        toast.success("Data extracted from Lease document successfully!");
+      } else {
+        toast.error(result.error || "Failed to extract lease information");
+      }
+    } catch (error) {
+      console.error("Lease extraction error:", error);
+      toast.error("Failed to extract lease information. Please try again.");
+    } finally {
+      setIsExtractingLease(false);
+      // Reset file input
+      e.target.value = "";
+    }
+  };
 
   const fetchTenants = async () => {
     try {
@@ -507,6 +556,28 @@ export default function TenantsPage() {
                     )}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="leasePdf">Upload Lease PDF (AI Auto-Fill)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="leasePdf"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleLeaseUpload}
+                    disabled={isExtractingLease}
+                    className="flex-1"
+                  />
+                  {isExtractingLease && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="size-4 animate-pulse" />
+                      Extracting...
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload a lease PDF to automatically extract start date, end date, and rent amount
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">

@@ -40,6 +40,7 @@ import { useSession } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@clerk/nextjs";
 import { AxisLogo } from "@/components/axis-logo";
+import { RecentActivity } from "@/components/recent-activity";
 
 const navItems = [
   {
@@ -128,6 +129,11 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup className="mt-auto">
+          <div className="px-2 py-2">
+            <RecentActivity />
+          </div>
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>

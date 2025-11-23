@@ -112,6 +112,17 @@ export const userPreferences = pgTable('user_preferences', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const auditLogs = pgTable('audit_logs', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Clerk user ID
+  action: text('action').notNull(), // 'create', 'update', 'delete'
+  entityType: text('entity_type').notNull(), // 'property', 'tenant', 'invoice', etc.
+  entityId: integer('entity_id'),
+  description: text('description').notNull(), // Human-readable description
+  metadata: jsonb('metadata'), // Additional data (old values, new values, etc.)
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Relations
 export const propertiesRelations = relations(properties, ({ many }) => ({
   invoices: many(invoices),

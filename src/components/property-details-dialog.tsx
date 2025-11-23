@@ -92,7 +92,7 @@ export function PropertyDetailsDialog({
           <DialogTitle className="flex items-center justify-between gap-4">
             <span className="flex-1">{property.title}</span>
             {!isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="shrink-0">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="shrink-0 mr-12">
                 <Edit className="mr-2 size-4" />
                 Edit
               </Button>

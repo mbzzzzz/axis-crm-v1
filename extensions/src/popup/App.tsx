@@ -86,22 +86,60 @@ export default function App() {
 
     setIsAutofilling(true);
     try {
-      const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
-      if (!response.ok) {
-        const errorMsg = response.error || "Autofill failed";
-        // TODO: Replace string matching with error codes from response
-        if (errorMsg.includes("Receiving end does not exist")) {
-          alert(
-            "Content script not loaded.\n\n" +
-            "1. Refresh the current page (F5)\n" +
-            "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
-            "3. Try autofill again"
-          );
+      // Get the selected property data
+      const selectedProperty = state.properties.find(
+        (prop) => prop.id === state.selectedPropertyId
+      );
+
+      if (!selectedProperty) {
+        alert("Selected property not found. Please select a property again.");
+        setIsAutofilling(false);
+        return;
+      }
+
+      // Get active tab
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const activeTab = tabs[0];
+
+      if (!activeTab?.id) {
+        alert("Unable to find active tab. Please try again.");
+        setIsAutofilling(false);
+        return;
+      }
+
+      // Send FILL_FORM message directly to content script
+      try {
+        const response = await browser.tabs.sendMessage(activeTab.id, {
+          action: "FILL_FORM",
+          payload: {
+            property: selectedProperty,
+            theme: state.theme,
+          },
+        });
+
+        if (response?.success === false) {
+          alert(`Autofill failed: ${response.error || "Unknown error"}`);
         } else {
-          alert(`Autofill failed: ${errorMsg}`);
+          alert("Autofill completed! Check the form to verify the data was filled.");
         }
-      } else {
-        alert("Autofill completed! Check the form to verify the data was filled.");
+      } catch (msgError: any) {
+        // Fallback to background script method if direct message fails
+        const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
+        if (!response.ok) {
+          const errorMsg = response.error || "Autofill failed";
+          if (errorMsg.includes("Receiving end does not exist")) {
+            alert(
+              "Content script not loaded.\n\n" +
+              "1. Refresh the current page (F5)\n" +
+              "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
+              "3. Try autofill again"
+            );
+          } else {
+            alert(`Autofill failed: ${errorMsg}`);
+          }
+        } else {
+          alert("Autofill completed! Check the form to verify the data was filled.");
+        }
       }
     } catch (error) {
       alert(`Autofill failed: ${error instanceof Error ? error.message : "Unknown error"}`);
