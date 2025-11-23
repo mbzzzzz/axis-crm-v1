@@ -27,7 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail } from "lucide-react";
+import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ImportExportDialog } from "@/components/import-export-dialog";
@@ -70,6 +71,10 @@ export default function InvoicesPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedInvoiceForPreview, setSelectedInvoiceForPreview] = useState<Invoice | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<number>>(new Set());
 
   const fetchInvoices = async () => {
     try {
@@ -207,6 +212,24 @@ export default function InvoicesPage() {
     }
   };
 
+  const handlePreview = async (invoiceId: number) => {
+    setIsPreviewLoading(true);
+    try {
+      const response = await fetch(`/api/invoices?id=${invoiceId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch invoice");
+      }
+      const invoiceData = await response.json();
+      setSelectedInvoiceForPreview(invoiceData);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Failed to fetch invoice:", error);
+      toast.error("Failed to load invoice details");
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       draft: "bg-gray-500",
@@ -218,19 +241,102 @@ export default function InvoicesPage() {
     return colors[status] || "bg-gray-500";
   };
 
-  const getStatusBadge = (status: string) => {
+  // Check if invoice is overdue
+  const isOverdue = (invoice: Invoice): boolean => {
+    if (invoice.paymentStatus === "paid") return false;
+    const dueDate = new Date(invoice.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  };
+
+  const getStatusBadge = (invoice: Invoice) => {
+    const isInvoiceOverdue = isOverdue(invoice);
+    const status = isInvoiceOverdue ? "overdue" : invoice.paymentStatus.toLowerCase();
+    
     const statusConfig: Record<string, { bg: string; text: string }> = {
       paid: { bg: "bg-green-100", text: "text-green-700" },
-      overdue: { bg: "bg-red-100", text: "text-red-700" },
+      overdue: { bg: "bg-red-500/10", text: "text-red-500" },
       sent: { bg: "bg-blue-100", text: "text-blue-700" },
       draft: { bg: "bg-gray-100", text: "text-gray-700" },
     };
-    const config = statusConfig[status.toLowerCase()] || statusConfig.draft;
+    const config = statusConfig[status] || statusConfig.draft;
     return (
       <Badge className={`${config.bg} ${config.text} border-0`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {isInvoiceOverdue ? "Overdue" : status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
+  };
+
+  // Bulk selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRowIds(new Set(filteredInvoices.map(inv => inv.id)));
+    } else {
+      setSelectedRowIds(new Set());
+    }
+  };
+
+  const handleSelectRow = (invoiceId: number, checked: boolean) => {
+    const newSelected = new Set(selectedRowIds);
+    if (checked) {
+      newSelected.add(invoiceId);
+    } else {
+      newSelected.delete(invoiceId);
+    }
+    setSelectedRowIds(newSelected);
+  };
+
+  const handleBulkSendReminder = async () => {
+    if (selectedRowIds.size === 0) return;
+    
+    const selectedInvoices = filteredInvoices.filter(inv => selectedRowIds.has(inv.id));
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const invoice of selectedInvoices) {
+      try {
+        const response = await fetch("/api/invoices/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId: invoice.id }),
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Sent ${successCount} reminder${successCount > 1 ? 's' : ''}`);
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to send ${failCount} reminder${failCount > 1 ? 's' : ''}`);
+    }
+
+    setSelectedRowIds(new Set());
+    fetchInvoices();
+  };
+
+  const handleBulkDownload = async () => {
+    if (selectedRowIds.size === 0) return;
+    
+    const selectedInvoices = filteredInvoices.filter(inv => selectedRowIds.has(inv.id));
+    
+    for (const invoice of selectedInvoices) {
+      await handleDownloadPDF(invoice);
+      // Small delay to prevent browser blocking multiple downloads
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    toast.success(`Downloaded ${selectedInvoices.length} PDF${selectedInvoices.length > 1 ? 's' : ''}`);
+    setSelectedRowIds(new Set());
   };
 
   return (
@@ -327,6 +433,12 @@ export default function InvoicesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectedRowIds.size > 0 && selectedRowIds.size === filteredInvoices.length}
+                      onCheckedChange={(checked) => handleSelectAll(checked === true)}
+                    />
+                  </TableHead>
                   <TableHead>TENANT</TableHead>
                   <TableHead>PROPERTY</TableHead>
                   <TableHead>ISSUE DATE</TableHead>
@@ -337,20 +449,46 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.clientName}</TableCell>
+                {filteredInvoices.map((invoice) => {
+                  const isInvoiceOverdue = isOverdue(invoice);
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedRowIds.has(invoice.id)}
+                          onCheckedChange={(checked) => handleSelectRow(invoice.id, checked === true)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {isInvoiceOverdue && (
+                            <span className="flex size-2 rounded-full bg-red-500" title="Overdue" />
+                          )}
+                          {invoice.clientName}
+                        </div>
+                      </TableCell>
                     <TableCell>{invoice.clientAddress || "N/A"}</TableCell>
                     <TableCell>{new Date(invoice.invoiceDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(invoice.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell className={isInvoiceOverdue ? "text-red-500 font-medium" : ""}>
+                      {new Date(invoice.dueDate).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="font-semibold">
                       ${invoice.totalAmount.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {getStatusBadge(invoice.paymentStatus)}
+                      {getStatusBadge(invoice)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handlePreview(invoice.id)}
+                          title="Preview Invoice"
+                          disabled={isPreviewLoading}
+                        >
+                          <Eye className="size-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -439,6 +577,167 @@ export default function InvoicesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Bulk Actions Floating Bar */}
+      {selectedRowIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-background/95 backdrop-blur-md px-6 py-3 shadow-2xl">
+            <span className="text-sm font-medium">
+              {selectedRowIds.size} invoice{selectedRowIds.size > 1 ? 's' : ''} selected
+            </span>
+            <div className="h-6 w-px bg-border" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkSendReminder}
+            >
+              <Mail className="mr-2 size-4" />
+              Send Reminder
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkDownload}
+            >
+              <Download className="mr-2 size-4" />
+              Download PDF
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedRowIds(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="relative">
+            <DialogTitle className="pr-8">
+              Invoice #{selectedInvoiceForPreview?.invoiceNumber || "N/A"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvoiceForPreview && getStatusBadge(selectedInvoiceForPreview)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoiceForPreview && (
+            <div className="space-y-6 mt-4">
+              {/* Bill To Section */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Bill To</h3>
+                <div className="space-y-1 text-sm">
+                  <p className="font-medium">{selectedInvoiceForPreview.clientName}</p>
+                  {selectedInvoiceForPreview.clientAddress && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientAddress}</p>
+                  )}
+                  {selectedInvoiceForPreview.clientEmail && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientEmail}</p>
+                  )}
+                  {selectedInvoiceForPreview.clientPhone && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientPhone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Issue Date</p>
+                  <p className="font-medium">
+                    {new Date(selectedInvoiceForPreview.invoiceDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Due Date</p>
+                  <p className="font-medium">
+                    {new Date(selectedInvoiceForPreview.dueDate).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Line Items Table */}
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedInvoiceForPreview.items && Array.isArray(selectedInvoiceForPreview.items) && selectedInvoiceForPreview.items.length > 0 ? (
+                      selectedInvoiceForPreview.items.map((item: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            {item.description || item.name || "Item"}
+                            {item.quantity && item.rate && (
+                              <span className="text-muted-foreground text-xs ml-2">
+                                (Qty: {item.quantity} × ${item.rate})
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${(item.amount || item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                          No line items
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-2 border-t pt-4">
+                {selectedInvoiceForPreview.subtotal !== undefined && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">
+                      ${selectedInvoiceForPreview.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                {selectedInvoiceForPreview.taxRate !== undefined && selectedInvoiceForPreview.taxRate > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Tax ({selectedInvoiceForPreview.taxRate}%)
+                      </span>
+                      <span className="font-medium">
+                        ${(selectedInvoiceForPreview.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total Amount</span>
+                  <span>
+                    ${selectedInvoiceForPreview.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedInvoiceForPreview.notes && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Notes</h4>
+                  <p className="text-sm text-muted-foreground">{selectedInvoiceForPreview.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ImportExportDialog
         open={isImportExportOpen}

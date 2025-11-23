@@ -89,10 +89,10 @@ export function PropertyDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>{property.title}</span>
+          <DialogTitle className="flex items-center justify-between gap-4">
+            <span className="flex-1">{property.title}</span>
             {!isEditing && (
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="shrink-0">
                 <Edit className="mr-2 size-4" />
                 Edit
               </Button>
@@ -199,15 +199,28 @@ export function PropertyDetailsDialog({
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Description</CardTitle>
+                    <CardTitle className="text-lg">Additional Details</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      {property.description || "No description available"}
-                    </p>
+                  <CardContent className="space-y-3">
+                    {/* Add any additional property details here if needed */}
+                    <div className="text-sm text-muted-foreground">
+                      View financial and analytics tabs for more information.
+                    </div>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Description - Full Width */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {property.description || "No description available"}
+                  </p>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="financial" className="space-y-4">
@@ -217,7 +230,7 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Purchase Price</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-xl font-bold whitespace-nowrap">
                       {formatCurrencyCompact(purchasePrice, currency, { compact: true, showDecimals: false })}
                     </div>
                   </CardContent>
@@ -227,7 +240,7 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Current Value</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-xl font-bold whitespace-nowrap">
                       {formatCurrencyCompact(currentValue, currency, { compact: true, showDecimals: false })}
                     </div>
                   </CardContent>
@@ -239,7 +252,7 @@ export function PropertyDetailsDialog({
                   <CardContent>
                     <div className="flex items-center gap-2">
                       <div 
-                        className={`text-2xl font-bold ${
+                        className={`text-xl font-bold whitespace-nowrap ${
                           roi !== null && roi < 0 ? "text-red-500" : 
                           roi !== null && roi > 0 ? "text-green-500" : 
                           ""
@@ -247,7 +260,7 @@ export function PropertyDetailsDialog({
                       >
                         {roi !== null ? formatPercentage(roi, { showSign: true }) : "—"}
                       </div>
-                      {roi !== null && roi > 0 && <TrendingUp className="size-5 text-green-500" />}
+                      {roi !== null && roi > 0 && <TrendingUp className="size-5 text-green-500 shrink-0" />}
                     </div>
                   </CardContent>
                 </Card>
@@ -256,7 +269,7 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Commission</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">
+                    <div className="text-xl font-bold whitespace-nowrap">
                       {formatCurrencyCompact(commission, currency, { compact: true, showDecimals: false })}
                     </div>
                     {commissionRate > 0 && (

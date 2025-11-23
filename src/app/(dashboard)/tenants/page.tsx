@@ -94,6 +94,7 @@ export default function TenantsPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newTenant, setNewTenant] = useState({
     name: "",
     email: "",
@@ -165,7 +166,18 @@ export default function TenantsPage() {
     }
   };
 
-  const handleCreateTenant = async () => {
+  const handleCreateTenant = async (e?: React.FormEvent) => {
+    // Prevent default form submission if called from form
+    if (e) {
+      e.preventDefault();
+    }
+
+    // Prevent double submission
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const response = await fetch("/api/tenants", {
         method: "POST",
@@ -209,6 +221,8 @@ export default function TenantsPage() {
       }
     } catch (error) {
       toast.error("Failed to create tenant");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -440,7 +454,7 @@ export default function TenantsPage() {
                 Add a new tenant to your property management system
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <form onSubmit={handleCreateTenant} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name *</Label>
@@ -566,10 +580,10 @@ export default function TenantsPage() {
                   />
                 </div>
               </div>
-              <Button onClick={handleCreateTenant} className="w-full">
-                Create Tenant
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create Tenant"}
               </Button>
-            </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
