@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail, Check } from "lucide-react";
+import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -332,7 +332,7 @@ export default function InvoicesPage() {
     for (const invoice of selectedInvoices) {
       await handleDownloadPDF(invoice);
       // Small delay to prevent browser blocking multiple downloads
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise<void>((resolve) => setTimeout(resolve, 300));
     }
 
     toast.success(`Downloaded ${selectedInvoices.length} PDF${selectedInvoices.length > 1 ? 's' : ''}`);
@@ -469,7 +469,7 @@ export default function InvoicesPage() {
                       </TableCell>
                     <TableCell>{invoice.clientAddress || "N/A"}</TableCell>
                     <TableCell>{new Date(invoice.invoiceDate).toLocaleDateString()}</TableCell>
-                    <TableCell className={isInvoiceOverdue ? "text-red-500 font-medium" : ""}>
+                    <TableCell className={isInvoiceOverdue ? "text-red-500 font-medium" : undefined}>
                       {new Date(invoice.dueDate).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="font-semibold">
@@ -536,7 +536,8 @@ export default function InvoicesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
             <div className="flex items-center justify-between px-4 py-4">
