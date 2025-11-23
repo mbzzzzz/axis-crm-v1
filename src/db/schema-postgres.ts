@@ -123,6 +123,22 @@ export const auditLogs = pgTable('audit_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const leads = pgTable('leads', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Clerk user ID
+  name: text('name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email'),
+  budget: real('budget'),
+  preferredLocation: text('preferred_location'),
+  source: text('source').notNull(), // 'zameen', 'olx', 'referral', 'website', 'other'
+  status: text('status').notNull(), // 'inquiry', 'viewing', 'application', 'signed', 'archived'
+  notes: text('notes'),
+  propertyId: integer('property_id').references(() => properties.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Relations
 export const propertiesRelations = relations(properties, ({ many }) => ({
   invoices: many(invoices),

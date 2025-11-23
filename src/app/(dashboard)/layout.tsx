@@ -61,21 +61,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4">
+          <header className="sticky top-0 z-10 flex h-14 sm:h-16 shrink-0 items-center gap-2 sm:gap-4 border-b bg-background px-2 sm:px-4">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-6" />
-            <div className="flex flex-1 items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Separator orientation="vertical" className="h-4 sm:h-6 hidden sm:block" />
+            <div className="flex flex-1 items-center gap-2 sm:gap-4 min-w-0">
+              <div className="relative flex-1 max-w-md min-w-0">
+                <Search className="absolute left-2 sm:left-3 top-1/2 size-3 sm:size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search"
-                  className="pl-9"
+                  className="pl-7 sm:pl-9 text-sm sm:text-base h-9 sm:h-10"
+                  aria-label="Search"
                 />
               </div>
-              <div className="flex items-center gap-4">
-                <button className="relative rounded-full p-2 hover:bg-muted">
-                  <Bell className="size-5" />
-                  <span className="absolute right-1 top-1 size-2 rounded-full bg-red-500" />
+              <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
+                <button 
+                  className="relative rounded-full p-1.5 sm:p-2 hover:bg-muted transition-colors"
+                  aria-label="Notifications"
+                >
+                  <Bell className="size-4 sm:size-5" />
+                  <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 size-1.5 sm:size-2 rounded-full bg-red-500" />
                 </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -108,7 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
           </header>
-          <main className="flex-1 overflow-auto bg-background p-6">
+          <main className="flex-1 overflow-auto bg-background p-3 sm:p-4 md:p-6">
             {children}
           </main>
         </SidebarInset>

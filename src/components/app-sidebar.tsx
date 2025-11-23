@@ -13,6 +13,7 @@ import {
   Wrench,
   DollarSign,
   BarChart3,
+  UserPlus,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -52,6 +53,11 @@ const navItems = [
     title: "Properties",
     url: "/properties",
     icon: Building2,
+  },
+  {
+    title: "Leads",
+    url: "/leads",
+    icon: UserPlus,
   },
   {
     title: "Tenants",

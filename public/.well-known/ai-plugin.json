@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "axis_crm",
+  "name_for_human": "Axis CRM - Real Estate Management Platform",
+  "description_for_model": "Axis CRM is a comprehensive real estate CRM platform that helps property managers and real estate agents manage properties, tenants, invoices, maintenance requests, and leads. It provides features for property listing, tenant management, invoice generation, maintenance tracking, lead pipeline management, and financial reporting.",
+  "description_for_human": "Comprehensive real estate CRM platform for property managers and agents. Manage properties, tenants, invoices, maintenance requests, and leads all in one place.",
+  "api": {
+    "type": "openapi",
+    "url": "https://axis-crm-v1.vercel.app/api/openapi.json"
+  },
+  "auth": {
+    "type": "oauth",
+    "authorization_url": "https://axis-crm-v1.vercel.app/api/auth/authorize",
+    "scope": "read write"
+  },
+  "contact_email": "support@axiscrm.com",
+  "legal_info_url": "https://axis-crm-v1.vercel.app/legal"
+}
+

@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 
 export type AuditAction = 'create' | 'update' | 'delete';
-export type EntityType = 'property' | 'tenant' | 'invoice' | 'maintenance_request';
+export type EntityType = 'property' | 'tenant' | 'invoice' | 'maintenance_request' | 'lead';
 
 interface AuditLogMetadata {
   [key: string]: any;

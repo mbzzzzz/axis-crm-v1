@@ -10,6 +10,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MaintenanceRequest {
   id: number;
@@ -27,13 +35,23 @@ interface SortableMaintenanceCardProps {
   getUrgencyColor: (urgency: string) => string;
   formatUrgency: (urgency: string) => string;
   formatDate: (dateString: string) => string;
+  onStatusChange?: (newStatus: string) => void;
+  availableStatuses?: string[];
 }
+
+const statusLabels: Record<string, string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  closed: "Closed",
+};
 
 export function SortableMaintenanceCard({
   request,
   getUrgencyColor,
   formatUrgency,
   formatDate,
+  onStatusChange,
+  availableStatuses = [],
 }: SortableMaintenanceCardProps) {
   const {
     attributes,
@@ -50,15 +68,53 @@ export function SortableMaintenanceCard({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const handleMoveToStatus = (newStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    if (onStatusChange) {
+      onStatusChange(newStatus);
+    }
+  };
+
   return (
-    <div ref={setNodeRef} style={style}>
-      <Card
-        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
-        {...attributes}
-        {...listeners}
-      >
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
         <CardContent className="p-4 space-y-2">
-          <div className="font-semibold text-sm">{request.title}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 font-semibold text-sm">
+              {request.title}
+            </div>
+            {onStatusChange && availableStatuses.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {availableStatuses.map((status) => (
+                    <DropdownMenuItem
+                      key={status}
+                      onClick={(e) => handleMoveToStatus(status, e)}
+                    >
+                      <ArrowRight className="mr-2 size-4" />
+                      Move to {statusLabels[status] || status}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           <p className="text-xs text-muted-foreground line-clamp-2">
             {request.description}
           </p>

@@ -28,13 +28,14 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragOverEvent,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, Search, Clipboard, CheckCircle2, AlertCircle } from "lucide-react";
@@ -50,6 +51,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DroppableColumn } from "@/components/droppable-column";
 
 interface MaintenanceRequest {
   id: number;
@@ -289,6 +291,34 @@ export default function MaintenancePage() {
     })
   );
 
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as number;
+    const overId = over.id;
+
+    // Find the request being dragged
+    const activeRequest = requests.find((req) => req.id === activeId);
+    if (!activeRequest) return;
+
+    // Check if dropped over a column container
+    const targetColumn = columns.find((col) => col.id === overId);
+    if (targetColumn && targetColumn.status !== activeRequest.status) {
+      // Item is being dragged over a different column
+      // The visual feedback is handled by dnd-kit automatically
+      return;
+    }
+
+    // Check if dropped over another card
+    const overRequest = requests.find((req) => req.id === overId);
+    if (overRequest && overRequest.status !== activeRequest.status) {
+      // Item is being dragged over a card in a different column
+      // The visual feedback is handled by dnd-kit automatically
+      return;
+    }
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -301,17 +331,27 @@ export default function MaintenancePage() {
     const activeRequest = requests.find((req) => req.id === activeId);
     if (!activeRequest) return;
 
-    // Check if dropped on a column (status)
+    // Check if dropped on a column (status container)
     const targetColumn = columns.find((col) => col.id === overId);
-    if (targetColumn && targetColumn.status !== activeRequest.status) {
-      updateTicketStatus(activeId, targetColumn.status);
+    if (targetColumn) {
+      // Moving to a different column
+      if (targetColumn.status !== activeRequest.status) {
+        updateTicketStatus(activeId, targetColumn.status);
+        return;
+      }
+      // Same column - no change needed
       return;
     }
 
     // Check if dropped on another card
     const overRequest = requests.find((req) => req.id === overId);
-    if (overRequest && overRequest.status !== activeRequest.status) {
-      updateTicketStatus(activeId, overRequest.status);
+    if (overRequest) {
+      // Moving to a different column based on the card's status
+      if (overRequest.status !== activeRequest.status) {
+        updateTicketStatus(activeId, overRequest.status);
+        return;
+      }
+      // Same column - no change needed
       return;
     }
   };
@@ -597,6 +637,7 @@ export default function MaintenancePage() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -616,38 +657,42 @@ export default function MaintenancePage() {
                   : "Completed maintenance requests";
 
               return (
-                <Card key={column.id} className="flex flex-col" id={column.id}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-3">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-base">{column.title}</CardTitle>
-                      <Badge variant="outline">{columnRequests.length}</Badge>
-                    </div>
-                    <Button variant="ghost" size="sm">⋯</Button>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-3 overflow-y-auto max-h-[600px]">
-                    <SortableContext
-                      items={columnRequests.map((req) => req.id)}
-                      strategy={verticalListSortingStrategy}
-                    >
-                      {columnRequests.map((request) => (
-                        <SortableMaintenanceCard
-                          key={request.id}
-                          request={request}
-                          getUrgencyColor={getUrgencyColor}
-                          formatUrgency={formatUrgency}
-                          formatDate={formatDate}
+                <DroppableColumn key={column.id} id={column.id}>
+                  <Card className="flex flex-col">
+                    <CardHeader className="flex flex-row items-center justify-between pb-3">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base">{column.title}</CardTitle>
+                        <Badge variant="outline">{columnRequests.length}</Badge>
+                      </div>
+                      <Button variant="ghost" size="sm">⋯</Button>
+                    </CardHeader>
+                    <CardContent className="flex-1 space-y-3 overflow-y-auto max-h-[600px]">
+                      <SortableContext
+                        items={columnRequests.map((req) => req.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {columnRequests.map((request) => (
+                          <SortableMaintenanceCard
+                            key={request.id}
+                            request={request}
+                            getUrgencyColor={getUrgencyColor}
+                            formatUrgency={formatUrgency}
+                            formatDate={formatDate}
+                            onStatusChange={(newStatus) => handleStatusChange(request.id, newStatus)}
+                            availableStatuses={columns.map((col) => col.status).filter((s) => s !== request.status)}
+                          />
+                        ))}
+                      </SortableContext>
+                      {columnRequests.length === 0 && (
+                        <EmptyState
+                          icon={columnIcon}
+                          title={`No ${column.title.toLowerCase()} requests`}
+                          description={columnDescription}
                         />
-                      ))}
-                    </SortableContext>
-                    {columnRequests.length === 0 && (
-                      <EmptyState
-                        icon={columnIcon}
-                        title={`No ${column.title.toLowerCase()} requests`}
-                        description={columnDescription}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                      )}
+                    </CardContent>
+                  </Card>
+                </DroppableColumn>
               );
             })}
             <Card className="flex items-center justify-center border-dashed">

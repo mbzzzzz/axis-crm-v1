@@ -1,0 +1,103 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Axis CRM API",
+    "description": "Comprehensive real estate CRM platform API for property managers and agents. Manage properties, tenants, invoices, maintenance requests, and leads.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Axis CRM Support",
+      "email": "support@axiscrm.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://axis-crm-v1.vercel.app",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/api/properties": {
+      "get": {
+        "summary": "Get all properties",
+        "description": "Retrieve a list of all properties for the authenticated user",
+        "tags": ["Properties"]
+      },
+      "post": {
+        "summary": "Create a new property",
+        "description": "Create a new property listing",
+        "tags": ["Properties"]
+      }
+    },
+    "/api/tenants": {
+      "get": {
+        "summary": "Get all tenants",
+        "description": "Retrieve a list of all tenants for the authenticated user",
+        "tags": ["Tenants"]
+      },
+      "post": {
+        "summary": "Create a new tenant",
+        "description": "Create a new tenant record",
+        "tags": ["Tenants"]
+      }
+    },
+    "/api/invoices": {
+      "get": {
+        "summary": "Get all invoices",
+        "description": "Retrieve a list of all invoices for the authenticated user",
+        "tags": ["Invoices"]
+      },
+      "post": {
+        "summary": "Create a new invoice",
+        "description": "Generate a new invoice for a tenant",
+        "tags": ["Invoices"]
+      }
+    },
+    "/api/leads": {
+      "get": {
+        "summary": "Get all leads",
+        "description": "Retrieve a list of all leads in the pipeline",
+        "tags": ["Leads"]
+      },
+      "post": {
+        "summary": "Create a new lead",
+        "description": "Add a new lead to the pipeline",
+        "tags": ["Leads"]
+      }
+    },
+    "/api/maintenance": {
+      "get": {
+        "summary": "Get all maintenance requests",
+        "description": "Retrieve a list of all maintenance requests",
+        "tags": ["Maintenance"]
+      },
+      "post": {
+        "summary": "Create a new maintenance request",
+        "description": "Create a new maintenance ticket",
+        "tags": ["Maintenance"]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Properties",
+      "description": "Property management operations"
+    },
+    {
+      "name": "Tenants",
+      "description": "Tenant management operations"
+    },
+    {
+      "name": "Invoices",
+      "description": "Invoice generation and management"
+    },
+    {
+      "name": "Leads",
+      "description": "Lead pipeline management"
+    },
+    {
+      "name": "Maintenance",
+      "description": "Maintenance request tracking"
+    }
+  ]
+}
+

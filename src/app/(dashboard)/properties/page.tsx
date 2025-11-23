@@ -195,7 +195,7 @@ export default function PropertiesPage() {
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">All Properties</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">All Properties</h1>
           <p className="text-muted-foreground">
             Manage and view all your properties in one place.
           </p>
@@ -280,7 +280,7 @@ export default function PropertiesPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <Skeleton className="h-48 w-full rounded-t-lg" />
@@ -315,7 +315,7 @@ export default function PropertiesPage() {
           }}
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredProperties.map((property) => (
             <Card key={property.id} className="overflow-hidden transition-shadow hover:shadow-lg">
               <div

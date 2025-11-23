@@ -204,24 +204,24 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+    <div className="flex flex-1 flex-col gap-4 sm:gap-6">
+      <div className="space-y-1 sm:space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Overview of your property management activities
         </p>
       </div>
 
       {/* Magic Bento Analytics Cards */}
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
-                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-24 sm:w-32" />
               </CardHeader>
               <CardContent>
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-20 sm:w-24" />
               </CardContent>
             </Card>
           ))}
@@ -243,9 +243,9 @@ export default function DashboardPage() {
       )}
 
       {/* Key Metrics Section */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Key Metrics</h2>
-        <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Key Metrics</h2>
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
           <Card className="themed-panel border-0 shadow-none">
             <CardHeader>
               <CardTitle>Rental Income Trend</CardTitle>

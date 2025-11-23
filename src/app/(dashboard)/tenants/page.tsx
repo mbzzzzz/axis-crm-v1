@@ -83,7 +83,7 @@ interface Invoice {
   companyTagline?: string;
 }
 
-export default function TenantsPage() {
+function TenantsPageContent() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [properties, setProperties] = useState<Array<{ id: number; title?: string; address?: string }>>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -109,6 +109,70 @@ export default function TenantsPage() {
     expectedNextYearRent: "",
     deposit: "",
   });
+
+  // Handle lead conversion - pre-fill form when coming from leads page
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const convertLeadId = urlParams.get("convert");
+    const leadName = urlParams.get("name");
+    const leadPhone = urlParams.get("phone");
+    const leadEmail = urlParams.get("email");
+
+    if (convertLeadId && leadName && leadPhone) {
+      // Pre-fill form with lead data
+      setNewTenant((prev) => ({
+        ...prev,
+        name: decodeURIComponent(leadName),
+        phone: decodeURIComponent(leadPhone),
+        email: leadEmail ? decodeURIComponent(leadEmail) : "",
+      }));
+      setIsAddDialogOpen(true);
+
+      // Archive the lead after conversion
+      if (convertLeadId) {
+        fetch(`/api/leads?id=${convertLeadId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        }).catch((error) => {
+          console.error("Failed to archive lead:", error);
+        });
+      }
+
+      // Clean up URL params
+      window.history.replaceState({}, "", "/tenants");
+    }
+  }, []);
+
+  // Handle lead conversion
+  useEffect(() => {
+    const convertLeadId = searchParams.get("convert");
+    const leadName = searchParams.get("name");
+    const leadPhone = searchParams.get("phone");
+    const leadEmail = searchParams.get("email");
+
+    if (convertLeadId && leadName && leadPhone) {
+      // Pre-fill form with lead data
+      setNewTenant((prev) => ({
+        ...prev,
+        name: decodeURIComponent(leadName),
+        phone: decodeURIComponent(leadPhone),
+        email: leadEmail ? decodeURIComponent(leadEmail) : "",
+      }));
+      setIsAddDialogOpen(true);
+
+      // Archive the lead after conversion
+      if (convertLeadId) {
+        fetch(`/api/leads?id=${convertLeadId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "archived" }),
+        }).catch((error) => {
+          console.error("Failed to archive lead:", error);
+        });
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchTenants();
