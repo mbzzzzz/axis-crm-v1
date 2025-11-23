@@ -8,6 +8,7 @@ import { createThemeCSS } from "@axis/shared/theme";
 
 export default function App() {
   const [state, setState] = useState<ExtensionState | null>(null);
+  const [isAutofilling, setIsAutofilling] = useState(false);
 
   async function refreshState() {
     try {
@@ -83,10 +84,11 @@ export default function App() {
       return;
     }
 
+    setIsAutofilling(true);
     try {
-    const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
-    if (!response.ok) {
-      const errorMsg = response.error || "Autofill failed";
+      const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
+      if (!response.ok) {
+        const errorMsg = response.error || "Autofill failed";
         // TODO: Replace string matching with error codes from response
         if (errorMsg.includes("Receiving end does not exist")) {
           alert(
@@ -103,6 +105,8 @@ export default function App() {
       }
     } catch (error) {
       alert(`Autofill failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsAutofilling(false);
     }
   }
   function openDashboard() {
@@ -174,10 +178,10 @@ export default function App() {
       <footer className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button
           className="button"
-          disabled={!state.selectedPropertyId}
+          disabled={!state.selectedPropertyId || isAutofilling}
           onClick={handleAutofill}
         >
-          Autofill current site
+          {isAutofilling ? "Autofilling..." : "Autofill current site"}
         </button>
         <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 12 }}>
           Works on Zillow, Zameen, and Realtor. We upload photos, pricing, amenities, and your

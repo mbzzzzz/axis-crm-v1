@@ -16,45 +16,63 @@ export function setSelectValue(selector: string, value: string | undefined | nul
 }
 
 export async function uploadImages(selector: string, urls: string[]) {
-  if (!urls.length) return;
+  if (!urls.length) {
+    console.log("AXIS Autofill: No images to upload");
+    return;
+  }
+  
   const input = document.querySelector<HTMLInputElement>(selector);
-  if (!input) return;
+  if (!input) {
+    console.warn(`AXIS Autofill: Image input not found for selector: ${selector}`);
+    return;
+  }
 
+  console.log(`AXIS Autofill: Found image input, uploading ${urls.length} images`);
+  
   const dataTransfer = new DataTransfer();
-  const FETCH_TIMEOUT = 10000; // 10 seconds
+  const FETCH_TIMEOUT = 15000; // Increased from 10s
+  
+  let successCount = 0;
+  let failCount = 0;
   
   for (const url of urls.slice(0, input.multiple ? urls.length : 1)) {
     try {
+      console.log(`AXIS Autofill: Fetching image: ${url}`);
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
       
-      let response: Response;
-      try {
-        response = await fetch(url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        if (fetchError instanceof Error && fetchError.name === "AbortError") {
-          throw new Error(`Request timed out after ${FETCH_TIMEOUT}ms`);
-        }
-        throw fetchError;
-      }
+      const response = await fetch(url, { 
+        signal: controller.signal,
+        mode: 'cors' // Add CORS mode
+      });
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP ${response.status}`);
       }
       
       const blob = await response.blob();
-      const fileName = url.split("/").pop() || "axis-media.jpg";
-      const file = new File([blob], fileName, { type: blob.type });
+      const fileName = url.split("/").pop()?.split("?")[0] || `axis-image-${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
+      
       dataTransfer.items.add(file);
+      successCount++;
+      console.log(`AXIS Autofill: Image ${successCount} uploaded successfully`);
     } catch (error) {
-      console.warn("Failed to download media", error);
+      failCount++;
+      console.warn(`AXIS Autofill: Failed to upload image (${failCount}/${urls.length}):`, error);
     }
   }
 
-  input.files = dataTransfer.files;
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+  if (successCount > 0) {
+    input.files = dataTransfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    console.log(`AXIS Autofill: Successfully uploaded ${successCount}/${urls.length} images`);
+  } else {
+    console.error("AXIS Autofill: Failed to upload any images");
+  }
 }
 
 export function waitForSelector(selector: string, timeout = 8000): Promise<Element | null> {

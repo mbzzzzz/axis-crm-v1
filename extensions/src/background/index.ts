@@ -195,68 +195,36 @@ async function ensureContentScript(tabId: number): Promise<void> {
       throw new Error("Cannot inject into this page type");
     }
 
-    // Check if content script is already injected by trying to ping it first
+    // First, try to ping - content script might already be loaded
     try {
       const pingResponse = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
-      if (pingResponse?.ready) {
-        return; // Content script is already loaded
+      if (pingResponse?.ready && pingResponse?.initialized) {
+        console.log("Content script already loaded and ready");
+        return; // Already loaded
       }
     } catch (pingError) {
-      // Content script not loaded, proceed with injection
+      // Content script not loaded, continue with injection
+      console.log("Content script not responding, will inject");
     }
 
-    // Try to inject the content script
+    // Wait a bit for page to be fully ready
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Inject script
     if ((browser as any).scripting?.executeScript) {
-      try {
-        // Check if script is already registered in manifest (declarative content script)
-        // If so, we might need to reload the page or use a different approach
-        await (browser as any).scripting.executeScript({
-          target: { tabId },
-          files: ["content/content.js"],
-        });
-      } catch (injectError: any) {
-        // Handle specific error cases
-        if (injectError?.message?.includes("Cannot access") || injectError?.message?.includes("Cannot access a chrome:// URL")) {
-          throw new Error("Page blocked content script injection. Try refreshing the page.");
-        }
-        if (injectError?.message?.includes("No tab with id")) {
-          throw new Error("Tab not found. Please try again.");
-        }
-        if (injectError?.message?.includes("Extension context invalidated")) {
-          throw new Error("Extension was reloaded. Please refresh the page and try again.");
-        }
-        // If injection fails, it might be because the declarative content script is already loaded
-        // Try to ping again to see if it's actually working
-        try {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const pingResponse = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
-          if (pingResponse?.ready) {
-            return; // Content script is working despite injection error
-          }
-        } catch (pingError) {
-          // Content script is not responding, throw the original error
-        }
-        throw injectError;
-      }
+      await (browser as any).scripting.executeScript({
+        target: { tabId },
+        files: ["content/content.js"],
+      });
     } else if ((browser.tabs as any).executeScript) {
-      // Fallback for older browsers
-      try {
-        await (browser.tabs as any).executeScript(tabId, {
-          file: "content/content.js",
-          runAt: "document_idle",
-        });
-      } catch (injectError: any) {
-        if (injectError?.message?.includes("Cannot access")) {
-          throw new Error("Page blocked content script injection. Try refreshing the page.");
-        }
-        throw injectError;
-      }
-    } else {
-      throw new Error("Scripting API not available");
+      await (browser.tabs as any).executeScript(tabId, {
+        file: "content/content.js",
+        runAt: "document_idle",
+      });
     }
 
-    // Wait for content script to be ready
-    await waitForContentScriptReady(tabId);
+    // Wait for content script to initialize with longer timeout
+    await waitForContentScriptReady(tabId, 25); // Increased from 15
   } catch (error) {
     console.error("Failed to inject content script", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -264,29 +232,24 @@ async function ensureContentScript(tabId: number): Promise<void> {
   }
 }
 
-async function waitForContentScriptReady(tabId: number, maxRetries = 15): Promise<void> {
+async function waitForContentScriptReady(tabId: number, maxRetries = 25): Promise<void> {
   for (let i = 0; i < maxRetries; i++) {
     try {
       const response = await browser.tabs.sendMessage(tabId, { type: "AXIS_PING" });
-      if (response?.ready) {
+      if (response?.ready && response?.initialized) {
+        console.log(`Content script ready after ${i + 1} attempts`);
         return;
       }
     } catch (error: any) {
-      // If it's a connection error and we haven't exhausted retries, wait and retry
-      if (i < maxRetries - 1) {
-        const waitTime = Math.min(200 + (i * 50), 500); // Progressive backoff
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        continue;
+      // Progressive backoff - wait longer between retries
+      const waitTime = Math.min(300 + (i * 100), 1000);
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      
+      if (i === maxRetries - 1) {
+        throw new Error("Content script did not respond. Please refresh the page and try again.");
       }
-      // Check for specific error types
-      if (error?.message?.includes("Receiving end does not exist") || 
-          error?.message?.includes("Could not establish connection")) {
-        throw new Error("Content script did not respond. The page may need to be refreshed.");
-      }
-      throw error;
     }
   }
-  throw new Error("Content script timeout. Please refresh the page and try again.");
 }
 
 browser.runtime.onInstalled.addListener(async () => {

@@ -7,6 +7,19 @@ import { matchSiteFromLocation } from "../site-config";
 
 const ADAPTERS: AutofillAdapter[] = [ZillowAdapter, ZameenAdapter, RealtorAdapter];
 
+// Add initialization flag at the top
+let isInitialized = false;
+
+// Add initialization function
+function initialize() {
+  if (isInitialized) return;
+  isInitialized = true;
+  console.log("AXIS CRM Autofill content script initialized");
+}
+
+// Call it immediately
+initialize();
+
 function getAdapter(siteKey?: string): AutofillAdapter | undefined {
   if (siteKey) {
     return ADAPTERS.find((adapter) => adapter.key === siteKey);
@@ -67,9 +80,9 @@ browser.runtime.onMessage.addListener(
   async (
     message: RuntimeMessage,
     sender: browser.Runtime.MessageSender
-  ): Promise<{ ready?: boolean; success?: boolean; error?: string }> => {
+  ): Promise<{ ready?: boolean; initialized?: boolean; success?: boolean; error?: string }> => {
     if (message.type === "AXIS_PING") {
-      return { ready: true };
+      return { ready: true, initialized: isInitialized };
     }
 
     if (message.type !== "AXIS_AUTOFILL") {

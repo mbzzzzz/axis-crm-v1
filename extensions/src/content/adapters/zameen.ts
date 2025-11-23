@@ -31,9 +31,12 @@ function selectPurpose(status: string) {
 }
 
 async function fillZameenForm(payload: AutofillPayload) {
-  const { property } = payload;
+  console.log("AXIS Autofill: Starting Zameen form fill", payload.property);
+  
+  try {
+    const { property } = payload;
 
-  await waitForSelector("body", 2000);
+    await waitForSelector("body", 2000);
 
   selectPurpose(property.status);
 
@@ -112,15 +115,21 @@ async function fillZameenForm(payload: AutofillPayload) {
     }
   }
 
-  if (property.images?.length) {
-    const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.toLowerCase().includes("upload image")
-    );
-    if (uploadBtn) {
-      (uploadBtn as HTMLButtonElement).click();
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await uploadImages('input[type="file"]', property.images);
+    if (property.images?.length) {
+      const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+        btn.textContent?.toLowerCase().includes("upload image")
+      );
+      if (uploadBtn) {
+        (uploadBtn as HTMLButtonElement).click();
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await uploadImages('input[type="file"]', property.images);
+      }
     }
+    
+    console.log("AXIS Autofill: Zameen form fill completed successfully");
+  } catch (error) {
+    console.error("AXIS Autofill: Zameen form fill failed", error);
+    throw error;
   }
 }
 

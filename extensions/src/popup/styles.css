@@ -76,10 +76,19 @@ body {
 
 .property-card {
   border-radius: 12px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   background: rgba(255, 255, 255, 0.02);
-  padding: 12px;
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.property-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
 }
 
 .property-card:focus-visible {
@@ -94,8 +103,13 @@ body {
 
 .property-card.active {
   border-color: var(--axis-accent, #6366f1);
+  background: rgba(99, 102, 241, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
+}
+
+.property-card.active .property-title {
+  color: var(--axis-accent, #6366f1);
 }
 
 .property-title {

@@ -71,24 +71,19 @@ const OptionsApp = () => {
       </header>
 
       <form className="panel" onSubmit={handleSubmit}>
-        <label htmlFor="apiBaseUrl">AXIS dashboard URL</label>
         <input
-          id="apiBaseUrl"
-          name="apiBaseUrl"
-          placeholder="https://axis-crm-v1.vercel.app"
-          value={settings.apiBaseUrl}
-          onChange={(event) => setSettings((prev) => ({ ...prev, apiBaseUrl: event.target.value }))}
-          required
+          type="hidden"
+          value="https://axis-crm-v1.vercel.app"
         />
+        <p style={{ fontSize: 13, color: "rgba(248, 250, 255, 0.5)", marginTop: 8 }}>
+          Using default AXIS dashboard URL: <strong>{settings.apiBaseUrl}</strong>
+        </p>
         <p style={{ fontSize: 13, color: "rgba(248, 250, 255, 0.5)", marginTop: 8 }}>
           We use this URL for Clerk authentication, property sync, and theme mirroring.
         </p>
         {errorMessage && (
           <p style={{ color: "#f87171", fontSize: 13, marginTop: 8 }}>{errorMessage}</p>
         )}
-        <button type="submit" style={{ marginTop: 16 }}>
-          {status === "saving" ? "Saving..." : status === "saved" ? "Saved" : status === "error" ? "Save failed" : "Save changes"}
-        </button>
       </form>
 
       <section className="panel">

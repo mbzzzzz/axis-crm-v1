@@ -674,6 +674,43 @@ export default function TenantsPage() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                const tenantInvoices = getTenantInvoices(tenant.id);
+                                if (tenantInvoices.length > 0) {
+                                  if (tenantInvoices.length === 1) {
+                                    handlePreviewInvoice(tenantInvoices[0]);
+                                  } else {
+                                    // Show dialog with list of invoices
+                                    toast.info(`${tenantInvoices.length} invoices found. Previewing the latest.`);
+                                    const latestInvoice = tenantInvoices.sort((a, b) => 
+                                      new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+                                    )[0];
+                                    handlePreviewInvoice(latestInvoice);
+                                  }
+                                } else {
+                                  // Generate invoice first, then preview
+                                  await handleGenerateInvoice(tenant);
+                                  // Wait a moment for invoice to be created, then fetch and preview
+                                  setTimeout(async () => {
+                                    await fetchInvoices();
+                                    const updatedInvoices = getTenantInvoices(tenant.id);
+                                    if (updatedInvoices.length > 0) {
+                                      const latestInvoice = updatedInvoices.sort((a, b) => 
+                                        new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+                                      )[0];
+                                      handlePreviewInvoice(latestInvoice);
+                                    }
+                                  }, 1000);
+                                }
+                              }}
+                              title="View Invoice Preview"
+                            >
+                              <Eye className="size-4 mr-1" />
+                              View Invoice
+                            </Button>
+                            <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleGenerateInvoice(tenant)}
@@ -689,28 +726,6 @@ export default function TenantsPage() {
                             >
                               <Mail className="size-4" />
                             </Button>
-                            {getTenantInvoices(tenant.id).length > 0 && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  const tenantInvoices = getTenantInvoices(tenant.id);
-                                  if (tenantInvoices.length === 1) {
-                                    handlePreviewInvoice(tenantInvoices[0]);
-                                  } else {
-                                    // Show dialog with list of invoices
-                                    toast.info(`${tenantInvoices.length} invoices found. Click to preview the latest.`);
-                                    const latestInvoice = tenantInvoices.sort((a, b) => 
-                                      new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
-                                    )[0];
-                                    handlePreviewInvoice(latestInvoice);
-                                  }
-                                }}
-                                title={`Preview Invoice (${getTenantInvoices(tenant.id).length} available)`}
-                              >
-                                <Eye className="size-4" />
-                              </Button>
-                            )}
                             <Button
                               variant="ghost"
                               size="sm"

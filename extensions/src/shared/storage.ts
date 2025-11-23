@@ -32,11 +32,17 @@ export async function saveSettings(settings: ExtensionSettings) {
 
 export async function getSettings(): Promise<ExtensionSettings> {
   const data = await browser.storage.local.get(STORAGE_KEYS.SETTINGS);
-  return (
-    (data[STORAGE_KEYS.SETTINGS] as ExtensionSettings) ?? {
-      apiBaseUrl: "https://axis-crm-v1.vercel.app",
-    }
-  );
+  const defaultSettings: ExtensionSettings = {
+    apiBaseUrl: "https://axis-crm-v1.vercel.app",
+  };
+  
+  // If no settings exist, save and return defaults
+  if (!data[STORAGE_KEYS.SETTINGS]) {
+    await saveSettings(defaultSettings);
+    return defaultSettings;
+  }
+  
+  return data[STORAGE_KEYS.SETTINGS] as ExtensionSettings;
 }
 
 export async function saveSelectedProperty(propertyId: number | null) {

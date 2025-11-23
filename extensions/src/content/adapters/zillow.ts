@@ -2,9 +2,12 @@ import type { AutofillAdapter, AutofillPayload } from "./types";
 import { setInputValue, uploadImages, waitForSelector } from "./utils";
 
 async function fillZillowForm(payload: AutofillPayload) {
-  const { property } = payload;
+  console.log("AXIS Autofill: Starting Zillow form fill", payload.property);
   
-  // Validate required fields
+  try {
+    const { property } = payload;
+    
+    // Validate required fields
   const requiredFields = {
     price: property.price,
     address: property.address,
@@ -33,9 +36,15 @@ async function fillZillowForm(payload: AutofillPayload) {
   setInputValue('input[name="bathrooms"]', property.bathrooms ?? "");
   setInputValue('input[name="squareFeet"]', property.sizeSqft ?? "");
 
-  const photoSection = await waitForSelector('input[type="file"][accept*="image"]');
-  if (photoSection && property.images?.length) {
-    await uploadImages('input[type="file"][accept*="image"]', property.images);
+    const photoSection = await waitForSelector('input[type="file"][accept*="image"]');
+    if (photoSection && property.images?.length) {
+      await uploadImages('input[type="file"][accept*="image"]', property.images);
+    }
+    
+    console.log("AXIS Autofill: Zillow form fill completed successfully");
+  } catch (error) {
+    console.error("AXIS Autofill: Zillow form fill failed", error);
+    throw error;
   }
 }
 
