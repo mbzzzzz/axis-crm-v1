@@ -25,6 +25,14 @@ import {
 } from "lucide-react";
 import { PropertyForm } from "./property-form";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { 
+  formatPercentage, 
+  calculateROI, 
+  calculateGrossProfit, 
+  calculateNetProfit,
+  safeParseNumber 
+} from "@/lib/utils";
+import { formatCurrency as formatCurrencyCompact, type CurrencyCode } from "@/lib/currency-formatter";
 
 interface PropertyDetailsDialogProps {
   property: any;
@@ -41,26 +49,34 @@ export function PropertyDetailsDialog({
 }: PropertyDetailsDialogProps) {
   const [isEditing, setIsEditing] = useState(false);
 
-  // Calculate financial metrics
-  const purchasePrice = property.purchasePrice || 0;
-  const currentValue = property.estimatedValue || property.price;
-  const profit = currentValue - purchasePrice;
-  const roi = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : "0.00";
-  const commission = property.price * ((property.commissionRate || 0) / 100);
-  const annualExpenses = (property.monthlyExpenses || 0) * 12;
-  const netProfit = profit - annualExpenses;
+  // Get currency code with fallback
+  const currency = (property.currency || "USD") as CurrencyCode;
 
-  // Chart data
+  // Safely parse financial values
+  const purchasePrice = safeParseNumber(property.purchasePrice, 0);
+  const currentValue = safeParseNumber(property.estimatedValue || property.price, 0);
+  const monthlyExpenses = safeParseNumber(property.monthlyExpenses, 0);
+  const commissionRate = safeParseNumber(property.commissionRate, 0);
+  const propertyPrice = safeParseNumber(property.price, 0);
+
+  // Calculate financial metrics using utility functions
+  const roi = calculateROI(purchasePrice, currentValue);
+  const grossProfit = calculateGrossProfit(purchasePrice, currentValue);
+  const annualExpenses = monthlyExpenses * 12;
+  const netProfit = calculateNetProfit(grossProfit, annualExpenses);
+  const commission = propertyPrice * (commissionRate / 100);
+
+  // Chart data - ensure values are safe for charts
   const financialData = [
-    { name: "Purchase", value: purchasePrice, color: "#3b82f6" },
-    { name: "Current Value", value: currentValue, color: "#10b981" },
-    { name: "Commission", value: commission, color: "#f59e0b" },
-    { name: "Annual Expenses", value: annualExpenses, color: "#ef4444" },
+    { name: "Purchase", value: Math.max(0, purchasePrice), color: "#3b82f6" },
+    { name: "Current Value", value: Math.max(0, currentValue), color: "#10b981" },
+    { name: "Commission", value: Math.max(0, commission), color: "#f59e0b" },
+    { name: "Annual Expenses", value: Math.max(0, annualExpenses), color: "#ef4444" },
   ];
 
   const profitData = [
-    { name: "Gross Profit", value: Math.max(0, profit), color: "#10b981" },
-    { name: "Net Profit", value: Math.max(0, netProfit), color: "#3b82f6" },
+    { name: "Gross Profit", value: Math.max(0, grossProfit || 0), color: "#10b981" },
+    { name: "Net Profit", value: Math.max(0, netProfit || 0), color: "#3b82f6" },
   ];
 
   const handleSuccess = () => {
@@ -138,7 +154,7 @@ export function PropertyDetailsDialog({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Price</span>
-                      <span className="font-semibold">${property.price.toLocaleString()}</span>
+                      <span className="font-semibold">{formatCurrencyCompact(propertyPrice, currency, { compact: true, showDecimals: false })}</span>
                     </div>
                     {property.sizeSqft && (
                       <div className="flex items-center justify-between">
@@ -201,7 +217,9 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Purchase Price</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${purchasePrice.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">
+                      {formatCurrencyCompact(purchasePrice, currency, { compact: true, showDecimals: false })}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -209,7 +227,9 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Current Value</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${currentValue.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">
+                      {formatCurrencyCompact(currentValue, currency, { compact: true, showDecimals: false })}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -218,8 +238,16 @@ export function PropertyDetailsDialog({
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-2">
-                      <div className="text-2xl font-bold">{roi}%</div>
-                      {parseFloat(roi) > 0 && <TrendingUp className="size-5 text-green-500" />}
+                      <div 
+                        className={`text-2xl font-bold ${
+                          roi !== null && roi < 0 ? "text-red-500" : 
+                          roi !== null && roi > 0 ? "text-green-500" : 
+                          ""
+                        }`}
+                      >
+                        {roi !== null ? formatPercentage(roi, { showSign: true }) : "—"}
+                      </div>
+                      {roi !== null && roi > 0 && <TrendingUp className="size-5 text-green-500" />}
                     </div>
                   </CardContent>
                 </Card>
@@ -228,10 +256,14 @@ export function PropertyDetailsDialog({
                     <CardTitle className="text-sm font-medium">Commission</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${commission.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {property.commissionRate || 0}% rate
-                    </p>
+                    <div className="text-2xl font-bold">
+                      {formatCurrencyCompact(commission, currency, { compact: true, showDecimals: false })}
+                    </div>
+                    {commissionRate > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatPercentage(commissionRate)} rate
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -245,20 +277,38 @@ export function PropertyDetailsDialog({
                   <div className="grid gap-4 md:grid-cols-3">
                     <div className="space-y-2">
                       <span className="text-sm text-muted-foreground">Gross Profit</span>
-                      <div className="text-2xl font-bold text-green-600">
-                        ${profit.toLocaleString()}
+                      <div 
+                        className={`text-2xl font-bold ${
+                          grossProfit !== null && grossProfit < 0 ? "text-red-500" : 
+                          grossProfit !== null && grossProfit > 0 ? "text-green-500" : 
+                          ""
+                        }`}
+                      >
+                        {grossProfit !== null ? (
+                          grossProfit < 0 ? `-${formatCurrencyCompact(Math.abs(grossProfit), currency, { compact: true, showDecimals: false })}` :
+                          `+${formatCurrencyCompact(grossProfit, currency, { compact: true, showDecimals: false })}`
+                        ) : "—"}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <span className="text-sm text-muted-foreground">Annual Expenses</span>
-                      <div className="text-2xl font-bold text-red-600">
-                        ${annualExpenses.toLocaleString()}
+                      <div className="text-2xl font-bold text-red-500">
+                        {formatCurrencyCompact(annualExpenses, currency, { compact: true, showDecimals: false })}
                       </div>
                     </div>
                     <div className="space-y-2">
                       <span className="text-sm text-muted-foreground">Net Profit</span>
-                      <div className="text-2xl font-bold text-blue-600">
-                        ${netProfit.toLocaleString()}
+                      <div 
+                        className={`text-2xl font-bold ${
+                          netProfit !== null && netProfit < 0 ? "text-red-500" : 
+                          netProfit !== null && netProfit > 0 ? "text-green-500" : 
+                          ""
+                        }`}
+                      >
+                        {netProfit !== null ? (
+                          netProfit < 0 ? `-${formatCurrencyCompact(Math.abs(netProfit), currency, { compact: true, showDecimals: false })}` :
+                          `+${formatCurrencyCompact(netProfit, currency, { compact: true, showDecimals: false })}`
+                        ) : "—"}
                       </div>
                     </div>
                   </div>
@@ -278,7 +328,7 @@ export function PropertyDetailsDialog({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                      <Tooltip formatter={(value) => formatCurrencyCompact(Number(value), currency, { compact: false, showDecimals: false })} />
                       <Bar dataKey="value">
                         {financialData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
@@ -300,7 +350,7 @@ export function PropertyDetailsDialog({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis />
-                      <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                      <Tooltip formatter={(value) => formatCurrencyCompact(Number(value), currency, { compact: false, showDecimals: false })} />
                       <Bar dataKey="value">
                         {profitData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
