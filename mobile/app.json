@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Axis CRM Tenant",
+    "slug": "axis-crm-tenant",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/logo-full.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.axiscrm.tenant"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.axiscrm.tenant"
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "scheme": "axiscrm",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
