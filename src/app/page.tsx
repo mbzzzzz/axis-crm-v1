@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, BarChart3, FileText, Mail } from "lucide-react";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
+import { StructuredData } from "@/components/structured-data";
 
 export default function Home() {
   const router = useRouter();
@@ -149,5 +150,6 @@ export default function Home() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

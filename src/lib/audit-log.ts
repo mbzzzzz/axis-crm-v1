@@ -1,5 +1,3 @@
-import { currentUser } from '@clerk/nextjs/server';
-
 export type AuditAction = 'create' | 'update' | 'delete';
 export type EntityType = 'property' | 'tenant' | 'invoice' | 'maintenance_request' | 'lead';
 
@@ -15,10 +13,7 @@ export async function logActivity(
   metadata?: AuditLogMetadata
 ) {
   try {
-    const user = await currentUser();
-    if (!user) return; // Skip logging if user not authenticated
-
-    // Call API to log activity
+    // Call API to log activity - the API route will handle authentication
     await fetch('/api/audit-logs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
