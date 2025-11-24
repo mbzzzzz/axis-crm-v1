@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrencyCompact, type CurrencyCode } from "@/lib/currency-formatter";
+import { formatCurrency as formatCurrencyCompact, type CurrencyCode } from "@/lib/currency-formatter";
 import { Eye } from "lucide-react";
 
 // Fix for default marker icons in Next.js

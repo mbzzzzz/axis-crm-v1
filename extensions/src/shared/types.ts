@@ -53,5 +53,5 @@ export type RuntimeMessageResponse =
   | { ok: true; type: "STATE"; state: ExtensionState }
   | { ok: true; type: "PROPERTY"; property: AxisPropertyRecord | null; theme: ExtensionTheme | null }
   | { ok: true; type: "MESSAGE"; message: string }
-  | { ok: false; type: "ERROR"; error: string };
+  | { ok: false; type: "ERROR"; error: string; code?: string };
 

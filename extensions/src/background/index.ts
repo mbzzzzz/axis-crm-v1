@@ -86,13 +86,17 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
     await setStatus("error", errorMessage);
     
     let userMessage = errorMessage;
-    if (errorMessage.includes("Not signed in")) {
+    let errorCode: string | undefined;
+    
+    if (errorMessage.includes("Not signed in") || (error instanceof Error && (error as any).status === 401)) {
+      errorCode = "NOT_SIGNED_IN";
       userMessage = "Not signed in. Please log into AXIS CRM dashboard, then try syncing again.";
     } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+      errorCode = "NETWORK_ERROR";
       userMessage = "Network error. Check your internet connection and AXIS CRM URL.";
     }
     
-    return { ok: false, type: "ERROR" as const, error: userMessage };
+    return { ok: false, type: "ERROR" as const, error: userMessage, code: errorCode };
   }
 }
 

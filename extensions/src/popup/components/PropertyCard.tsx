@@ -40,8 +40,10 @@ export function PropertyCard({ property, active, onSelect }: Props) {
       <div className="property-meta">
         <span>{locationText}</span>
         <span>{property.propertyType ?? "Unknown"}</span>
-        {typeof property.price === "number" && (
+        {Number.isFinite(property.price) ? (
           <span>{formatPrice(property.price, property.currency)}</span>
+        ) : (
+          <span>Price unavailable</span>
         )}
       </div>
     </button>

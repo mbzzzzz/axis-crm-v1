@@ -39,33 +39,48 @@ export default function App() {
   }, [state?.theme]);
 
   async function handleSync() {
-    const response = await sendRuntimeMessage({ type: "SYNC_DATA" });
-    if (!response.ok) {
-      const errorMsg = response.error || "Sync failed. Please try again.";
-      if (errorMsg.includes("Not signed in")) {
-        alert(
-          "Not signed in to AXIS CRM.\n\n" +
-          "1. Click 'Open AXIS' to log in\n" +
-          "2. Make sure you're logged in on the dashboard\n" +
-          "3. Then click 'Sync from AXIS' again"
-        );
-      } else {
-        alert(`Sync failed: ${errorMsg}`);
+    try {
+      const response = await sendRuntimeMessage({ type: "SYNC_DATA" });
+      if (!response.ok) {
+        const errorCode = response.code;
+        const errorMsg = response.error || "Sync failed. Please try again.";
+        
+        if (errorCode === "NOT_SIGNED_IN") {
+          alert(
+            "Not signed in to AXIS CRM.\n\n" +
+            "1. Click 'Open AXIS' to log in\n" +
+            "2. Make sure you're logged in on the dashboard\n" +
+            "3. Then click 'Sync from AXIS' again"
+          );
+        } else {
+          alert(`Sync failed: ${errorMsg}`);
+        }
       }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Sync failed. Please try again.";
+      console.error("Sync error:", error);
+      alert(`Sync failed: ${errorMsg}`);
+    } finally {
+      await refreshState();
     }
-    await refreshState();
   }
 
   async function handleSelect(propertyId: number) {
-    const response = await sendRuntimeMessage({
-      type: "SET_SELECTED_PROPERTY",
-      payload: propertyId,
-    });
-    if (!response.ok) {
-      alert(response.error || "Failed to select property");
-      return;
+    try {
+      const response = await sendRuntimeMessage({
+        type: "SET_SELECTED_PROPERTY",
+        payload: propertyId,
+      });
+      if (!response.ok) {
+        alert(response.error || "Failed to select property");
+        return;
+      }
+      await refreshState();
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Failed to select property";
+      console.error("Select property error:", error);
+      alert(errorMsg);
     }
-    await refreshState();
   }
 
   async function handleAutofill() {

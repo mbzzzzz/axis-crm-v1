@@ -144,36 +144,6 @@ function TenantsPageContent() {
     }
   }, []);
 
-  // Handle lead conversion
-  useEffect(() => {
-    const convertLeadId = searchParams.get("convert");
-    const leadName = searchParams.get("name");
-    const leadPhone = searchParams.get("phone");
-    const leadEmail = searchParams.get("email");
-
-    if (convertLeadId && leadName && leadPhone) {
-      // Pre-fill form with lead data
-      setNewTenant((prev) => ({
-        ...prev,
-        name: decodeURIComponent(leadName),
-        phone: decodeURIComponent(leadPhone),
-        email: leadEmail ? decodeURIComponent(leadEmail) : "",
-      }));
-      setIsAddDialogOpen(true);
-
-      // Archive the lead after conversion
-      if (convertLeadId) {
-        fetch(`/api/leads?id=${convertLeadId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "archived" }),
-        }).catch((error) => {
-          console.error("Failed to archive lead:", error);
-        });
-      }
-    }
-  }, [searchParams]);
-
   useEffect(() => {
     fetchTenants();
     fetchInvoices();
@@ -906,3 +876,7 @@ function TenantsPageContent() {
   );
 }
 
+// Prevent static generation since this page uses client-side data fetching
+export const dynamic = 'force-dynamic';
+
+export default TenantsPageContent;

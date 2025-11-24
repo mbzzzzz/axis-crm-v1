@@ -34,14 +34,45 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [propertiesRes, tenantsRes, preferencesRes] = await Promise.all([
+        const [propertiesResult, tenantsResult, preferencesResult] = await Promise.allSettled([
           fetch("/api/properties"),
           fetch("/api/tenants"),
           fetch("/api/preferences"),
         ]);
-        const properties = await propertiesRes.json();
-        const tenants = await tenantsRes.json();
-        const preferences = await preferencesRes.json();
+        
+        let properties: any[] = [];
+        let tenants: any[] = [];
+        let preferences: any = { agentName: "", agentAgency: "" };
+        
+        if (propertiesResult.status === "fulfilled" && propertiesResult.value.ok) {
+          try {
+            properties = await propertiesResult.value.json();
+          } catch (e) {
+            console.error("Failed to parse properties JSON:", e);
+          }
+        } else if (propertiesResult.status === "rejected") {
+          console.error("Failed to fetch properties:", propertiesResult.reason);
+        }
+        
+        if (tenantsResult.status === "fulfilled" && tenantsResult.value.ok) {
+          try {
+            tenants = await tenantsResult.value.json();
+          } catch (e) {
+            console.error("Failed to parse tenants JSON:", e);
+          }
+        } else if (tenantsResult.status === "rejected") {
+          console.error("Failed to fetch tenants:", tenantsResult.reason);
+        }
+        
+        if (preferencesResult.status === "fulfilled" && preferencesResult.value.ok) {
+          try {
+            preferences = await preferencesResult.value.json();
+          } catch (e) {
+            console.error("Failed to parse preferences JSON:", e);
+          }
+        } else if (preferencesResult.status === "rejected") {
+          console.error("Failed to fetch preferences:", preferencesResult.reason);
+        }
         
         setStats({
           totalProperties: Array.isArray(properties) ? properties.length : 0,
@@ -109,7 +140,14 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Failed to save agent info:", error);
-      toast.error("Network error. Please check your connection and try again.");
+      const isNetworkError = 
+        error instanceof TypeError && 
+        (error.message.includes("fetch") || error.message.includes("network"));
+      toast.error(
+        isNetworkError 
+          ? "Network error. Please check your connection and try again."
+          : "An error occurred. Please try again."
+      );
     } finally {
       setIsSavingAgent(false);
     }
@@ -199,7 +237,7 @@ export default function SettingsPage() {
               {isSavingAgent ? "Saving..." : "Save Agent Information"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              This information will be used as defaults when creating new invoices. You can override it per invoice if needed. Changes are saved immediately.
+              This information will be used as defaults when creating new invoices. You can override it per invoice if needed. Click 'Save Agent Information' to persist your changes.
             </p>
           </CardContent>
         </Card>

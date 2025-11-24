@@ -20,6 +20,12 @@ const OptionsApp = () => {
         if (response.ok && response.type === "STATE") {
           setSettings(response.state.settings);
           setTheme(response.state.theme);
+        } else if (response.ok) {
+          console.warn("Unexpected response type from GET_STATE:", {
+            expectedType: "STATE",
+            actualType: response.type,
+            response,
+          });
         }
       })
       .catch((error) => {

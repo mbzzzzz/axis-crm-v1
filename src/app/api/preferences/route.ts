@@ -37,7 +37,7 @@ export async function GET() {
   } catch (error) {
     console.error("GET /api/preferences error:", error);
     return NextResponse.json(
-      { error: "Internal server error: " + (error as Error).message },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
@@ -67,6 +67,38 @@ export async function PUT(request: NextRequest) {
         { error: "Invalid theme key supplied", code: "INVALID_THEME_KEY" },
         { status: 400 }
       );
+    }
+
+    // Validate agentName if provided
+    if (agentName !== undefined && agentName !== null) {
+      if (typeof agentName !== "string") {
+        return NextResponse.json(
+          { error: "Agent name must be a string", code: "INVALID_AGENT_NAME" },
+          { status: 400 }
+        );
+      }
+      if (agentName.length > 100) {
+        return NextResponse.json(
+          { error: "Agent name must be 100 characters or less", code: "INVALID_AGENT_NAME" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate agentAgency if provided
+    if (agentAgency !== undefined && agentAgency !== null) {
+      if (typeof agentAgency !== "string") {
+        return NextResponse.json(
+          { error: "Agent agency must be a string", code: "INVALID_AGENT_AGENCY" },
+          { status: 400 }
+        );
+      }
+      if (agentAgency.length > 100) {
+        return NextResponse.json(
+          { error: "Agent agency must be 100 characters or less", code: "INVALID_AGENT_AGENCY" },
+          { status: 400 }
+        );
+      }
     }
 
     const now = new Date();
@@ -148,21 +180,23 @@ export async function PUT(request: NextRequest) {
         const isColumnError = dbError?.message?.includes("agent_name") || dbError?.message?.includes("agent_agency");
         if (isColumnError) {
           console.error("Database columns 'agent_name' or 'agent_agency' do not exist. Please run the migration:", dbError);
+          const isProduction = process.env.NODE_ENV === "production";
           return NextResponse.json(
             { 
               error: "Database columns not found. Please run the migration: drizzle/0008_add_agent_fields_to_preferences.sql",
               code: "COLUMN_NOT_FOUND",
-              details: dbError.message 
+              ...(isProduction ? {} : { details: dbError.message })
             },
             { status: 500 }
           );
         }
         console.error("Database table 'user_preferences' does not exist. Please run the migration:", dbError);
+        const isProduction = process.env.NODE_ENV === "production";
         return NextResponse.json(
           { 
             error: "Database table not found. Please run the migration: drizzle/0003_add_user_preferences.sql",
             code: "TABLE_NOT_FOUND",
-            details: dbError.message 
+            ...(isProduction ? {} : { details: dbError.message })
           },
           { status: 500 }
         );
@@ -171,15 +205,13 @@ export async function PUT(request: NextRequest) {
         message: dbError?.message,
         code: dbError?.code,
         stack: dbError?.stack,
-        updateData,
       });
       throw dbError;
     }
   } catch (error) {
     console.error("PUT /api/preferences error:", error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal server error: " + errorMessage, code: "INTERNAL_ERROR" },
+      { error: "Internal server error", code: "INTERNAL_ERROR" },
       { status: 500 }
     );
   }
