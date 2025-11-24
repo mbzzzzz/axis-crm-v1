@@ -5,10 +5,13 @@ import type { ExtensionState } from "@axis/shared/types";
 import { PropertyCard } from "./components/PropertyCard";
 import { SyncButton } from "./components/SyncButton";
 import { createThemeCSS } from "@axis/shared/theme";
+import { createLead } from "@axis/shared/api-client";
+import type { ExtractedLead } from "@axis/shared/leads-extractor";
 
 export default function App() {
   const [state, setState] = useState<ExtensionState | null>(null);
   const [isAutofilling, setIsAutofilling] = useState(false);
+  const [isExtractingLead, setIsExtractingLead] = useState(false);
 
   async function refreshState() {
     try {
@@ -122,9 +125,13 @@ export default function App() {
         return;
       }
 
-      // Send FILL_FORM message directly to content script
+      // Send FILL_FORM message directly to content script with timeout
       try {
-        const response = await browser.tabs.sendMessage(activeTab.id, {
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Autofill timeout - operation took too long")), 60000); // 60 second timeout
+        });
+
+        const messagePromise = browser.tabs.sendMessage(activeTab.id, {
           action: "FILL_FORM",
           payload: {
             property: selectedProperty,
@@ -132,28 +139,38 @@ export default function App() {
           },
         });
 
+        const response = await Promise.race([messagePromise, timeoutPromise]) as any;
+
         if (response?.success === false) {
           alert(`Autofill failed: ${response.error || "Unknown error"}`);
-        } else {
+        } else if (response?.success === true || !response?.success) {
+          // Success or no explicit success flag (assume success)
           alert("Autofill completed! Check the form to verify the data was filled.");
         }
       } catch (msgError: any) {
+        console.error("Direct message failed, trying fallback:", msgError);
+        
         // Fallback to background script method if direct message fails
-        const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
-        if (!response.ok) {
-          const errorMsg = response.error || "Autofill failed";
-          if (errorMsg.includes("Receiving end does not exist")) {
-            alert(
-              "Content script not loaded.\n\n" +
-              "1. Refresh the current page (F5)\n" +
-              "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
-              "3. Try autofill again"
-            );
+        try {
+          const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
+          if (!response.ok) {
+            const errorMsg = response.error || "Autofill failed";
+            if (errorMsg.includes("Receiving end does not exist") || errorMsg.includes("Could not establish connection")) {
+              alert(
+                "Content script not loaded.\n\n" +
+                "1. Refresh the current page (F5)\n" +
+                "2. Make sure you're on a supported site (Zillow, Zameen, or Realtor)\n" +
+                "3. Try autofill again"
+              );
+            } else {
+              alert(`Autofill failed: ${errorMsg}`);
+            }
           } else {
-            alert(`Autofill failed: ${errorMsg}`);
+            alert("Autofill completed! Check the form to verify the data was filled.");
           }
-        } else {
-          alert("Autofill completed! Check the form to verify the data was filled.");
+        } catch (fallbackError: any) {
+          const errorMsg = fallbackError?.message || msgError?.message || "Autofill failed";
+          alert(`Autofill failed: ${errorMsg}\n\nPlease refresh the page and try again.`);
         }
       }
     } catch (error) {
@@ -169,6 +186,81 @@ export default function App() {
 
   function openOptions() {
     browser.runtime.openOptionsPage();
+  }
+
+  async function handleExtractLead() {
+    setIsExtractingLead(true);
+    try {
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      const activeTab = tabs[0];
+
+      if (!activeTab?.id) {
+        alert("Unable to find active tab. Please try again.");
+        setIsExtractingLead(false);
+        return;
+      }
+
+      // Send EXTRACT_LEAD message to content script
+      try {
+        const response = await browser.tabs.sendMessage(activeTab.id, {
+          action: "EXTRACT_LEAD",
+        });
+
+        if (response?.success && response?.lead) {
+          const lead = response.lead as ExtractedLead;
+          
+          // Show confirmation dialog with lead details
+          const confirmMessage = `Extracted Lead:\n\n` +
+            `Name: ${lead.name}\n` +
+            `Phone: ${lead.phone}\n` +
+            (lead.email ? `Email: ${lead.email}\n` : '') +
+            (lead.preferredLocation ? `Location: ${lead.preferredLocation}\n` : '') +
+            (lead.budget ? `Budget: ${lead.budget}\n` : '') +
+            `\nSave this lead to AXIS CRM?`;
+
+          if (confirm(confirmMessage)) {
+            // Save lead to CRM
+            const apiBaseUrl = state?.settings.apiBaseUrl || "https://axis-crm-v1.vercel.app";
+            try {
+              await createLead(apiBaseUrl, {
+                name: lead.name,
+                phone: lead.phone,
+                email: lead.email,
+                source: lead.source,
+                preferredLocation: lead.preferredLocation,
+                budget: lead.budget,
+                notes: lead.notes,
+              });
+              alert("Lead saved to AXIS CRM successfully!");
+            } catch (error: any) {
+              if (error.status === 401 || error.status === 403) {
+                alert("Not signed in. Please log into AXIS CRM dashboard first.");
+              } else {
+                alert(`Failed to save lead: ${error.message || "Unknown error"}`);
+              }
+            }
+          }
+        } else {
+          alert(response?.error || "No lead information found on this page.");
+        }
+      } catch (msgError: any) {
+        if (msgError.message?.includes("Receiving end does not exist") || 
+            msgError.message?.includes("Could not establish connection")) {
+          alert(
+              "Content script not loaded.\n\n" +
+              "1. Refresh the current page (F5)\n" +
+              "2. Make sure you're on a supported property listing page\n" +
+              "3. Try extracting lead again"
+          );
+        } else {
+          alert(`Lead extraction failed: ${msgError.message || "Unknown error"}`);
+        }
+      }
+    } catch (error) {
+      alert(`Lead extraction failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsExtractingLead(false);
+    }
   }
 
   if (!state) {
@@ -229,16 +321,28 @@ export default function App() {
       </section>
 
       <footer className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <button
-          className="button"
-          disabled={!state.selectedPropertyId || isAutofilling}
-          onClick={handleAutofill}
-        >
-          {isAutofilling ? "Autofilling..." : "Autofill current site"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexDirection: "column" }}>
+          <button
+            className="button"
+            disabled={!state.selectedPropertyId || isAutofilling}
+            onClick={handleAutofill}
+          >
+            {isAutofilling ? "Autofilling..." : "Autofill current site"}
+          </button>
+          <button
+            className="button secondary"
+            disabled={isExtractingLead}
+            onClick={handleExtractLead}
+          >
+            {isExtractingLead ? "Extracting Lead..." : "Extract Lead from Page"}
+          </button>
+        </div>
         <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 12 }}>
-          Works on Zillow, Zameen, and Realtor. We upload photos, pricing, amenities, and your
-          description so every listing looks on-brand.
+          Works on Zillow, Zameen, Realtor, Bayut, Property Finder, Dubizzle, and Propsearch. 
+          We upload photos, pricing, amenities, and your description so every listing looks on-brand.
+        </p>
+        <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 11 }}>
+          Extract leads from property listing pages and save them directly to your CRM.
         </p>
       </footer>
     </div>

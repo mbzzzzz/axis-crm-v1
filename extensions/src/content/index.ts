@@ -3,9 +3,23 @@ import type { AutofillAdapter, AutofillPayload } from "./adapters/types";
 import ZillowAdapter from "./adapters/zillow";
 import ZameenAdapter from "./adapters/zameen";
 import RealtorAdapter from "./adapters/realtor";
+import BayutAdapter from "./adapters/bayut";
+import PropertyFinderAdapter from "./adapters/propertyfinder";
+import DubizzleAdapter from "./adapters/dubizzle";
+import PropsearchAdapter from "./adapters/propsearch";
 import { matchSiteFromLocation } from "../site-config";
+import { uploadImages } from "./adapters/utils";
+import { extractLeadFromCurrentPage } from "../shared/leads-extractor";
 
-const ADAPTERS: AutofillAdapter[] = [ZillowAdapter, ZameenAdapter, RealtorAdapter];
+const ADAPTERS: AutofillAdapter[] = [
+  ZillowAdapter, 
+  ZameenAdapter, 
+  RealtorAdapter,
+  BayutAdapter,
+  PropertyFinderAdapter,
+  DubizzleAdapter,
+  PropsearchAdapter,
+];
 
 // Add initialization flag at the top
 let isInitialized = false;
@@ -79,10 +93,20 @@ interface FillFormMessage {
   payload: AutofillPayload;
 }
 
-type RuntimeMessage = PingMessage | AutofillMessage | FillFormMessage;
+interface ExtractLeadMessage {
+  action: "EXTRACT_LEAD";
+}
+
+type RuntimeMessage = PingMessage | AutofillMessage | FillFormMessage | ExtractLeadMessage;
 
 // Helper function to set value with React event dispatching
-function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
+function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
+  if (element instanceof HTMLSelectElement) {
+    element.value = value;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+    return;
+  }
+
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
     Object.getPrototypeOf(element),
     "value"
@@ -112,7 +136,7 @@ async function handleProfolioFill(payload: AutofillPayload) {
   const { property } = payload;
 
   // Wait for page to be ready
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   // Find Title Input: Look for input with placeholder 'Enter property title...' or label 'Title'
   const titleSelectors = [
@@ -196,6 +220,144 @@ async function handleProfolioFill(payload: AutofillPayload) {
     console.warn("AXIS Autofill: Description textarea not found");
   }
 
+  // Fill Price
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const priceSelectors = [
+    'input[placeholder*="Price" i]',
+    'input[placeholder*="Enter Price" i]',
+    'input[type="number"][name*="price" i]',
+    'input[aria-label*="Price" i]',
+  ];
+  let priceInput: HTMLInputElement | null = null;
+  for (const selector of priceSelectors) {
+    priceInput = document.querySelector<HTMLInputElement>(selector);
+    if (priceInput) break;
+  }
+  if (priceInput && property.price) {
+    setNativeValue(priceInput, String(property.price));
+    console.log("AXIS Autofill: Price filled");
+  }
+
+  // Fill Location/Address
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const locationSelectors = [
+    'input[placeholder*="Location" i]',
+    'input[placeholder*="Address" i]',
+    'input[placeholder*="Search Location" i]',
+    'input[aria-label*="Location" i]',
+    'input[name*="location" i]',
+    'input[name*="address" i]',
+  ];
+  let locationInput: HTMLInputElement | null = null;
+  for (const selector of locationSelectors) {
+    locationInput = document.querySelector<HTMLInputElement>(selector);
+    if (locationInput) break;
+  }
+  if (locationInput) {
+    const fullAddress = `${property.address}, ${property.city}${property.state ? `, ${property.state}` : ''}`.trim();
+    setNativeValue(locationInput, fullAddress);
+    console.log("AXIS Autofill: Location filled");
+  }
+
+  // Fill Area/Size
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (property.sizeSqft) {
+    const areaSelectors = [
+      'input[placeholder*="Area" i]',
+      'input[placeholder*="Size" i]',
+      'input[placeholder*="Square Feet" i]',
+      'input[name*="area" i]',
+      'input[name*="size" i]',
+    ];
+    let areaInput: HTMLInputElement | null = null;
+    for (const selector of areaSelectors) {
+      areaInput = document.querySelector<HTMLInputElement>(selector);
+      if (areaInput) break;
+    }
+    if (areaInput) {
+      setNativeValue(areaInput, String(property.sizeSqft));
+      console.log("AXIS Autofill: Area filled");
+    }
+  }
+
+  // Fill Bedrooms
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (property.bedrooms) {
+    const bedroomSelectors = [
+      'input[placeholder*="Bedroom" i]',
+      'select[name*="bedroom" i]',
+      'button:has-text("' + property.bedrooms + '")',
+    ];
+    let bedroomInput: HTMLInputElement | HTMLSelectElement | HTMLButtonElement | null = null;
+    for (const selector of bedroomSelectors) {
+      bedroomInput = document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(selector);
+      if (bedroomInput) break;
+    }
+    if (!bedroomInput) {
+      // Try finding button with bedroom count
+      const buttons = Array.from(document.querySelectorAll("button"));
+      bedroomInput = buttons.find((btn) => btn.textContent?.trim() === String(property.bedrooms)) || null;
+    }
+    if (bedroomInput) {
+      if (bedroomInput instanceof HTMLInputElement || bedroomInput instanceof HTMLSelectElement) {
+        setNativeValue(bedroomInput, String(property.bedrooms));
+      } else if (bedroomInput instanceof HTMLButtonElement) {
+        bedroomInput.click();
+      }
+      console.log("AXIS Autofill: Bedrooms filled");
+    }
+  }
+
+  // Fill Bathrooms
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  if (property.bathrooms) {
+    const bathroomCount = Math.floor(property.bathrooms);
+    const bathroomSelectors = [
+      'input[placeholder*="Bathroom" i]',
+      'select[name*="bathroom" i]',
+    ];
+    let bathroomInput: HTMLInputElement | HTMLSelectElement | HTMLButtonElement | null = null;
+    for (const selector of bathroomSelectors) {
+      bathroomInput = document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(selector);
+      if (bathroomInput) break;
+    }
+    if (!bathroomInput) {
+      const buttons = Array.from(document.querySelectorAll("button"));
+      bathroomInput = buttons.find((btn) => btn.textContent?.trim() === String(bathroomCount)) || null;
+    }
+    if (bathroomInput) {
+      if (bathroomInput instanceof HTMLInputElement || bathroomInput instanceof HTMLSelectElement) {
+        setNativeValue(bathroomInput, String(bathroomCount));
+      } else if (bathroomInput instanceof HTMLButtonElement) {
+        bathroomInput.click();
+      }
+      console.log("AXIS Autofill: Bathrooms filled");
+    }
+  }
+
+  // Upload Images
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  if (property.images?.length) {
+    const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.toLowerCase().includes("upload") || 
+      btn.textContent?.toLowerCase().includes("image") ||
+      btn.textContent?.toLowerCase().includes("photo")
+    );
+    if (uploadBtn) {
+      (uploadBtn as HTMLButtonElement).click();
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+      if (fileInput) {
+        try {
+          await uploadImages('input[type="file"]', property.images);
+          console.log("AXIS Autofill: Images uploaded");
+        } catch (error) {
+          console.warn("AXIS Autofill: Image upload failed", error);
+        }
+      }
+    }
+  }
+
   console.log("AXIS Autofill: Profolio form fill completed");
 }
 
@@ -203,7 +365,7 @@ browser.runtime.onMessage.addListener(
   async (
     message: RuntimeMessage,
     sender: browser.Runtime.MessageSender
-  ): Promise<{ ready?: boolean; initialized?: boolean; success?: boolean; error?: string }> => {
+  ): Promise<{ ready?: boolean; initialized?: boolean; success?: boolean; error?: string; lead?: any }> => {
     // Handle PING message
     if ("type" in message && message.type === "AXIS_PING") {
       return { ready: true, initialized: isInitialized };
@@ -242,6 +404,25 @@ browser.runtime.onMessage.addListener(
         console.error("AXIS Autofill error", error);
         const errorMsg = error instanceof Error ? error.message : String(error);
         showToast(`AXIS Autofill failed: ${errorMsg}`);
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    // Handle EXTRACT_LEAD message
+    if ("action" in message && message.action === "EXTRACT_LEAD") {
+      try {
+        const lead = extractLeadFromCurrentPage();
+        if (lead) {
+          showToast("Lead extracted successfully");
+          return { success: true, lead };
+        } else {
+          showToast("No lead information found on this page");
+          return { success: false, error: "No lead information found" };
+        }
+      } catch (error) {
+        console.error("Lead extraction error", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        showToast(`Lead extraction failed: ${errorMsg}`);
         return { success: false, error: errorMsg };
       }
     }

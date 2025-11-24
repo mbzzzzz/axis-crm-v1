@@ -135,7 +135,7 @@ async function fillZameenForm(payload: AutofillPayload) {
 
 const ZameenAdapter: AutofillAdapter = {
   key: "zameen",
-  matches: (location) => location.hostname.includes("zameen.com"),
+  matches: (location) => location.hostname.includes("zameen.com") || location.hostname.includes("profolio.zameen.com"),
   apply: fillZameenForm,
 };
 

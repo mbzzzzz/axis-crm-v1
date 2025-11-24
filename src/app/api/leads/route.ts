@@ -18,7 +18,7 @@ async function getCurrentUser() {
 
 // Valid statuses for leads
 const VALID_STATUSES = ['inquiry', 'viewing', 'application', 'signed', 'archived'];
-const VALID_SOURCES = ['zameen', 'olx', 'referral', 'website', 'other'];
+const VALID_SOURCES = ['zameen', 'olx', 'referral', 'website', 'other', 'bayut', 'propertyfinder', 'dubizzle', 'propsearch', 'zillow', 'realtor'];
 
 // GET - Fetch all leads for the current user
 export async function GET(request: NextRequest) {
