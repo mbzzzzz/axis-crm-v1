@@ -34,13 +34,13 @@ export function ShineBorder({
 }: ShineBorderProps) {
   const colors = color instanceof Array ? color : [color, color, color];
   
-  // Create a linear gradient that moves
-  const linearGradient = `linear-gradient(90deg, ${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})`;
+  // Create a conic gradient that rotates
+  const conicGradient = `conic-gradient(from 0deg, ${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})`;
 
   return (
     <div
       className={cn(
-        "relative w-full h-full overflow-hidden",
+        "relative w-full h-full",
         className,
       )}
       style={
@@ -49,27 +49,29 @@ export function ShineBorder({
         } as React.CSSProperties
       }
     >
-      {/* Animated border layer - outer */}
+      {/* Animated border layer */}
       <div
-        className="absolute inset-0 rounded-3xl"
+        className="absolute inset-0 rounded-3xl overflow-hidden"
         style={
           {
             borderRadius: `${borderRadius}px`,
-            background: linearGradient,
-            backgroundSize: "200% 200%",
-            animation: `shine-pulse ${duration}s infinite linear`,
             padding: `${borderWidth}px`,
           } as React.CSSProperties
         }
       >
-        {/* Inner mask to create border effect */}
         <div
           className="absolute inset-0 rounded-3xl"
           style={
             {
-              borderRadius: `${borderRadius - borderWidth}px`,
-              margin: `${borderWidth}px`,
-              background: "transparent",
+              background: conicGradient,
+              backgroundSize: "400% 400%",
+              animation: `shine-pulse ${duration}s infinite linear`,
+              borderRadius: `${borderRadius}px`,
+              maskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+              WebkitMaskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+              maskComposite: "exclude",
+              WebkitMaskComposite: "xor",
+              padding: `${borderWidth}px`,
             } as React.CSSProperties
           }
         />
