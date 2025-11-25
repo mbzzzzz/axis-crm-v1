@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
@@ -14,14 +15,30 @@ const providers = [
 ];
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const supabase = getSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        router.replace("/dashboard");
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const handleOAuthSignUp = async (provider: string) => {
     try {
       setLoadingProvider(provider);
       const supabase = getSupabaseBrowserClient();
       const redirectTo =
-        typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback?redirectedFrom=/dashboard`
+          : undefined;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider as "google" | "github",

@@ -6,11 +6,6 @@ import { Building2, BarChart3, FileText, Mail } from "lucide-react";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
 import { StructuredData } from "@/components/structured-data";
-import { ProductShowcase } from "@/components/landing/ProductShowcase";
-import { SocialProof } from "@/components/landing/SocialProof";
-import { FeatureDeepDive } from "@/components/landing/FeatureDeepDive";
-import { PricingTable } from "@/components/landing/PricingTable";
-import { FAQSection } from "@/components/landing/FAQSection";
 
 export default function Home() {
   const router = useRouter();
@@ -142,13 +137,6 @@ export default function Home() {
           </article>
         </section>
       </main>
-
-      {/* New Landing Page Sections */}
-      <ProductShowcase />
-      <SocialProof />
-      <FeatureDeepDive />
-      <PricingTable />
-      <FAQSection />
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/20 bg-black/30 backdrop-blur-sm mt-8 sm:mt-12">

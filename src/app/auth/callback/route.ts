@@ -8,14 +8,15 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const redirectTo = requestUrl.searchParams.get("redirectedFrom") || "/dashboard";
-  const response = NextResponse.redirect(new URL(redirectTo, request.url));
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Missing Supabase environment variables in auth callback");
-    return response;
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (code) {
+    const response = NextResponse.redirect(new URL(redirectTo, request.url));
+    
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll: () =>
@@ -31,9 +32,17 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    
+    if (error) {
+      console.error("Error exchanging code for session:", error);
+      return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));
+    }
+
+    return response;
   }
 
-  return response;
+  // If no code, redirect to login
+  return NextResponse.redirect(new URL("/login", request.url));
 }
 
