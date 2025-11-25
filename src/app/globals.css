@@ -188,3 +188,7 @@ nextjs-portal {
     offset-distance: 100%;
   }
 }
+
+.animate-shine-pulse {
+  animation: shine-pulse 14s infinite linear;
+}

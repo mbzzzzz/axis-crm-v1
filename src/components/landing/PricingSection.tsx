@@ -71,23 +71,23 @@ export function PricingSection() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {plans.map((plan, index) => {
-            // Different shine colors for each plan
+            // Different shine colors for each plan - brighter colors for visibility
             const shineColors = plan.highlighted
               ? ["#a855f7", "#ec4899", "#8b5cf6"] // Purple/pink gradient for Business
               : index === 0
-              ? ["#3b82f6", "#60a5fa", "#93c5fd"] // Blue gradient for Professional
-              : ["#10b981", "#34d399", "#6ee7b7"]; // Green gradient for Enterprise
+              ? ["#3b82f6", "#60a5fa", "#3b82f6"] // Blue gradient for Professional
+              : ["#10b981", "#34d399", "#10b981"]; // Green gradient for Enterprise
 
             return (
               <ShineBorder
                 key={index}
                 borderRadius={16}
-                borderWidth={2}
-                duration={14}
+                borderWidth={3}
+                duration={10}
                 color={shineColors}
                 className="bg-neutral-900/20 border-0 p-0 dark:bg-neutral-900/20"
               >
-                <div className="p-8 rounded-2xl relative w-full h-full">
+                <div className="p-8 rounded-2xl relative w-full h-full bg-neutral-900/20">
                   {plan.highlighted && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                       <span className="bg-purple-500 text-white text-xs font-semibold px-3 py-1 rounded-full">

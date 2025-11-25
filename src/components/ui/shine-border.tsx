@@ -26,39 +26,64 @@ interface ShineBorderProps {
  */
 export function ShineBorder({
   borderRadius = 8,
-  borderWidth = 1,
+  borderWidth = 2,
   duration = 14,
   color = "#000000",
   className,
   children,
 }: ShineBorderProps) {
+  const colors = color instanceof Array ? color : [color, color, color];
+  
+  // Create a radial gradient that moves
+  const radialGradient = `radial-gradient(circle at 50% 50%, ${colors[0]} 0%, ${colors[1]} 25%, ${colors[2]} 50%, transparent 70%)`;
+
   return (
     <div
-      style={
-        {
-          "--border-radius": `${borderRadius}px`,
-        } as React.CSSProperties
-      }
       className={cn(
-        "relative grid h-full w-full place-items-center rounded-3xl bg-white p-3 text-black dark:bg-black dark:text-white",
+        "relative w-full h-full",
         className,
       )}
+      style={
+        {
+          borderRadius: `${borderRadius}px`,
+        } as React.CSSProperties
+      }
     >
+      {/* Animated border layer */}
       <div
+        className="absolute inset-0 rounded-3xl overflow-hidden"
         style={
           {
-            "--border-width": `${borderWidth}px`,
-            "--border-radius": `${borderRadius}px`,
-            "--shine-pulse-duration": `${duration}s`,
-            "--mask-linear-gradient": `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
-            "--background-radial-gradient": color instanceof Array
-              ? `radial-gradient(transparent, transparent, ${color[0]}, ${color[1] || color[0]}, ${color[2] || color[0]}, transparent, transparent)`
-              : `radial-gradient(transparent, transparent, ${color}, transparent, transparent)`,
+            borderRadius: `${borderRadius}px`,
+            padding: `${borderWidth}px`,
           } as React.CSSProperties
         }
-        className={`before:absolute before:inset-0 before:aspect-square before:size-full before:rounded-3xl before:p-[--border-width] before:will-change-[background-position] before:content-[""] before:![-webkit-mask-composite:xor] before:[background-image:var(--background-radial-gradient)] before:[background-size:300%_300%] before:![mask-composite:exclude] before:[mask:var(--mask-linear-gradient)] motion-safe:before:animate-[shine-pulse_var(--shine-pulse-duration)_infinite_linear]`}
-      ></div>
-      {children}
+      >
+        <div
+          className="absolute inset-0 rounded-3xl"
+          style={
+            {
+              backgroundImage: radialGradient,
+              backgroundSize: "300% 300%",
+              animation: `shine-pulse ${duration}s infinite linear`,
+              maskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+              WebkitMaskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
+              maskComposite: "exclude",
+              WebkitMaskComposite: "xor",
+              padding: `${borderWidth}px`,
+            } as React.CSSProperties
+          }
+        />
+      </div>
+      {/* Content */}
+      <div 
+        className="relative z-10 h-full w-full rounded-3xl" 
+        style={{ 
+          borderRadius: `${borderRadius}px`,
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
