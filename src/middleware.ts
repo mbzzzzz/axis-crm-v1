@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -21,10 +21,25 @@ function isPublicRoute(pathname: string) {
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  const supabase = createMiddlewareClient(
-    { req: request, res: response },
-    { supabaseUrl, supabaseKey: supabaseAnonKey }
-  );
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("Missing Supabase environment variables in middleware");
+    return response;
+  }
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll: () =>
+        request.cookies.getAll().map((cookie) => ({
+          name: cookie.name,
+          value: cookie.value,
+        })),
+      setAll: (cookies) => {
+        cookies.forEach((cookie) => {
+          response.cookies.set(cookie.name, cookie.value, cookie.options);
+        });
+      },
+    },
+  });
 
   const {
     data: { session },
