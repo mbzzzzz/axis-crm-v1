@@ -10,10 +10,10 @@ import { CardThemeProvider } from "./card-theme-provider";
 export function GlobalThemeProvider({ children }: { children: React.ReactNode }) {
   const { data, isPending } = useSession();
 
-  if (isPending || !data?.user?.id) {
-    return <>{children}</>;
-  }
+  // Always provide CardThemeProvider, even if user is not loaded yet
+  // This prevents errors when components try to use useCardTheme hook
+  const userId = data?.user?.id || "";
 
-  return <CardThemeProvider userId={data.user.id}>{children}</CardThemeProvider>;
+  return <CardThemeProvider userId={userId}>{children}</CardThemeProvider>;
 }
 

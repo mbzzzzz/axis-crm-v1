@@ -105,9 +105,10 @@ export function PricingSection() {
                 variant={plan.buttonVariant}
                 className={`w-full ${
                   plan.highlighted
-                    ? "bg-purple-500 hover:bg-purple-600 text-white"
-                    : "border-neutral-700 text-white hover:bg-white/10"
+                    ? "bg-purple-500 hover:bg-purple-600 text-white border-purple-500"
+                    : "border-neutral-700 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 }`}
+                style={{ color: "white" }}
               >
                 {plan.buttonText}
               </Button>

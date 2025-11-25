@@ -39,7 +39,7 @@ export function CardThemeProvider({ userId, children }: CardThemeProviderProps) 
     // Apply default theme immediately to prevent flash
     syncCssVariables(getCardTheme(DEFAULT_CARD_THEME_KEY));
 
-    if (!userId) {
+    if (!userId || userId === "") {
       setIsLoading(false);
       return;
     }
@@ -94,7 +94,7 @@ export function CardThemeProvider({ userId, children }: CardThemeProviderProps) 
       setThemeKey(key);
       syncCssVariables(getCardTheme(key));
 
-      if (!userId) return;
+      if (!userId || userId === "") return;
 
       setIsSaving(true);
       try {
