@@ -49,42 +49,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate size consistency (rough check: minimum ~300 sqft per bedroom for apartments)
+    // If size seems too small for bedrooms/bathrooms, we'll omit size from the description
+    let shouldIncludeSize = true;
+    if (sizeSqft && bedrooms) {
+      const sqftPerBedroom = sizeSqft / bedrooms;
+      // If less than 200 sqft per bedroom, the size data might be incorrect
+      if (sqftPerBedroom < 200) {
+        shouldIncludeSize = false;
+      }
+    }
+
     // Build comprehensive property details for detailed description generation
     const propertyDetails = [
       `PROPERTY TITLE: ${title}`,
       `FULL ADDRESS: ${address}, ${city}, ${state}`,
       `PROPERTY TYPE: ${propertyType.charAt(0).toUpperCase() + propertyType.slice(1).replace('_', ' ')}`,
       `LISTING PRICE: ${currency} ${price.toLocaleString()}`,
-      sizeSqft && `TOTAL SQUARE FOOTAGE: ${sizeSqft.toLocaleString()} sqft`,
+      shouldIncludeSize && sizeSqft && `TOTAL SQUARE FOOTAGE: ${sizeSqft.toLocaleString()} sqft`,
       bedrooms && `BEDROOMS: ${bedrooms}`,
       bathrooms && `BATHROOMS: ${bathrooms}`,
       yearBuilt && `YEAR BUILT: ${yearBuilt}`,
       amenities && amenities.length > 0 && `AMENITIES & FEATURES: ${amenities.join(', ')}`,
     ].filter(Boolean).join('\n');
 
-    // Enhanced prompt for detailed, accurate property descriptions
-    const prompt = `You are an expert real estate copywriter specializing in creating compelling, accurate property listings. Generate a professional property description based on the following details:
+    // Enhanced prompt for concise, accurate property descriptions
+    const prompt = `You are an expert real estate copywriter specializing in creating professional, factual property listings. Generate a clear and accurate property description based on the following details:
 
 ${propertyDetails}
 
 WRITING REQUIREMENTS:
-1. ACCURACY: Only include information provided above. Do not invent or assume details.
-2. STRUCTURE: Write 3-4 well-structured paragraphs:
-   - First paragraph: Property overview, type, and key selling points
-   - Second paragraph: Detailed features, size, layout (bedrooms/bathrooms), and year built
-   - Third paragraph: Location benefits, neighborhood highlights, and amenities
-   - Optional fourth paragraph: Additional unique features or investment potential
-3. TONE: Professional, warm, and inviting. Use active voice and descriptive language.
-4. LENGTH: 250-350 words (comprehensive but not excessive)
+1. ACCURACY: Only include information provided above. Do not invent, assume, or contradict any details. If size seems inconsistent with bedrooms/bathrooms, omit the size mention.
+2. STRUCTURE: Write 2-3 concise paragraphs (NOT 4):
+   - First paragraph: Property type, location, and key features (bedrooms, bathrooms, size if provided and reasonable)
+   - Second paragraph: Location context, neighborhood benefits, and amenities
+   - Optional third paragraph: Year built and any unique features (only if relevant)
+3. TONE: Professional, factual, and informative. Avoid overly salesy language. Do NOT use phrases like "Don't miss this chance", "book a viewing today", "hassle-free lifestyle", or similar marketing clichés.
+4. LENGTH: 180-250 words (concise and focused, NOT verbose)
 5. FORMATTING: Plain text only, no markdown, bullets, or special characters
-6. DETAILS TO HIGHLIGHT:
-   - Property type and its appeal
-   - Size and layout (if provided)
-   - Location advantages (city, state context)
-   - Amenities and special features (if provided)
-   - Year built and condition implications (if provided)
-   - Value proposition at the listed price
-7. AVOID: Generic phrases, false claims, or information not provided above
+6. DETAILS TO INCLUDE:
+   - Property type and location
+   - Bedrooms and bathrooms count
+   - Size (ONLY if it makes logical sense for the number of rooms - if size seems too small, omit it)
+   - Key amenities and features
+   - Location advantages
+   - Year built (if provided and relevant)
+7. AVOID:
+   - Repetitive phrases or concepts
+   - Salesy language ("Don't miss", "book today", "hassle-free", "unbeatable opportunity")
+   - Contradictory statements (e.g., saying a 234 sqft property has spacious 2 bedrooms)
+   - Generic filler phrases
+   - Information not provided above
+   - Overly enthusiastic or marketing-heavy language
 
 Generate the property description now:`;
 
@@ -100,15 +116,15 @@ Generate the property description now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are an expert real estate copywriter with years of experience creating compelling, accurate property listings. You specialize in writing detailed, professional descriptions that accurately represent properties while highlighting their unique features and value propositions. Always base your descriptions solely on the information provided and never invent details.',
+            content: 'You are an expert real estate copywriter specializing in creating factual, professional property listings. You write concise, accurate descriptions that inform without overselling. You always verify that details make logical sense (e.g., size should be reasonable for the number of bedrooms/bathrooms). You avoid repetitive phrases, salesy language, and marketing clichés. Always base descriptions solely on provided information and never invent details.',
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 500, // Increased for more detailed descriptions
+        temperature: 0.5, // Lower temperature for more factual, less creative output
+        max_tokens: 400, // Reduced for more concise descriptions
       }),
     });
 

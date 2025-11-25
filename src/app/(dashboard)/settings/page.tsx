@@ -13,7 +13,7 @@ import { useCardTheme } from "@/components/card-theme-provider";
 import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { data: session, isPending: isSessionPending } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProperties: 0,
@@ -32,6 +32,11 @@ export default function SettingsPage() {
   const { theme, themeKey, setTheme, isSaving } = useCardTheme();
 
   useEffect(() => {
+    // Wait for session to load before fetching data
+    if (isSessionPending) {
+      return;
+    }
+
     const fetchStats = async () => {
       try {
         const [propertiesResult, tenantsResult, preferencesResult] = await Promise.allSettled([
@@ -92,13 +97,14 @@ export default function SettingsPage() {
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
+        toast.error("Failed to load settings data. Please refresh the page.");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchStats();
-  }, [session]);
+  }, [session, isSessionPending]);
 
   const handleSave = () => {
     toast.success("Settings saved successfully");
@@ -152,6 +158,31 @@ export default function SettingsPage() {
       setIsSavingAgent(false);
     }
   };
+
+  // Show loading state while session is being fetched
+  if (isSessionPending || isLoading) {
+    return (
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6">
