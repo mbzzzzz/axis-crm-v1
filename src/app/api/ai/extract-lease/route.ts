@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import Groq from 'groq-sdk';
+import pdf from 'pdf-parse';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -55,17 +56,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to base64 for Groq
+    // Extract text from PDF
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const pdfBuffer = Buffer.from(arrayBuffer);
+    let pdfText: string;
+    
+    try {
+      const pdfData = await pdf(pdfBuffer);
+      pdfText = pdfData.text;
+      
+      if (!pdfText || pdfText.trim().length === 0) {
+        return NextResponse.json(
+          { error: 'PDF appears to be empty or contains only images. Please ensure the PDF has extractable text.', code: 'EMPTY_PDF' },
+          { status: 400 }
+        );
+      }
+    } catch (pdfError) {
+      console.error('PDF parsing error:', pdfError);
+      return NextResponse.json(
+        { error: 'Failed to extract text from PDF. Please ensure the file is a valid PDF with extractable text.', code: 'PDF_PARSE_ERROR' },
+        { status: 400 }
+      );
+    }
 
-    // Use Groq to extract lease information
+    // Use Groq to extract lease information from text
     const completion = await groq.chat.completions.create({
       messages: [
         {
           role: 'system',
           content: `You are an AI assistant specialized in extracting information from lease documents. 
-          Extract the following information from the provided lease document:
+          Extract the following information from the provided lease document text:
           - Lease start date (format: YYYY-MM-DD)
           - Lease end date (format: YYYY-MM-DD)
           - Monthly rent amount (numeric value only, no currency symbols)
@@ -76,21 +96,10 @@ export async function POST(request: NextRequest) {
         },
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Extract lease information from this PDF document.',
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${file.type};base64,${base64}`,
-              },
-            },
-          ],
+          content: `Extract lease information from this lease document:\n\n${pdfText.substring(0, 10000)}`, // Limit to first 10k chars to avoid token limits
         },
       ],
-      model: 'llama-3.2-90b-vision-preview', // Groq's vision model
+      model: 'llama-3.1-70b-versatile', // Groq's versatile model (updated from decommissioned vision model)
       response_format: { type: 'json_object' },
       temperature: 0.1,
     });

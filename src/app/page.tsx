@@ -6,6 +6,7 @@ import { Building2, BarChart3, FileText, Mail } from "lucide-react";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
 import { StructuredData } from "@/components/structured-data";
+import { PricingSection } from "@/components/landing/PricingSection";
 
 export default function Home() {
   const router = useRouter();
@@ -42,6 +43,19 @@ export default function Home() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <AxisLogo variant="full" size="navbar" className="text-white" />
           <nav className="flex items-center gap-2 sm:gap-4" aria-label="Main navigation">
+            <Button 
+              variant="ghost" 
+              onClick={() => {
+                const pricingSection = document.getElementById("pricing");
+                if (pricingSection) {
+                  pricingSection.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              className="text-white hover:bg-white/20 hover:text-white text-sm sm:text-base hidden sm:inline-flex"
+              aria-label="View pricing"
+            >
+              Pricing
+            </Button>
             <Button 
               variant="ghost" 
               onClick={() => router.push("/login")} 
@@ -137,6 +151,9 @@ export default function Home() {
           </article>
         </section>
       </main>
+
+      {/* Pricing Section */}
+      <PricingSection />
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/20 bg-black/30 backdrop-blur-sm mt-8 sm:mt-12">

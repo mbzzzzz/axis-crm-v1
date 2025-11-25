@@ -6,8 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/
 import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Github, Loader2, Mail, Shield } from "lucide-react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const providers = [
   { id: "google", label: "Continue with Google", icon: Mail },
@@ -17,6 +20,9 @@ const providers = [
 export default function LoginPage() {
   const router = useRouter();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     const checkSession = async () => {
@@ -53,6 +59,36 @@ export default function LoginPage() {
     } catch (error) {
       console.error("OAuth sign-in error:", error);
       setLoadingProvider(null);
+      toast.error("Failed to sign in. Please try again.");
+    }
+  };
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter both email and password");
+      return;
+    }
+
+    setIsEmailLoading(true);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Signed in successfully!");
+      router.push("/dashboard");
+    } catch (error: any) {
+      console.error("Email sign-in error:", error);
+      toast.error(error.message || "Failed to sign in. Please check your credentials.");
+    } finally {
+      setIsEmailLoading(false);
     }
   };
 
@@ -72,13 +108,65 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-white/90">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                disabled={isEmailLoading || !!loadingProvider}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white/90">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                disabled={isEmailLoading || !!loadingProvider}
+                required
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-white text-black hover:bg-white/90"
+              disabled={isEmailLoading || !!loadingProvider}
+            >
+              {isEmailLoading ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in with Email"
+              )}
+            </Button>
+          </form>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/20" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-black/40 px-2 text-white/70">Or continue with</span>
+            </div>
+          </div>
+
           {providers.map((provider) => (
             <Button
               key={provider.id}
               variant="outline"
               className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20"
               onClick={() => handleOAuthSignIn(provider.id)}
-              disabled={!!loadingProvider}
+              disabled={!!loadingProvider || isEmailLoading}
             >
               {loadingProvider === provider.id ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
