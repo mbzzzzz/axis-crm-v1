@@ -34,13 +34,13 @@ export function ShineBorder({
 }: ShineBorderProps) {
   const colors = color instanceof Array ? color : [color, color, color];
   
-  // Create a radial gradient that moves
-  const radialGradient = `radial-gradient(circle at 50% 50%, ${colors[0]} 0%, ${colors[1]} 25%, ${colors[2]} 50%, transparent 70%)`;
+  // Create a linear gradient that moves
+  const linearGradient = `linear-gradient(90deg, ${colors[0]}, ${colors[1]}, ${colors[2]}, ${colors[0]})`;
 
   return (
     <div
       className={cn(
-        "relative w-full h-full",
+        "relative w-full h-full overflow-hidden",
         className,
       )}
       style={
@@ -49,28 +49,27 @@ export function ShineBorder({
         } as React.CSSProperties
       }
     >
-      {/* Animated border layer */}
+      {/* Animated border layer - outer */}
       <div
-        className="absolute inset-0 rounded-3xl overflow-hidden"
+        className="absolute inset-0 rounded-3xl"
         style={
           {
             borderRadius: `${borderRadius}px`,
+            background: linearGradient,
+            backgroundSize: "200% 200%",
+            animation: `shine-pulse ${duration}s infinite linear`,
             padding: `${borderWidth}px`,
           } as React.CSSProperties
         }
       >
+        {/* Inner mask to create border effect */}
         <div
           className="absolute inset-0 rounded-3xl"
           style={
             {
-              backgroundImage: radialGradient,
-              backgroundSize: "300% 300%",
-              animation: `shine-pulse ${duration}s infinite linear`,
-              maskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
-              WebkitMaskImage: `linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)`,
-              maskComposite: "exclude",
-              WebkitMaskComposite: "xor",
-              padding: `${borderWidth}px`,
+              borderRadius: `${borderRadius - borderWidth}px`,
+              margin: `${borderWidth}px`,
+              background: "transparent",
             } as React.CSSProperties
           }
         />
