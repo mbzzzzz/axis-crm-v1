@@ -1,10 +1,10 @@
 import { pgTable, serial, text, real, integer, timestamp, jsonb, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// Application tables - Using text userId to reference Clerk user ID
+// Application tables - Using text userId to reference Supabase Auth user ID
 export const properties = pgTable('properties', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   title: text('title').notNull(),
   description: text('description'),
   address: text('address').notNull(),
@@ -34,7 +34,7 @@ export const invoices = pgTable('invoices', {
   invoiceNumber: text('invoice_number').notNull().unique(),
   propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
   tenantId: integer('tenant_id').references(() => tenants.id, { onDelete: 'set null' }), // Link to tenant
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   clientName: text('client_name').notNull(),
   clientEmail: text('client_email').notNull(),
   clientAddress: text('client_address'),
@@ -71,7 +71,7 @@ export const invoices = pgTable('invoices', {
 
 export const tenants = pgTable('tenants', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   propertyId: integer('property_id').references(() => properties.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   email: text('email').notNull(),
@@ -98,7 +98,7 @@ export const vendors = pgTable('vendors', {
 
 export const maintenanceRequests = pgTable('maintenance_requests', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   propertyId: integer('property_id').references(() => properties.id, { onDelete: 'set null' }),
   vendorId: uuid('vendor_id').references(() => vendors.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
@@ -150,7 +150,7 @@ export const userPreferences = pgTable('user_preferences', {
 
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   action: text('action').notNull(), // 'create', 'update', 'delete'
   entityType: text('entity_type').notNull(), // 'property', 'tenant', 'invoice', etc.
   entityId: integer('entity_id'),
@@ -161,7 +161,7 @@ export const auditLogs = pgTable('audit_logs', {
 
 export const leads = pgTable('leads', {
   id: serial('id').primaryKey(),
-  userId: text('user_id').notNull(), // Clerk user ID
+  userId: text('user_id').notNull(), // Supabase Auth user ID
   name: text('name').notNull(),
   phone: text('phone').notNull(),
   email: text('email'),

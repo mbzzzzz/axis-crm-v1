@@ -406,7 +406,7 @@ export default function MaintenancePage() {
               New Request
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create New Maintenance Request</DialogTitle>
               <DialogDescription>

@@ -1,28 +1,47 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createMiddlewareClient } from "@supabase/ssr";
 
-const isPublicRoute = createRouteMatcher([
-  "/", // Landing page
-  "/login(.*)",
-  "/register(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/api/webhooks(.*)",
-  "/api/auth(.*)", // Clerk auth routes
-]);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export default clerkMiddleware(async (auth, request) => {
-  // Protect all routes except public ones
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+const publicRoutes = [
+  "/",
+  "/login",
+  "/register",
+  "/auth/callback",
+  "/api/webhooks",
+  "/api/auth",
+];
+
+function isPublicRoute(pathname: string) {
+  return publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next();
+
+  const supabase = createMiddlewareClient(
+    { req: request, res: response },
+    { supabaseUrl, supabaseKey: supabaseAnonKey }
+  );
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session && !isPublicRoute(request.nextUrl.pathname)) {
+    const redirectUrl = new URL("/login", request.url);
+    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
   }
-});
+
+  return response;
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };
-

@@ -2,19 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { invoices, properties, tenants } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { currentUser } from '@clerk/nextjs/server';
-import { generateInvoicePDF, getInvoicePDFBlob } from '@/lib/pdf-generator';
+import { getAuthenticatedUser } from '@/lib/api-auth';
+import { getInvoicePDFBlob } from '@/lib/pdf-generator';
+import { assertResendConfigured } from '@/lib/resend';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
-  const user = await currentUser();
+  const user = await getAuthenticatedUser();
   if (!user) return null;
   return {
     id: user.id,
-    name: user.fullName || user.firstName || 'User',
-    email: user.primaryEmailAddress?.emailAddress || '',
+    name: (user.user_metadata.full_name as string) || user.email || 'User',
+    email: user.email || '',
   };
 }
+
+const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'Axis CRM <noreply@axis.crm>';
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,10 +110,34 @@ export async function POST(request: NextRequest) {
     // Convert PDF to base64 for email attachment
     const pdfBase64 = pdfBuffer.toString('base64');
 
-    // For now, we'll use a simple email service
-    // In production, use a service like Resend, SendGrid, or AWS SES
-    // This is a placeholder that returns success
-    // TODO: Integrate with actual email service
+    if (!invoiceData.clientEmail) {
+      return NextResponse.json(
+        { error: 'Client email is missing for this invoice', code: 'MISSING_CLIENT_EMAIL' },
+        { status: 400 }
+      );
+    }
+
+    const resend = assertResendConfigured();
+
+    await resend.emails.send({
+      from: RESEND_FROM,
+      to: invoiceData.clientEmail,
+      subject: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.companyName || 'Axis CRM'}`,
+      html: `
+        <p>Hello ${invoiceData.clientName},</p>
+        <p>Please find attached invoice <strong>${invoiceData.invoiceNumber}</strong> for ${invoiceData.propertyAddress || 'your property'}.</p>
+        <p>Total due: <strong>${invoiceData.totalAmount} ${invoiceData.currency || ''}</strong> by ${invoiceData.dueDate}.</p>
+        <p>You can reply to this email if you have any questions.</p>
+        <p>Thank you,<br/>${invoiceData.agentName || 'Axis CRM'}</p>
+      `,
+      attachments: [
+        {
+          filename: `${invoiceData.invoiceNumber}.pdf`,
+          content: pdfBase64,
+          type: 'application/pdf',
+        },
+      ],
+    });
     
     // Update invoice status to 'sent'
     await db.update(invoices)
@@ -128,7 +155,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Invoice sent successfully',
-      // In production, include email service response
       emailSent: true,
       recipient: invoiceData.clientEmail
     }, { status: 200 });

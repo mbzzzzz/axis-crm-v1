@@ -17,7 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SignOutButton } from "@clerk/nextjs";
+import { authClient } from "@/lib/auth-client";
 import { CommandPalette } from "@/components/command-palette";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -102,11 +102,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       Settings
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <SignOutButton>
-                      <DropdownMenuItem>
-                        Log out
-                      </DropdownMenuItem>
-                    </SignOutButton>
+                    <DropdownMenuItem
+                      onClick={async () => {
+                        await authClient.signOut();
+                        window.location.href = "/login";
+                      }}
+                    >
+                      Log out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

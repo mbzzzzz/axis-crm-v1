@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 import { db } from '@/db';
 import { leads } from '@/db/schema-postgres';
 import { eq, and, desc, or, like } from 'drizzle-orm';
@@ -7,12 +7,12 @@ import { logActivity } from '@/lib/audit-log';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
-  const user = await currentUser();
+  const user = await getAuthenticatedUser();
   if (!user) return null;
   return {
     id: user.id,
-    name: user.fullName || user.firstName || 'User',
-    email: user.primaryEmailAddress?.emailAddress || '',
+    name: (user.user_metadata.full_name as string) || user.email || 'User',
+    email: user.email || '',
   };
 }
 

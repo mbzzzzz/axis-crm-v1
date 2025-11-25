@@ -1,27 +1,19 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useSession } from "@/lib/auth-client";
 import { CardThemeProvider } from "./card-theme-provider";
 
 /**
  * Global theme provider wrapper that works in root layout
- * Gets userId from Clerk and provides theme context to entire app
+ * Gets userId from Supabase session and provides theme context to entire app
  */
 export function GlobalThemeProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
+  const { data, isPending } = useSession();
 
-  // Don't render theme provider until user is loaded
-  // This prevents hydration mismatches
-  if (!isLoaded) {
+  if (isPending || !data?.user?.id) {
     return <>{children}</>;
   }
 
-  // If user is not authenticated, render children without theme provider
-  // Theme will use default values
-  if (!user) {
-    return <>{children}</>;
-  }
-
-  return <CardThemeProvider userId={user.id}>{children}</CardThemeProvider>;
+  return <CardThemeProvider userId={data.user.id}>{children}</CardThemeProvider>;
 }
 

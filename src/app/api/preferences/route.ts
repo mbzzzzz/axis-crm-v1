@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { getAuthenticatedUser } from "@/lib/api-auth";
 import { db } from "@/db";
 import { userPreferences } from "@/db/schema-postgres";
 import { eq } from "drizzle-orm";
@@ -9,7 +9,7 @@ const ALLOWED_THEME_KEYS = new Set(CARD_THEME_OPTIONS.map((theme) => theme.key))
 
 export async function GET() {
   try {
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
@@ -45,7 +45,7 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });

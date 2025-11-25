@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 
 /**
  * API route to generate maintenance request descriptions using Groq's low-token model
@@ -8,7 +8,7 @@ import { currentUser } from '@clerk/nextjs/server';
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.' },

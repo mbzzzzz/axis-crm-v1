@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 import { SupabaseClient, createClient } from '@supabase/supabase-js';
 
 const BUCKET_NAME = 'property-images';
@@ -31,7 +31,7 @@ function getSupabaseClient() {
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { currentUser } from '@clerk/nextjs/server';
 import Groq from 'groq-sdk';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await currentUser();
+    const user = await getAuthenticatedUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

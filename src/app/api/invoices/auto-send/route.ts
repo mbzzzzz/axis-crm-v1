@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, properties, tenants } from '@/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { currentUser } from '@clerk/nextjs/server';
+import { invoices, tenants } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+import { getAuthenticatedUser } from '@/lib/api-auth';
+import { assertResendConfigured } from '@/lib/resend';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
-  const user = await currentUser();
+  const user = await getAuthenticatedUser();
   if (!user) return null;
   return {
     id: user.id,
-    name: user.fullName || user.firstName || 'User',
-    email: user.primaryEmailAddress?.emailAddress || '',
+    name: (user.user_metadata.full_name as string) || user.email || 'User',
+    email: user.email || '',
   };
 }
+
+const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'Axis CRM <noreply@axis.crm>';
 
 /**
  * Auto-send monthly rent invoices
@@ -35,6 +38,36 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const resend = assertResendConfigured();
+
+    const sendInvoiceEmail = async ({
+      to,
+      invoiceNumber,
+      totalAmount,
+      dueDate,
+      tenantName,
+    }: {
+      to: string | null;
+      invoiceNumber: string;
+      totalAmount: number;
+      dueDate: string;
+      tenantName: string;
+    }) => {
+      if (!to) return;
+      await resend.emails.send({
+        from: RESEND_FROM,
+        to,
+        subject: `Monthly Rent Invoice ${invoiceNumber}`,
+        html: `
+          <p>Hello ${tenantName},</p>
+          <p>Your monthly rent invoice <strong>${invoiceNumber}</strong> is now available.</p>
+          <p>Total due: <strong>${totalAmount}</strong> by ${dueDate}.</p>
+          <p>Please contact your property manager if you have any questions.</p>
+          <p>— Axis CRM</p>
+        `,
+      });
+    };
 
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth() + 1;
@@ -68,11 +101,16 @@ export async function POST(request: NextRequest) {
           .limit(1);
 
         if (existingInvoice.length > 0) {
-          // Invoice exists, check if it needs to be sent
           const invoice = existingInvoice[0];
           if (invoice.paymentStatus === 'draft') {
-            // Send existing draft invoice
-            // TODO: Implement actual email sending
+            await sendInvoiceEmail({
+              to: invoice.clientEmail,
+              invoiceNumber: invoice.invoiceNumber,
+              totalAmount: invoice.totalAmount,
+              dueDate: invoice.dueDate,
+              tenantName: tenant.name,
+            });
+
             await db.update(invoices)
               .set({ 
                 paymentStatus: 'sent',
@@ -117,8 +155,13 @@ export async function POST(request: NextRequest) {
           })
           .returning();
 
-        // TODO: Send email with invoice PDF
-        // For now, we just mark it as sent
+        await sendInvoiceEmail({
+          to: tenant.email,
+          invoiceNumber,
+          totalAmount: tenant.monthlyRent,
+          dueDate,
+          tenantName: tenant.name,
+        });
 
         results.created++;
         results.sent++;

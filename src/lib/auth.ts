@@ -1,7 +1,9 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { getSupabaseServerComponentClient } from "@/lib/supabase/server";
 
-// Get current user from Clerk
 export async function getCurrentUser() {
-  const user = await currentUser();
+  const supabase = getSupabaseServerComponentClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   return user;
 }

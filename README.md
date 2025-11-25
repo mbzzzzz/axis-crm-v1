@@ -1,12 +1,12 @@
 # AXIS CRM - Real Estate Management Platform
 
-A comprehensive CRM system for real estate agents and property managers, built with Next.js 15, Clerk authentication, and Supabase.
+A comprehensive CRM system for real estate agents and property managers, built with Next.js 15, Supabase Auth, and Supabase Postgres.
 
 ## 🚀 Tech Stack
 
 - **Framework:** Next.js 15 (App Router)
 - **Database:** Supabase (PostgreSQL)
-- **Authentication:** Clerk
+- **Authentication:** Supabase Auth (Google & GitHub OAuth)
 - **ORM:** Drizzle ORM
 - **UI:** Radix UI + Tailwind CSS
 - **Charts:** Recharts
@@ -34,15 +34,19 @@ A comprehensive CRM system for real estate agents and property managers, built w
 3. **Configure environment variables:**
    - Create `.env.local` file with the following variables:
    ```env
-   # Clerk Authentication
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-   CLERK_SECRET_KEY=your_clerk_secret_key
-   
-   # Supabase Database
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_ANON_KEY=your_supabase_anon_key
-   SUPABASE_DATABASE_URL=your_supabase_database_url
-   
+   # Supabase Auth + Database
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_DATABASE_URL=postgres_connection_string
+   SUPABASE_SERVICE_ROLE_KEY=service_role_key_for_storage
+
+   # Authentication (OAuth redirect target)
+   NEXT_PUBLIC_APP_URL=https://your-domain.com
+
+   # Email (Resend)
+   RESEND_API_KEY=your_resend_api_key
+   RESEND_FROM_EMAIL="Axis CRM <noreply@axis.crm>"
+
    # Groq API (for AI-powered property description generation via Composio MCP)
    GROQ_API_KEY=your_groq_api_key
    ```
@@ -57,7 +61,7 @@ A comprehensive CRM system for real estate agents and property managers, built w
 ## 📚 Documentation
 
 - [Supabase Setup Guide](./SUPABASE-SETUP.md) - Complete Supabase project setup
-- [Migration Guide](./MIGRATION-GUIDE.md) - Migration from better-auth to Clerk
+- [Migration Guide](./MIGRATION-GUIDE.md) - Historical better-auth to Clerk notes (Supabase Auth now default)
 - [MCP Setup Guide](./MCP-SETUP.md) - Composio MCP server configuration
 - [Vercel Deployment Guide](./VERCEL-DEPLOYMENT.md) - Environment variables and deployment instructions
 
@@ -73,7 +77,6 @@ https://backend.composio.dev/v3/mcp/2492640b-3c5f-4210-8298-976c3bda7609/mcp?use
 ## 📖 Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Clerk Documentation](https://clerk.com/docs)
 - [Supabase Documentation](https://supabase.com/docs)
 - [Drizzle ORM Documentation](https://orm.drizzle.team)
 

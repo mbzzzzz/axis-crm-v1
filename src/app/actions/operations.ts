@@ -1,6 +1,5 @@
 'use server';
 
-import { currentUser } from '@clerk/nextjs/server';
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
@@ -11,6 +10,20 @@ import {
   properties,
   vendors,
 } from '@/db/schema-postgres';
+import { getSupabaseServerActionClient } from '@/lib/supabase/server';
+
+async function requireUser() {
+  const supabase = getSupabaseServerActionClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return user;
+}
 
 type CreateVendorInput = {
   name: string;
@@ -30,11 +43,7 @@ type CloseTicketExpenseInput = {
 };
 
 export async function createVendor(data: CreateVendorInput) {
-  const user = await currentUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
+  const user = await requireUser();
 
   if (!data?.name) {
     throw new Error('Vendor name is required');
@@ -58,11 +67,7 @@ export async function closeTicketWithExpense(
   ticketId: number,
   expenseData: CloseTicketExpenseInput,
 ) {
-  const user = await currentUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
+  const user = await requireUser();
 
   if (!ticketId) {
     throw new Error('Ticket id is required');
@@ -149,11 +154,7 @@ export async function closeTicketWithExpense(
 }
 
 export async function saveGeneratedDocument(propertyId: number, fileUrl: string, type: string) {
-  const user = await currentUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
+  const user = await requireUser();
 
   if (!propertyId || !fileUrl || !type) {
     throw new Error('Property, file URL, and document type are required');

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
-import { currentUser } from '@clerk/nextjs/server';
+import { getAuthenticatedUser } from '@/lib/api-auth';
 import postgres from 'postgres';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
@@ -10,12 +10,12 @@ const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pendin
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
-    const user = await currentUser();
+  const user = await getAuthenticatedUser();
     if (!user) return null;
     return {
         id: user.id,
-        name: user.fullName || user.firstName || 'User',
-        email: user.primaryEmailAddress?.emailAddress || '',
+    name: (user.user_metadata.full_name as string) || user.email || 'User',
+    email: user.email || '',
     };
 }
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
                 .where(
                     and(
                         eq(properties.id, parseInt(id)),
-                        eq(properties.userId, user.id) // REQUIRED: Use Clerk user ID for security
+                        eq(properties.userId, user.id) // REQUIRED: Use Supabase user ID for security
                     )
                 )
                 .limit(1);
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         // CRITICAL SECURITY: Always filter by current user's ID - this is the PRIMARY security check
         // This ensures that users can ONLY see properties they created
         const conditions = [
-            eq(properties.userId, user.id) // Use Clerk user ID - REQUIRED for data isolation
+            eq(properties.userId, user.id) // Use Supabase user ID - REQUIRED for data isolation
         ];
 
         // Search across title, address, city
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
         // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment
         // NOTE: createdAt and updatedAt have defaults in the schema, let the database handle them
         const insertData: Record<string, any> = {
-            userId: user.id, // CRITICAL SECURITY: Use Clerk user ID - REQUIRED for data isolation
+            userId: user.id, // CRITICAL SECURITY: Use Supabase user ID - REQUIRED for data isolation
             title: body.title.trim(),
             address: body.address.trim(),
             city: body.city.trim(),
@@ -599,7 +599,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, user.id) // Use Clerk user ID
+          eq(properties.userId, user.id) // Use Supabase user ID
         )
       )
       .limit(1);
@@ -850,7 +850,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, user.id) // Use Clerk user ID
+          eq(properties.userId, user.id) // Use Supabase user ID
         )
       )
       .returning();
@@ -893,7 +893,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, user.id) // Use Clerk user ID
+          eq(properties.userId, user.id) // Use Supabase user ID
         )
       )
       .limit(1);
@@ -910,7 +910,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(properties.id, parseInt(id)),
-          eq(properties.userId, user.id) // Use Clerk user ID
+          eq(properties.userId, user.id) // Use Supabase user ID
         )
       )
       .returning();

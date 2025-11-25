@@ -37,9 +37,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useSession } from "@/lib/auth-client";
+import { useSession, authClient } from "@/lib/auth-client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { SignOutButton } from "@clerk/nextjs";
 import { AxisLogo } from "@/components/axis-logo";
 import { RecentActivity } from "@/components/recent-activity";
 
@@ -197,12 +196,15 @@ export function AppSidebar() {
                   Profile Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                      <SignOutButton>
-                        <DropdownMenuItem>
-                          <LogOut className="mr-2 size-4" />
-                          Sign out
-                        </DropdownMenuItem>
-                      </SignOutButton>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await authClient.signOut();
+                    router.replace("/login");
+                  }}
+                >
+                  <LogOut className="mr-2 size-4" />
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
