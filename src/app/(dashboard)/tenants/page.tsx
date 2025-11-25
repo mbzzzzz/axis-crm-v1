@@ -152,10 +152,16 @@ function TenantsPageContent() {
   const fetchInvoices = async () => {
     try {
       const response = await fetch("/api/invoices?limit=1000");
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch invoices: ${response.status}`);
+      }
+      
       const data = await response.json();
       setInvoices(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch invoices:", error);
+      setInvoices([]); // Set empty array on error
     }
   };
 
@@ -163,9 +169,15 @@ function TenantsPageContent() {
     (async () => {
       try {
         const res = await fetch("/api/properties?limit=100");
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch properties: ${res.status}`);
+        }
+        
         const data = await res.json();
         setProperties(Array.isArray(data) ? data : []);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch properties:", error);
         setProperties([]);
       }
     })();
@@ -239,11 +251,17 @@ function TenantsPageContent() {
         url += `leaseStatus=${selectedLeaseStatus}&`;
       }
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tenants: ${response.status}`);
+      }
+      
       const data = await response.json();
       setTenants(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch tenants:", error);
-      toast.error("Failed to load tenants");
+      toast.error("Failed to load tenants. Please refresh the page.");
+      setTenants([]); // Set empty array on error to prevent crashes
     } finally {
       setIsLoading(false);
     }
@@ -879,4 +897,9 @@ function TenantsPageContent() {
 // Prevent static generation since this page uses client-side data fetching
 export const dynamic = 'force-dynamic';
 
-export default TenantsPageContent;
+// Wrap component to catch any rendering errors
+function TenantsPage() {
+  return <TenantsPageContent />;
+}
+
+export default TenantsPage;

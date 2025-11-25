@@ -199,7 +199,7 @@ export function AppSidebar() {
                 <DropdownMenuItem
                   onClick={async () => {
                     await authClient.signOut();
-                    router.replace("/login");
+                    // Redirect handled in authClient.signOut
                   }}
                 >
                   <LogOut className="mr-2 size-4" />

@@ -68,6 +68,10 @@ export const authClient = {
   signOut: async () => {
     const supabase = getSupabaseBrowserClient();
     await supabase.auth.signOut();
+    // Redirect to landing page after sign out
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
     return { error: null };
   },
 };

@@ -105,7 +105,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <DropdownMenuItem
                       onClick={async () => {
                         await authClient.signOut();
-                        window.location.href = "/login";
+                        // Redirect handled in authClient.signOut
                       }}
                     >
                       Log out
