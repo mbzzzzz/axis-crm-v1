@@ -7,6 +7,7 @@ import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { AxisLogo } from "@/components/axis-logo";
 import { StructuredData } from "@/components/structured-data";
 import { PricingSection } from "@/components/landing/PricingSection";
+import { TrustedBrands } from "@/components/landing/TrustedBrands";
 
 export default function Home() {
   const router = useRouter();
@@ -151,6 +152,9 @@ export default function Home() {
           </article>
         </section>
       </main>
+
+      {/* Trusted Brands Section */}
+      <TrustedBrands />
 
       {/* Pricing Section */}
       <PricingSection />
