@@ -1,4 +1,4 @@
-import { pgTable, serial, text, real, integer, boolean, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, real, integer, timestamp, jsonb, uuid } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Application tables - Using text userId to reference Clerk user ID
@@ -86,20 +86,56 @@ export const tenants = pgTable('tenants', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+export const vendors = pgTable('vendors', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull(),
+  name: text('name').notNull(),
+  role: text('role'),
+  email: text('email'),
+  phone: text('phone'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const maintenanceRequests = pgTable('maintenance_requests', {
   id: serial('id').primaryKey(),
   userId: text('user_id').notNull(), // Clerk user ID
   propertyId: integer('property_id').references(() => properties.id, { onDelete: 'set null' }),
+  vendorId: uuid('vendor_id').references(() => vendors.id, { onDelete: 'set null' }),
   title: text('title').notNull(),
   description: text('description').notNull(),
   urgency: text('urgency').notNull(), // 'high', 'medium', 'low'
   status: text('status').notNull(), // 'open', 'in_progress', 'closed'
+  cost: real('cost'),
   location: text('location'),
   reportedDate: text('reported_date').notNull(),
   completedDate: text('completed_date'),
   notes: text('notes'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const expenses = pgTable('expenses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull(),
+  propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
+  vendorId: uuid('vendor_id').references(() => vendors.id, { onDelete: 'set null' }),
+  ticketId: integer('ticket_id').references(() => maintenanceRequests.id, { onDelete: 'set null' }),
+  amount: real('amount').notNull(),
+  description: text('description'),
+  date: timestamp('date').notNull(),
+  category: text('category').notNull(),
+  receiptUrl: text('receipt_url'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const documents = pgTable('documents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull(),
+  propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
+  title: text('title').notNull(),
+  type: text('type').notNull(),
+  fileUrl: text('file_url').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
 export const userPreferences = pgTable('user_preferences', {
@@ -144,6 +180,8 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   invoices: many(invoices),
   tenants: many(tenants),
   maintenanceRequests: many(maintenanceRequests),
+  expenses: many(expenses),
+  documents: many(documents),
 }));
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
@@ -165,9 +203,41 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   invoices: many(invoices),
 }));
 
-export const maintenanceRequestsRelations = relations(maintenanceRequests, ({ one }) => ({
+export const maintenanceRequestsRelations = relations(maintenanceRequests, ({ one, many }) => ({
   property: one(properties, {
     fields: [maintenanceRequests.propertyId],
+    references: [properties.id],
+  }),
+  vendor: one(vendors, {
+    fields: [maintenanceRequests.vendorId],
+    references: [vendors.id],
+  }),
+  expenses: many(expenses),
+}));
+
+export const vendorsRelations = relations(vendors, ({ many }) => ({
+  expenses: many(expenses),
+  maintenanceRequests: many(maintenanceRequests),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  property: one(properties, {
+    fields: [expenses.propertyId],
+    references: [properties.id],
+  }),
+  vendor: one(vendors, {
+    fields: [expenses.vendorId],
+    references: [vendors.id],
+  }),
+  ticket: one(maintenanceRequests, {
+    fields: [expenses.ticketId],
+    references: [maintenanceRequests.id],
+  }),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  property: one(properties, {
+    fields: [documents.propertyId],
     references: [properties.id],
   }),
 }));
