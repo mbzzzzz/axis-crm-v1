@@ -30,9 +30,11 @@ import {
   exportToExcel,
   generatePropertyTemplate,
   generateInvoiceTemplate,
+  generateLeadTemplate,
   importFromFile,
   validatePropertyData,
   validateInvoiceData,
+  validateLeadData,
 } from "@/lib/export-utils";
 import { useDropzone } from "react-dropzone";
 import { AnimatedDownload } from "@/components/ui/animated-download";
@@ -40,7 +42,7 @@ import { AnimatedDownload } from "@/components/ui/animated-download";
 interface ImportExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "properties" | "invoices";
+  type: "properties" | "invoices" | "leads";
   data: any[];
   onImportSuccess: () => void;
 }
@@ -73,7 +75,8 @@ export function ImportExportDialog({
   const handleExportExcel = () => {
     setIsExporting(true);
     const filename = `${type}-${new Date().toISOString().split("T")[0]}.xlsx`;
-    exportToExcel(data, filename, type === "properties" ? "Properties" : "Invoices");
+    const sheetName = type === "properties" ? "Properties" : type === "invoices" ? "Invoices" : "Leads";
+    exportToExcel(data, filename, sheetName);
     toast.success("Excel file exported successfully");
     setTimeout(() => setIsExporting(false), 900);
   };
@@ -81,8 +84,10 @@ export function ImportExportDialog({
   const handleDownloadTemplate = () => {
     if (type === "properties") {
       generatePropertyTemplate();
-    } else {
+    } else if (type === "invoices") {
       generateInvoiceTemplate();
+    } else {
+      generateLeadTemplate();
     }
     toast.success("Template downloaded successfully");
   };
@@ -103,7 +108,9 @@ export function ImportExportDialog({
       const validation =
         type === "properties"
           ? validatePropertyData(importedData)
-          : validateInvoiceData(importedData);
+          : type === "invoices"
+          ? validateInvoiceData(importedData)
+          : validateLeadData(importedData);
 
       setImportProgress(50);
 
@@ -112,19 +119,24 @@ export function ImportExportDialog({
       for (let i = 0; i < validation.valid.length; i++) {
         const record = validation.valid[i];
         try {
-          const endpoint = type === "properties" ? "/api/properties" : "/api/invoices";
+          const endpoint = 
+            type === "properties" ? "/api/properties" 
+            : type === "invoices" ? "/api/invoices"
+            : "/api/leads";
           const payload =
             type === "properties"
               ? {
                   ...record,
-                  userId: 1, // In real app, get from session
                   propertyType: record.propertyType?.toLowerCase(),
                   status: record.status?.toLowerCase(),
                 }
+              : type === "invoices"
+              ? {
+                  ...record,
+                  paymentStatus: record.paymentStatus?.toLowerCase(),
+                }
               : {
                   ...record,
-                  userId: 1,
-                  paymentStatus: record.paymentStatus?.toLowerCase(),
                 };
 
           const response = await fetch(endpoint, {
@@ -196,7 +208,7 @@ export function ImportExportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Import & Export {type === "properties" ? "Properties" : "Invoices"}</DialogTitle>
+          <DialogTitle>Import & Export {type === "properties" ? "Properties" : type === "invoices" ? "Invoices" : "Leads"}</DialogTitle>
           <DialogDescription>
             Import data from CSV/Excel files or export your existing data
           </DialogDescription>

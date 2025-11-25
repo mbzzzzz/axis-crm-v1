@@ -30,14 +30,14 @@ export function FAQSection() {
   ];
 
   return (
-    <section className="py-20">
+    <section className="py-20 relative z-10">
       <div className="container mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
         <h2 className="text-4xl font-bold text-white text-center mb-12">Frequently Asked Questions</h2>
         <div className="space-y-0">
           {faqs.map((faq, index) => (
             <details
               key={index}
-              className="group border-b border-neutral-800 py-4"
+              className="group border-b border-white/20 py-4"
             >
               <summary className="flex items-center justify-between cursor-pointer list-none">
                 <span className="text-lg font-semibold text-white pr-4">{faq.question}</span>

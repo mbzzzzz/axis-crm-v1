@@ -8,6 +8,7 @@ import { AxisLogo } from "@/components/axis-logo";
 import { StructuredData } from "@/components/structured-data";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TrustedBrands } from "@/components/landing/TrustedBrands";
+import { FAQSection } from "@/components/landing/FAQSection";
 
 export default function Home() {
   const router = useRouter();
@@ -158,6 +159,9 @@ export default function Home() {
 
       {/* Pricing Section */}
       <PricingSection />
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/20 bg-black/30 backdrop-blur-sm mt-8 sm:mt-12">

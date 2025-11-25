@@ -169,3 +169,72 @@ export function validateInvoiceData(data: any[]): { valid: any[]; errors: any[] 
   
   return { valid, errors };
 }
+
+export function generateLeadTemplate() {
+  const template = [
+    {
+      name: "John Doe",
+      phone: "+92 300 1234567",
+      email: "john@example.com",
+      budget: 50000,
+      preferredLocation: "Downtown",
+      source: "zameen",
+      status: "inquiry",
+      notes: "Interested in 2-bedroom apartment",
+    },
+  ];
+  
+  exportToExcel(template, "lead-template.xlsx", "Leads");
+}
+
+export function validateLeadData(data: any[]): { valid: any[]; errors: any[] } {
+  const valid: any[] = [];
+  const errors: any[] = [];
+  
+  const VALID_STATUSES = ['inquiry', 'viewing', 'application', 'signed', 'archived'];
+  const VALID_SOURCES = ['zameen', 'olx', 'referral', 'website', 'other', 'bayut', 'propertyfinder', 'dubizzle', 'propsearch', 'zillow', 'realtor'];
+  
+  data.forEach((row, index) => {
+    const rowErrors: string[] = [];
+    
+    // Required fields validation
+    if (!row.name || !row.name.trim()) rowErrors.push("Missing name");
+    if (!row.phone || !row.phone.trim()) rowErrors.push("Missing phone");
+    if (!row.source || !VALID_SOURCES.includes(row.source.toLowerCase())) {
+      rowErrors.push(`Invalid source. Must be one of: ${VALID_SOURCES.join(', ')}`);
+    }
+    
+    // Optional but validate if provided
+    if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+      rowErrors.push("Invalid email format");
+    }
+    
+    if (row.budget && isNaN(parseFloat(String(row.budget)))) {
+      rowErrors.push("Invalid budget (must be a number)");
+    }
+    
+    if (row.status && !VALID_STATUSES.includes(row.status.toLowerCase())) {
+      rowErrors.push(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`);
+    }
+    
+    if (rowErrors.length > 0) {
+      errors.push({ row: index + 1, errors: rowErrors, data: row });
+    } else {
+      // Normalize data
+      const normalizedRow = {
+        ...row,
+        name: row.name.trim(),
+        phone: row.phone.trim(),
+        email: row.email?.trim() || null,
+        budget: row.budget ? parseFloat(String(row.budget)) : null,
+        preferredLocation: row.preferredLocation?.trim() || null,
+        source: row.source.toLowerCase(),
+        status: (row.status || 'inquiry').toLowerCase(),
+        notes: row.notes?.trim() || null,
+      };
+      valid.push(normalizedRow);
+    }
+  });
+  
+  return { valid, errors };
+}

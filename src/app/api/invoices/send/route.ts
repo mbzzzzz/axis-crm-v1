@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, properties, tenants } from '@/db/schema';
+import { invoices, properties, tenants } from '@/db/schema-postgres';
 import { eq, and } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { getInvoicePDFBlob } from '@/lib/pdf-generator';
@@ -125,8 +125,8 @@ export async function POST(request: NextRequest) {
       subject: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.companyName || 'Axis CRM'}`,
       html: `
         <p>Hello ${invoiceData.clientName},</p>
-        <p>Please find attached invoice <strong>${invoiceData.invoiceNumber}</strong> for ${invoiceData.propertyAddress || 'your property'}.</p>
-        <p>Total due: <strong>${invoiceData.totalAmount} ${invoiceData.currency || ''}</strong> by ${invoiceData.dueDate}.</p>
+        <p>Please find attached invoice <strong>${invoiceData.invoiceNumber}</strong> for ${propertyData.address || 'your property'}.</p>
+        <p>Total due: <strong>${invoiceData.totalAmount} ${propertyData.currency || 'USD'}</strong> by ${invoiceData.dueDate}.</p>
         <p>You can reply to this email if you have any questions.</p>
         <p>Thank you,<br/>${invoiceData.agentName || 'Axis CRM'}</p>
       `,

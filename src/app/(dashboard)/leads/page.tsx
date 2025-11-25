@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Phone, Mail, MapPin, DollarSign, UserPlus, Edit, Trash2, ArrowRight, MessageSquare, Calendar } from "lucide-react";
+import { Plus, Search, Phone, Mail, MapPin, DollarSign, UserPlus, Edit, Trash2, ArrowRight, MessageSquare, Calendar, Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -45,6 +45,7 @@ import { SortableLeadCard } from "@/components/sortable-lead-card";
 import { DroppableColumn } from "@/components/droppable-column";
 import { EmptyState } from "@/components/empty-state";
 import { logActivity } from "@/lib/audit-log";
+import { ImportExportDialog } from "@/components/import-export-dialog";
 
 interface Lead {
   id: number;
@@ -117,6 +118,12 @@ function LeadsPageContent() {
   const fetchProperties = async () => {
     try {
       const response = await fetch("/api/properties?limit=100");
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to fetch properties" }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setProperties(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -140,11 +147,19 @@ function LeadsPageContent() {
         url += `source=${selectedSource}&`;
       }
       const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to fetch leads" }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       setLeads(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch leads:", error);
-      toast.error("Failed to load leads");
+      const errorMessage = error instanceof Error ? error.message : "Failed to load leads";
+      toast.error(errorMessage);
+      setLeads([]);
     } finally {
       setIsLoading(false);
     }
@@ -192,6 +207,7 @@ function LeadsPageContent() {
           });
         } catch (logError) {
           // Silently fail - don't break the flow
+          console.error("Failed to log activity:", logError);
         }
 
         setIsAddDialogOpen(false);
@@ -208,7 +224,7 @@ function LeadsPageContent() {
         });
         fetchLeads();
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: "Failed to create lead" }));
         toast.error(error.error || "Failed to create lead");
       }
     } catch (error) {
@@ -425,20 +441,28 @@ function LeadsPageContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div className="space-y-1 sm:space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Leads Pipeline</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Track potential tenants from inquiry to signed lease.
           </p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 size-4" />
-              Add Lead
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsImportExportDialogOpen(true)}
+          >
+            <Download className="mr-2 size-4" />
+            Import/Export
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 size-4" />
+                Add Lead
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Lead</DialogTitle>
@@ -1034,6 +1058,27 @@ function LeadsPageContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Import/Export Dialog */}
+      <ImportExportDialog
+        open={isImportExportDialogOpen}
+        onOpenChange={setIsImportExportDialogOpen}
+        type="leads"
+        data={leads.map(lead => ({
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email || '',
+          budget: lead.budget || '',
+          preferredLocation: lead.preferredLocation || '',
+          source: lead.source,
+          status: lead.status,
+          notes: lead.notes || '',
+        }))}
+        onImportSuccess={() => {
+          fetchLeads();
+          setIsImportExportDialogOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -1050,8 +1095,56 @@ export default function LeadsPage() {
         </div>
       </div>
     }>
-      <LeadsPageContent />
+      <ErrorBoundary>
+        <LeadsPageContent />
+      </ErrorBoundary>
     </Suspense>
   );
+}
+
+// Error Boundary Component
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      setHasError(true);
+      setError(new Error(event.message));
+    };
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      setHasError(true);
+      setError(new Error(event.reason?.message || String(event.reason)));
+    };
+
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleRejection);
+
+    return () => {
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleRejection);
+    };
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8">
+        <h2 className="text-2xl font-bold text-destructive">Something went wrong</h2>
+        <p className="text-muted-foreground">
+          {error?.message || "An unexpected error occurred"}
+        </p>
+        <Button onClick={() => {
+          setHasError(false);
+          setError(null);
+          window.location.reload();
+        }}>
+          Reload Page
+        </Button>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
