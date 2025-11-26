@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import Groq from 'groq-sdk';
-import pdf from 'pdf-parse';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -55,6 +54,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Dynamically import pdf-parse (CommonJS module) to avoid ESM export issues
+    const pdfModule = await import('pdf-parse');
+    const pdf = (pdfModule as any).default || pdfModule;
 
     // Extract text from PDF
     const arrayBuffer = await file.arrayBuffer();

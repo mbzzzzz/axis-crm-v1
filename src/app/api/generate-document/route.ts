@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
 type DocumentPayload = {
   type: string;
   data?: Record<string, unknown>;
@@ -37,6 +35,8 @@ export async function POST(request: NextRequest) {
         { status: 500 },
       );
     }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
     const user = await getAuthenticatedUser();
 

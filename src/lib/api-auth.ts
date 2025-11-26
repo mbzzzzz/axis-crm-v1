@@ -1,10 +1,17 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function getAuthenticatedUser() {
+  // If Supabase env vars are missing, treat all users as unauthenticated
+  // instead of crashing the build. Make sure these are configured in Vercel.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn("Supabase URL and anon key must be defined in environment variables. Returning unauthenticated user.");
+    return null;
+  }
+
   const cookieStore = await cookies();
   
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
