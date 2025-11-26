@@ -441,7 +441,7 @@ function LeadsPageContent() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 sm:gap-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         <div className="space-y-1 sm:space-y-2">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Leads Pipeline</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
