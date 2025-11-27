@@ -3,7 +3,7 @@ import { db } from '@/db';
 import { invoices, tenants } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
-import { assertResendConfigured } from '@/lib/resend';
+import { sendGmailEmail } from '@/lib/email/gmail';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -15,8 +15,6 @@ async function getCurrentUser() {
     email: user.email || '',
   };
 }
-
-const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'Axis CRM <noreply@axis.crm>';
 
 /**
  * Auto-send monthly rent invoices
@@ -39,8 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resend = assertResendConfigured();
-
     const sendInvoiceEmail = async ({
       to,
       invoiceNumber,
@@ -55,8 +51,7 @@ export async function POST(request: NextRequest) {
       tenantName: string;
     }) => {
       if (!to) return;
-      await resend.emails.send({
-        from: RESEND_FROM,
+      await sendGmailEmail({
         to,
         subject: `Monthly Rent Invoice ${invoiceNumber}`,
         html: `

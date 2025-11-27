@@ -179,6 +179,16 @@ export default function LoginPage() {
           <p className="text-xs text-center text-white/70 flex items-center justify-center gap-2">
             <Shield className="size-4" /> Secure authentication powered by Supabase
           </p>
+          <p className="text-sm text-center text-white/80">
+            Need an account?{" "}
+            <button
+              type="button"
+              className="font-semibold underline-offset-4 hover:underline"
+              onClick={() => router.push("/register")}
+            >
+              Create one
+            </button>
+          </p>
         </CardContent>
       </Card>
     </div>

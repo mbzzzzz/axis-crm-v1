@@ -144,6 +144,13 @@ export const userPreferences = pgTable('user_preferences', {
   cardTheme: text('card_theme').notNull(),
   agentName: text('agent_name'),
   agentAgency: text('agent_agency'),
+  organizationName: text('organization_name'),
+  companyTagline: text('company_tagline'),
+  defaultInvoiceLogoMode: text('default_invoice_logo_mode').default('text'),
+  defaultInvoiceLogoDataUrl: text('default_invoice_logo_data_url'),
+  defaultInvoiceLogoWidth: integer('default_invoice_logo_width').default(40),
+  heardAbout: text('heard_about'),
+  onboardingCompletedAt: timestamp('onboarding_completed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

@@ -91,6 +91,11 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
             // Use preference value if form field is empty, otherwise keep form value
             agentName: prev.agentName || preferences.agentName || "",
             agentAgency: prev.agentAgency || preferences.agentAgency || "",
+            companyName: prev.companyName || preferences.organizationName || prev.companyName,
+            companyTagline: prev.companyTagline || preferences.companyTagline || "",
+            logoMode: preferences.defaultInvoiceLogoMode || prev.logoMode,
+            logoDataUrl: prev.logoDataUrl || preferences.defaultInvoiceLogoDataUrl || "",
+            logoWidth: preferences.defaultInvoiceLogoWidth ?? prev.logoWidth ?? 40,
           }));
         }
       }

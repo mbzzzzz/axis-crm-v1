@@ -4,7 +4,7 @@ import { invoices, properties, tenants } from '@/db/schema-postgres';
 import { eq, and } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { getInvoicePDFBlob } from '@/lib/pdf-generator';
-import { assertResendConfigured } from '@/lib/resend';
+import { sendGmailEmail } from '@/lib/email/gmail';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -16,8 +16,6 @@ async function getCurrentUser() {
     email: user.email || '',
   };
 }
-
-const RESEND_FROM = process.env.RESEND_FROM_EMAIL || 'Axis CRM <noreply@axis.crm>';
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,9 +105,6 @@ export async function POST(request: NextRequest) {
     const pdfBlob = getInvoicePDFBlob(pdfData);
     const pdfBuffer = Buffer.from(await pdfBlob.arrayBuffer());
 
-    // Convert PDF to base64 for email attachment
-    const pdfBase64 = pdfBuffer.toString('base64');
-
     if (!invoiceData.clientEmail) {
       return NextResponse.json(
         { error: 'Client email is missing for this invoice', code: 'MISSING_CLIENT_EMAIL' },
@@ -117,26 +112,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resend = assertResendConfigured();
-
-    await resend.emails.send({
-      from: RESEND_FROM,
+    await sendGmailEmail({
       to: invoiceData.clientEmail,
       subject: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.companyName || 'Axis CRM'}`,
       html: `
         <p>Hello ${invoiceData.clientName},</p>
-        <p>Please find attached invoice <strong>${invoiceData.invoiceNumber}</strong> for ${propertyData.address || 'your property'}.</p>
+        <p>Please find invoice <strong>${invoiceData.invoiceNumber}</strong> for ${propertyData.address || 'your property'}.</p>
         <p>Total due: <strong>${invoiceData.totalAmount} ${propertyData.currency || 'USD'}</strong> by ${invoiceData.dueDate}.</p>
+        <p>You can download a PDF copy from your Axis CRM portal.</p>
         <p>You can reply to this email if you have any questions.</p>
         <p>Thank you,<br/>${invoiceData.agentName || 'Axis CRM'}</p>
       `,
-      attachments: [
-        {
-          filename: `${invoiceData.invoiceNumber}.pdf`,
-          content: pdfBase64,
-          type: 'application/pdf',
-        },
-      ],
     });
     
     // Update invoice status to 'sent'

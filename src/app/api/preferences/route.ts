@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { CARD_THEME_OPTIONS, DEFAULT_CARD_THEME_KEY, getCardTheme } from "@/lib/card-themes";
 
 const ALLOWED_THEME_KEYS = new Set(CARD_THEME_OPTIONS.map((theme) => theme.key));
+const ALLOWED_LOGO_MODES = new Set(["text", "image"]);
+const HEARD_ABOUT_OPTIONS = new Set(["referral", "search", "social", "event", "marketplace", "partner", "ads", "other"]);
 
 export async function GET() {
   try {
@@ -20,6 +22,13 @@ export async function GET() {
         themeKey: userPreferences.cardTheme,
         agentName: userPreferences.agentName,
         agentAgency: userPreferences.agentAgency,
+        organizationName: userPreferences.organizationName,
+        companyTagline: userPreferences.companyTagline,
+        defaultInvoiceLogoMode: userPreferences.defaultInvoiceLogoMode,
+        defaultInvoiceLogoDataUrl: userPreferences.defaultInvoiceLogoDataUrl,
+        defaultInvoiceLogoWidth: userPreferences.defaultInvoiceLogoWidth,
+        heardAbout: userPreferences.heardAbout,
+        onboardingCompletedAt: userPreferences.onboardingCompletedAt,
       })
       .from(userPreferences)
       .where(eq(userPreferences.userId, user.id))
@@ -33,6 +42,13 @@ export async function GET() {
       theme: getCardTheme(themeKey),
       agentName: prefs?.agentName || null,
       agentAgency: prefs?.agentAgency || null,
+      organizationName: prefs?.organizationName || null,
+      companyTagline: prefs?.companyTagline || null,
+      defaultInvoiceLogoMode: prefs?.defaultInvoiceLogoMode || "text",
+      defaultInvoiceLogoDataUrl: prefs?.defaultInvoiceLogoDataUrl || null,
+      defaultInvoiceLogoWidth: prefs?.defaultInvoiceLogoWidth ?? 40,
+      heardAbout: prefs?.heardAbout || null,
+      onboardingCompleted: Boolean(prefs?.onboardingCompletedAt),
     });
   } catch (error) {
     console.error("GET /api/preferences error:", error);
@@ -59,7 +75,18 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const { themeKey, agentName, agentAgency } = body;
+    const {
+      themeKey,
+      agentName,
+      agentAgency,
+      organizationName,
+      companyTagline,
+      defaultInvoiceLogoMode,
+      defaultInvoiceLogoDataUrl,
+      defaultInvoiceLogoWidth,
+      heardAbout,
+      onboardingCompleted,
+    } = body;
 
     // Validate theme key if provided
     if (themeKey !== undefined && (!themeKey || !ALLOWED_THEME_KEYS.has(themeKey))) {
@@ -101,6 +128,97 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    if (organizationName !== undefined && organizationName !== null) {
+      if (typeof organizationName !== "string") {
+        return NextResponse.json(
+          { error: "Organization name must be a string", code: "INVALID_ORGANIZATION_NAME" },
+          { status: 400 }
+        );
+      }
+      if (organizationName.length > 150) {
+        return NextResponse.json(
+          { error: "Organization name must be 150 characters or less", code: "INVALID_ORGANIZATION_NAME" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (companyTagline !== undefined && companyTagline !== null) {
+      if (typeof companyTagline !== "string") {
+        return NextResponse.json(
+          { error: "Company tagline must be a string", code: "INVALID_COMPANY_TAGLINE" },
+          { status: 400 }
+        );
+      }
+      if (companyTagline.length > 180) {
+        return NextResponse.json(
+          { error: "Company tagline must be 180 characters or less", code: "INVALID_COMPANY_TAGLINE" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (defaultInvoiceLogoMode !== undefined && defaultInvoiceLogoMode !== null) {
+      if (typeof defaultInvoiceLogoMode !== "string" || !ALLOWED_LOGO_MODES.has(defaultInvoiceLogoMode)) {
+        return NextResponse.json(
+          { error: "Invalid logo mode supplied", code: "INVALID_LOGO_MODE" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (defaultInvoiceLogoWidth !== undefined && defaultInvoiceLogoWidth !== null) {
+      const widthNumber = Number(defaultInvoiceLogoWidth);
+      if (
+        Number.isNaN(widthNumber) ||
+        !Number.isFinite(widthNumber) ||
+        widthNumber < 24 ||
+        widthNumber > 200
+      ) {
+        return NextResponse.json(
+          { error: "Logo width must be between 24 and 200", code: "INVALID_LOGO_WIDTH" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (defaultInvoiceLogoDataUrl !== undefined && defaultInvoiceLogoDataUrl !== null) {
+      if (typeof defaultInvoiceLogoDataUrl !== "string") {
+        return NextResponse.json(
+          { error: "Logo data must be a string", code: "INVALID_LOGO_DATA" },
+          { status: 400 }
+        );
+      }
+      if (defaultInvoiceLogoDataUrl.length > 2_500_000) {
+        return NextResponse.json(
+          { error: "Logo file is too large", code: "LOGO_TOO_LARGE" },
+          { status: 400 }
+        );
+      }
+      if (!defaultInvoiceLogoDataUrl.startsWith("data:image")) {
+        return NextResponse.json(
+          { error: "Logo must be an image data URL", code: "INVALID_LOGO_DATA" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (heardAbout !== undefined && heardAbout !== null) {
+      if (typeof heardAbout !== "string" || !HEARD_ABOUT_OPTIONS.has(heardAbout)) {
+        return NextResponse.json(
+          { error: "Invalid value for heard about us", code: "INVALID_HEARD_ABOUT" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (onboardingCompleted !== undefined && typeof onboardingCompleted !== "boolean") {
+      return NextResponse.json(
+        { error: "onboardingCompleted must be a boolean", code: "INVALID_ONBOARDING_COMPLETED" },
+        { status: 400 }
+      );
+    }
+
     const now = new Date();
 
     try {
@@ -129,11 +247,39 @@ export async function PUT(request: NextRequest) {
         const trimmedAgency = typeof agentAgency === 'string' ? agentAgency.trim() : agentAgency;
         updateData.agentAgency = trimmedAgency === "" || trimmedAgency === null || trimmedAgency === undefined ? null : trimmedAgency;
       }
+      if (organizationName !== undefined) {
+        const trimmedOrg = typeof organizationName === "string" ? organizationName.trim() : organizationName;
+        updateData.organizationName = trimmedOrg === "" || trimmedOrg === null || trimmedOrg === undefined ? null : trimmedOrg;
+      }
+      if (companyTagline !== undefined) {
+        const trimmedTagline = typeof companyTagline === "string" ? companyTagline.trim() : companyTagline;
+        updateData.companyTagline = trimmedTagline === "" || trimmedTagline === null || trimmedTagline === undefined ? null : trimmedTagline;
+      }
+      if (defaultInvoiceLogoMode !== undefined) {
+        updateData.defaultInvoiceLogoMode = defaultInvoiceLogoMode;
+      }
+      if (defaultInvoiceLogoWidth !== undefined) {
+        const widthNumber = Math.round(Number(defaultInvoiceLogoWidth));
+        updateData.defaultInvoiceLogoWidth = Math.max(24, Math.min(200, widthNumber));
+      }
+      if (defaultInvoiceLogoDataUrl !== undefined) {
+        const dataUrl =
+          typeof defaultInvoiceLogoDataUrl === "string" ? defaultInvoiceLogoDataUrl.trim() : defaultInvoiceLogoDataUrl;
+        updateData.defaultInvoiceLogoDataUrl = dataUrl === "" || dataUrl === null || dataUrl === undefined ? null : dataUrl;
+      }
+      if (heardAbout !== undefined) {
+        updateData.heardAbout = heardAbout;
+      }
+      if (onboardingCompleted === true) {
+        updateData.onboardingCompletedAt = now;
+      } else if (onboardingCompleted === false) {
+        updateData.onboardingCompletedAt = null;
+      }
       
       // If only agent fields are being updated (no theme), ensure we still update
       // This allows users to update agent info independently
       // Ensure we have at least one field to update besides updatedAt
-      const hasUpdates = Object.keys(updateData).length > 1 || agentName !== undefined || agentAgency !== undefined;
+      const hasUpdates = Object.keys(updateData).some((key) => key !== "updatedAt");
 
       if (existing.length > 0) {
         // Update existing preference - always update if we have agent fields or theme
@@ -150,6 +296,19 @@ export async function PUT(request: NextRequest) {
           cardTheme: themeKey || DEFAULT_CARD_THEME_KEY,
           agentName: agentName === "" || agentName === null ? null : (agentName?.trim() || null),
           agentAgency: agentAgency === "" || agentAgency === null ? null : (agentAgency?.trim() || null),
+          organizationName: organizationName === "" || organizationName === null ? null : (organizationName?.trim() || null),
+          companyTagline: companyTagline === "" || companyTagline === null ? null : (companyTagline?.trim() || null),
+          defaultInvoiceLogoMode: defaultInvoiceLogoMode || "text",
+          defaultInvoiceLogoDataUrl:
+            defaultInvoiceLogoDataUrl === "" || defaultInvoiceLogoDataUrl === null
+              ? null
+              : (defaultInvoiceLogoDataUrl?.trim() || null),
+          defaultInvoiceLogoWidth:
+            defaultInvoiceLogoWidth !== undefined && defaultInvoiceLogoWidth !== null
+              ? Math.max(24, Math.min(200, Math.round(Number(defaultInvoiceLogoWidth))))
+              : 40,
+          heardAbout: heardAbout || null,
+          onboardingCompletedAt: onboardingCompleted ? now : null,
           createdAt: now,
           updatedAt: now,
         });
@@ -161,18 +320,47 @@ export async function PUT(request: NextRequest) {
           themeKey: userPreferences.cardTheme,
           agentName: userPreferences.agentName,
           agentAgency: userPreferences.agentAgency,
+          organizationName: userPreferences.organizationName,
+          companyTagline: userPreferences.companyTagline,
+          defaultInvoiceLogoMode: userPreferences.defaultInvoiceLogoMode,
+          defaultInvoiceLogoDataUrl: userPreferences.defaultInvoiceLogoDataUrl,
+          defaultInvoiceLogoWidth: userPreferences.defaultInvoiceLogoWidth,
+          heardAbout: userPreferences.heardAbout,
+          onboardingCompletedAt: userPreferences.onboardingCompletedAt,
         })
         .from(userPreferences)
         .where(eq(userPreferences.userId, user.id))
         .limit(1);
 
-      const prefs = updated[0] || { themeKey: themeKey || DEFAULT_CARD_THEME_KEY, agentName: null, agentAgency: null };
+      const prefs =
+        updated[0] || {
+          themeKey: themeKey || DEFAULT_CARD_THEME_KEY,
+          agentName: agentName ?? null,
+          agentAgency: agentAgency ?? null,
+          organizationName: organizationName ?? null,
+          companyTagline: companyTagline ?? null,
+          defaultInvoiceLogoMode: defaultInvoiceLogoMode || "text",
+          defaultInvoiceLogoDataUrl: defaultInvoiceLogoDataUrl ?? null,
+          defaultInvoiceLogoWidth:
+            defaultInvoiceLogoWidth !== undefined && defaultInvoiceLogoWidth !== null
+              ? Math.max(24, Math.min(200, Math.round(Number(defaultInvoiceLogoWidth))))
+              : 40,
+          heardAbout: heardAbout ?? null,
+          onboardingCompletedAt: onboardingCompleted ? now : null,
+        };
 
       return NextResponse.json({
         themeKey: prefs.themeKey,
         theme: getCardTheme(prefs.themeKey),
         agentName: prefs.agentName,
         agentAgency: prefs.agentAgency,
+        organizationName: prefs.organizationName,
+        companyTagline: prefs.companyTagline,
+        defaultInvoiceLogoMode: prefs.defaultInvoiceLogoMode || "text",
+        defaultInvoiceLogoDataUrl: prefs.defaultInvoiceLogoDataUrl,
+        defaultInvoiceLogoWidth: prefs.defaultInvoiceLogoWidth ?? 40,
+        heardAbout: prefs.heardAbout,
+        onboardingCompleted: Boolean(prefs.onboardingCompletedAt),
       });
     } catch (dbError: any) {
       // Check for column doesn't exist error (migration not run)

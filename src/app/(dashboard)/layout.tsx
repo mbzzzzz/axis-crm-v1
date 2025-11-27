@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +23,9 @@ import { CommandPalette } from "@/components/command-palette";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
+  const router = useRouter();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,6 +40,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  useEffect(() => {
+    if (isPending) return;
+    if (!session?.user) {
+      setIsCheckingOnboarding(false);
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const checkOnboarding = async () => {
+      try {
+        const response = await fetch("/api/preferences", { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error("Failed to fetch onboarding status");
+        }
+        const data = await response.json();
+        if (!data.onboardingCompleted) {
+          const destination =
+            typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/dashboard";
+          router.replace(`/onboarding?next=${encodeURIComponent(destination || "/dashboard")}`);
+          return;
+        }
+      } catch (error: any) {
+        if (error?.name === "AbortError") return;
+        console.error("Unable to verify onboarding status:", error);
+      } finally {
+        if (isMounted) {
+          setIsCheckingOnboarding(false);
+        }
+      }
+    };
+
+    checkOnboarding();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [isPending, session, router]);
+
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -49,6 +93,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   if (!session?.user) return null;
+
+  if (isCheckingOnboarding) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="size-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="mt-4 text-sm text-muted-foreground">Setting up your workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   const userInitials = session?.user?.name
     ?.split(" ")

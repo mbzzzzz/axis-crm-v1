@@ -204,6 +204,16 @@ export default function RegisterPage() {
           <p className="text-xs text-center text-white/70">
             By continuing you agree to the Axis CRM Terms and Privacy Policy.
           </p>
+          <p className="text-sm text-center text-white/80">
+            Already have an account?{" "}
+            <button
+              type="button"
+              className="font-semibold underline-offset-4 hover:underline"
+              onClick={() => router.push("/login")}
+            >
+              Log in
+            </button>
+          </p>
         </CardContent>
       </Card>
     </div>
