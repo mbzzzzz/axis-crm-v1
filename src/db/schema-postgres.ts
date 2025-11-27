@@ -1,4 +1,4 @@
-import { pgTable, serial, text, real, integer, timestamp, jsonb, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, real, integer, timestamp, jsonb, uuid, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Application tables - Using text userId to reference Supabase Auth user ID
@@ -142,6 +142,7 @@ export const userPreferences = pgTable('user_preferences', {
   id: serial('id').primaryKey(),
   userId: text('user_id').unique().notNull(),
   cardTheme: text('card_theme').notNull(),
+  planKey: text('plan_key').default('professional').notNull(),
   agentName: text('agent_name'),
   agentAgency: text('agent_agency'),
   organizationName: text('organization_name'),
@@ -154,6 +155,27 @@ export const userPreferences = pgTable('user_preferences', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+export const usageLimits = pgTable(
+  'usage_limits',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    feature: text('feature').notNull(),
+    periodStart: timestamp('period_start', { withTimezone: true }).notNull(),
+    usageCount: integer('usage_count').default(0).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    userFeaturePeriodUnique: uniqueIndex('usage_limits_user_feature_period').on(
+      table.userId,
+      table.feature,
+      table.periodStart
+    ),
+    userFeatureIdx: index('usage_limits_user_feature_idx').on(table.userId, table.feature),
+  })
+);
 
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),

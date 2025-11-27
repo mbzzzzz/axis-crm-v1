@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 
 /**
  * API route to generate property descriptions using Groq's low-token model
@@ -38,6 +39,16 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields: title, address, city, state, propertyType, and price are required.' },
         { status: 400 }
       );
+    }
+
+    // Enforce plan usage limits for AI generations
+    try {
+      await consumePlanQuota(user.id, "autoGenerations");
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(error.toResponseBody(), { status: 429 });
+      }
+      throw error;
     }
 
     // Get Groq API key from environment

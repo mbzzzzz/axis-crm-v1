@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 import { db } from '@/db';
 import { leads } from '@/db/schema-postgres';
 import { eq, and, desc, or, like, sql } from 'drizzle-orm';
@@ -114,6 +115,15 @@ export async function POST(request: NextRequest) {
     const status = body.status && VALID_STATUSES.includes(body.status) 
       ? body.status 
       : 'inquiry';
+
+    try {
+      await consumePlanQuota(user.id, "leads");
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(error.toResponseBody(), { status: 429 });
+      }
+      throw error;
+    }
 
     const newLead = await db
       .insert(leads)

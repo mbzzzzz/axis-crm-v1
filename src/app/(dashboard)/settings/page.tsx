@@ -11,14 +11,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import MagicBento from "@/components/magic-bento";
 import { useCardTheme } from "@/components/card-theme-provider";
 import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
+import {
+  FEATURE_LABELS,
+  PLAN_DEFINITIONS,
+  PlanKey,
+  UsageFeature,
+  formatFeatureLimit,
+  isPlanKey,
+} from "@/lib/plan-limits";
 
 type SettingsFormState = {
   name: string;
   companyName: string;
   email: string;
-  currentPlan: string;
   agentName: string;
   agentAgency: string;
+  planKey: PlanKey;
 };
 
 export default function SettingsPage() {
@@ -33,13 +41,14 @@ export default function SettingsPage() {
     name: "",
     companyName: "",
     email: "",
-    currentPlan: "Free",
     agentName: "",
     agentAgency: "",
+    planKey: "professional",
   });
   const initializedUserRef = useRef<string | null>(null);
   const hasUserEditedRef = useRef(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
+  const [isSavingPlan, setIsSavingPlan] = useState(false);
   const { theme, themeKey, setTheme, isSaving } = useCardTheme();
 
   const updateFormData = (field: keyof SettingsFormState, value: string) => {
@@ -119,9 +128,9 @@ export default function SettingsPage() {
               name: session.user.name || prev.name,
               companyName: prev.companyName,
               email: session.user.email || prev.email,
-              currentPlan: prev.currentPlan,
               agentName: preferences?.agentName || prev.agentName,
               agentAgency: preferences?.agentAgency || prev.agentAgency,
+              planKey: isPlanKey(preferences?.planKey) ? (preferences.planKey as PlanKey) : prev.planKey,
             }));
 
             initializedUserRef.current = currentUserId;
@@ -188,6 +197,31 @@ export default function SettingsPage() {
       );
     } finally {
       setIsSavingAgent(false);
+    }
+  };
+
+  const handleSavePlan = async () => {
+    setIsSavingPlan(true);
+    try {
+      const response = await fetch("/api/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planKey: formData.planKey,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Plan updated successfully");
+      } else {
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.error || "Unable to update plan. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to update plan:", error);
+      toast.error("Failed to update plan. Please try again.");
+    } finally {
+      setIsSavingPlan(false);
     }
   };
 
@@ -313,15 +347,42 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="plan">Current Plan</Label>
-              <Input
-                id="plan"
-                value={formData.currentPlan}
-                onChange={(e) => updateFormData("currentPlan", e.target.value)}
-                placeholder="Enter current plan"
-              />
+              <Label htmlFor="planKey">Current Plan</Label>
+              <Select
+                value={formData.planKey}
+                onValueChange={(value) => updateFormData("planKey", value as PlanKey)}
+              >
+                <SelectTrigger id="planKey">
+                  <SelectValue placeholder="Select your plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(PLAN_DEFINITIONS).map((plan) => (
+                    <SelectItem key={plan.key} value={plan.key}>
+                      {plan.label} — {plan.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {PLAN_DEFINITIONS[formData.planKey].description}
+              </p>
             </div>
-            <Button className="w-full">Upgrade Plan</Button>
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Monthly allowances</p>
+              <dl className="grid gap-2 text-sm">
+                {["autoGenerations", "propertyPosts", "leads", "monthlyInvoices"].map((feature) => (
+                  <div key={feature} className="flex items-center justify-between">
+                    <dt className="text-slate-300">{FEATURE_LABELS[feature as UsageFeature]}</dt>
+                    <dd className="font-medium text-white">
+                      {formatFeatureLimit(formData.planKey, feature as UsageFeature)}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <Button className="w-full" onClick={handleSavePlan} disabled={isSavingPlan}>
+              {isSavingPlan ? "Saving..." : "Update Plan"}
+            </Button>
           </CardContent>
         </Card>
       </div>

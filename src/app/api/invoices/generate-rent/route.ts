@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { invoices, properties, tenants } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -122,6 +123,15 @@ export async function POST(request: NextRequest) {
     const taxRate = 0; // Can be configured per property/user
     const taxAmount = 0;
     const totalAmount = subtotal;
+
+    try {
+      await consumePlanQuota(user.id, "monthlyInvoices");
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(error.toResponseBody(), { status: 429 });
+      }
+      throw error;
+    }
 
     // Create invoice
     const newInvoice = await db.insert(invoices)

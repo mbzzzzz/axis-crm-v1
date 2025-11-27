@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 
 /**
  * API route to generate maintenance request descriptions using Groq's low-token model
@@ -14,6 +15,15 @@ export async function POST(request: NextRequest) {
         { error: 'Unauthorized. Please log in.' },
         { status: 401 }
       );
+    }
+
+    try {
+      await consumePlanQuota(user.id, "autoGenerations");
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(error.toResponseBody(), { status: 429 });
+      }
+      throw error;
     }
 
     const body = await request.json();

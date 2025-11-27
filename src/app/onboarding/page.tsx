@@ -209,31 +209,44 @@ function OnboardingContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <p>Preparing your onboarding experience...</p>
+      <div className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
+        <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-6 text-sm text-slate-200 backdrop-blur-xl">
+          <Loader2 className="h-8 w-8 animate-spin text-white" />
+          <p>Preparing your onboarding experience…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black px-4 py-8 text-white">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <div className="text-center space-y-2">
-          <p className="text-sm uppercase tracking-widest text-slate-300">Welcome to Axis CRM</p>
-          <h1 className="text-3xl font-semibold">Let's brand your workspace</h1>
+    <div className="relative min-h-screen overflow-hidden bg-[#010314] text-white">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="shader shader-one" />
+        <div className="shader shader-two" />
+        <div className="shader-grid" />
+      </div>
+
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:py-16">
+        <div className="space-y-3 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1 text-xs uppercase tracking-[0.3em] text-slate-200 backdrop-blur">
+            <span className="size-1 rounded-full bg-emerald-400" />
+            Axis CRM Onboarding
+          </div>
+          <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">
+            Craft a branded workspace that feels unmistakably yours
+          </h1>
           <p className="text-base text-slate-300">
-            These details will personalize your invoices, emails, and dashboards. You can always change them later in
-            Settings.
+            These details personalize invoices, tenant emails, and dashboards. Tweak them anytime under{" "}
+            <span className="font-medium text-white">Settings → Workspace.</span>
           </p>
         </div>
 
-        <Card className="border-white/10 bg-white/5 backdrop-blur">
+        <Card className="border-white/15 bg-white/5 shadow-[0_20px_90px_rgba(5,4,24,0.7)] backdrop-blur-2xl">
           <CardHeader>
             <CardTitle>Agent & Organization</CardTitle>
-            <CardDescription>Tell us who you are so we can personalize invoices and communications.</CardDescription>
+            <CardDescription className="text-slate-200">
+              Introduce your brand, drop in a logo, and choose how we reference you across invoices and communications.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-8">
@@ -285,15 +298,15 @@ function OnboardingContent() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <Label>Organization logo</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Drag and drop a logo (PNG, JPG, SVG). We'll apply it to all new invoices automatically.
+                    <p className="text-sm text-slate-300">
+                      Drag in a PNG, JPG, or SVG. We'll host it securely and apply it everywhere automatically.
                     </p>
                   </div>
                   {formData.logoDataUrl && (
                     <Button
                       type="button"
                       variant="ghost"
-                      className="text-xs text-muted-foreground"
+                      className="text-xs text-slate-300 hover:text-white"
                       onClick={() => setFormData((prev) => ({ ...prev, logoDataUrl: "", logoMode: "text" }))}
                     >
                       Remove logo
@@ -304,7 +317,7 @@ function OnboardingContent() {
                 <div
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
-                  className="flex h-48 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/20 bg-black/20 text-center transition hover:border-white/40"
+                  className="relative flex h-48 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/25 bg-white/5 text-center transition hover:border-white/60"
                   onClick={() => {
                     if (!isUploadingLogo) {
                       document.getElementById("onboarding-logo-input")?.click();
@@ -312,8 +325,12 @@ function OnboardingContent() {
                   }}
                 >
                   {formData.logoDataUrl ? (
-                    <div className="relative">
-                      <img src={formData.logoDataUrl} alt="Organization logo preview" className="max-h-28 object-contain" />
+                    <div className="relative flex flex-col items-center gap-4">
+                      <img
+                        src={formData.logoDataUrl}
+                        alt="Organization logo preview"
+                        className="max-h-28 rounded-xl object-contain shadow-lg"
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -328,14 +345,16 @@ function OnboardingContent() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 text-sm text-white/70">
+                    <div className="flex flex-col items-center gap-3 text-sm text-white/80">
                       {isUploadingLogo ? (
                         <Loader2 className="h-8 w-8 animate-spin" />
                       ) : (
                         <ImagePlus className="h-8 w-8" />
                       )}
                       <div>
-                        <p className="font-medium">{isUploadingLogo ? "Uploading..." : "Drop your logo here"}</p>
+                        <p className="font-medium">
+                          {isUploadingLogo ? "Uploading…" : "Drop your logo here or click to upload"}
+                        </p>
                         <p className="text-xs text-white/60">PNG, JPG, or SVG up to 2MB</p>
                       </div>
                     </div>
@@ -391,7 +410,7 @@ function OnboardingContent() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm text-slate-300">
                   <CheckCircle2 className="h-5 w-5 text-emerald-400" />
                   You can refine these details later under Settings → Workspace.
@@ -410,7 +429,7 @@ function OnboardingContent() {
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
+                        Saving…
                       </>
                     ) : (
                       "Save & continue"
@@ -422,6 +441,62 @@ function OnboardingContent() {
           </CardContent>
         </Card>
       </div>
+
+      <style jsx>{`
+        .shader {
+          position: absolute;
+          filter: blur(120px);
+          opacity: 0.45;
+          transform: translate3d(0, 0, 0);
+          animation: float 18s ease-in-out infinite alternate;
+        }
+        .shader-one {
+          top: -10%;
+          left: -5%;
+          width: 45vw;
+          height: 45vw;
+          background: radial-gradient(circle at 30% 30%, rgba(120, 119, 255, 0.8), transparent 60%);
+          animation-delay: -6s;
+        }
+        .shader-two {
+          bottom: -15%;
+          right: -10%;
+          width: 50vw;
+          height: 50vw;
+          background: radial-gradient(circle at 70% 40%, rgba(14, 197, 255, 0.7), transparent 55%);
+        }
+        .shader-grid {
+          inset: 0;
+          background-image: linear-gradient(
+              120deg,
+              rgba(255, 255, 255, 0.03) 1px,
+              transparent 1px
+            ),
+            linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+          background-size: 80px 80px;
+          opacity: 0.35;
+          animation: shimmer 30s linear infinite;
+        }
+        @keyframes float {
+          0% {
+            transform: translate3d(0px, 0px, 0);
+          }
+          50% {
+            transform: translate3d(20px, -30px, 0);
+          }
+          100% {
+            transform: translate3d(-15px, 25px, 0);
+          }
+        }
+        @keyframes shimmer {
+          0% {
+            transform: translate3d(0, 0, 0);
+          }
+          100% {
+            transform: translate3d(-80px, -80px, 0);
+          }
+        }
+      `}</style>
     </div>
   );
 }
@@ -430,10 +505,10 @@ export default function OnboardingPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-muted-foreground">
-            <Loader2 className="h-8 w-8 animate-spin" />
-            <p>Loading onboarding...</p>
+        <div className="flex min-h-screen items-center justify-center bg-[#010314] text-white">
+          <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-6 text-sm text-slate-200 backdrop-blur-xl">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+            <p>Loading onboarding experience…</p>
           </div>
         </div>
       }

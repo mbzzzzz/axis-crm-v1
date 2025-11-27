@@ -4,6 +4,7 @@ import { properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import postgres from 'postgres';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
@@ -345,6 +346,15 @@ export async function POST(request: NextRequest) {
                 { error: 'Invalid user authentication', code: 'INVALID_USER' },
                 { status: 401 }
             );
+        }
+
+        try {
+            await consumePlanQuota(user.id, "propertyPosts");
+        } catch (error) {
+            if (error instanceof UsageLimitError) {
+                return NextResponse.json(error.toResponseBody(), { status: 429 });
+            }
+            throw error;
         }
 
         // NOTE: Do NOT include 'id' field - it's a serial and will auto-increment

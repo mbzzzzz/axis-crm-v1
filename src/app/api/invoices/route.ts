@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { invoices, properties, tenants } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -346,6 +347,15 @@ export async function POST(request: NextRequest) {
           body.clientPhone = tenantData.phone;
         }
       }
+    }
+
+    try {
+      await consumePlanQuota(user.id, "monthlyInvoices");
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(error.toResponseBody(), { status: 429 });
+      }
+      throw error;
     }
 
     // Prepare insert data - CRITICAL: Use authenticated user's ID

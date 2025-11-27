@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { userPreferences } from "@/db/schema-postgres";
 import { eq } from "drizzle-orm";
 import { CARD_THEME_OPTIONS, DEFAULT_CARD_THEME_KEY, getCardTheme } from "@/lib/card-themes";
+import { PLAN_DEFINITIONS, PlanKey, isPlanKey } from "@/lib/plan-limits";
 
 const ALLOWED_THEME_KEYS = new Set(CARD_THEME_OPTIONS.map((theme) => theme.key));
 const ALLOWED_LOGO_MODES = new Set(["text", "image"]);
@@ -20,6 +21,7 @@ export async function GET() {
     const existing = await db
       .select({
         themeKey: userPreferences.cardTheme,
+        planKey: userPreferences.planKey,
         agentName: userPreferences.agentName,
         agentAgency: userPreferences.agentAgency,
         organizationName: userPreferences.organizationName,
@@ -40,6 +42,7 @@ export async function GET() {
     return NextResponse.json({
       themeKey,
       theme: getCardTheme(themeKey),
+      planKey: prefs?.planKey || "professional",
       agentName: prefs?.agentName || null,
       agentAgency: prefs?.agentAgency || null,
       organizationName: prefs?.organizationName || null,
@@ -77,6 +80,7 @@ export async function PUT(request: NextRequest) {
 
     const {
       themeKey,
+      planKey,
       agentName,
       agentAgency,
       organizationName,
@@ -94,6 +98,15 @@ export async function PUT(request: NextRequest) {
         { error: "Invalid theme key supplied", code: "INVALID_THEME_KEY" },
         { status: 400 }
       );
+    }
+
+    if (planKey !== undefined && planKey !== null) {
+      if (typeof planKey !== "string" || !isPlanKey(planKey)) {
+        return NextResponse.json(
+          { error: "Invalid plan selected", code: "INVALID_PLAN" },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate agentName if provided
@@ -189,15 +202,20 @@ export async function PUT(request: NextRequest) {
           { status: 400 }
         );
       }
-      if (defaultInvoiceLogoDataUrl.length > 2_500_000) {
+      const trimmedLogo = defaultInvoiceLogoDataUrl.trim();
+      const isDataUrl = trimmedLogo.startsWith("data:image");
+      const isHttpUrl = /^https?:\/\//i.test(trimmedLogo);
+
+      if (!isDataUrl && !isHttpUrl) {
         return NextResponse.json(
-          { error: "Logo file is too large", code: "LOGO_TOO_LARGE" },
+          { error: "Logo must be an image data URL or hosted https image", code: "INVALID_LOGO_DATA" },
           { status: 400 }
         );
       }
-      if (!defaultInvoiceLogoDataUrl.startsWith("data:image")) {
+
+      if (isDataUrl && trimmedLogo.length > 2_500_000) {
         return NextResponse.json(
-          { error: "Logo must be an image data URL", code: "INVALID_LOGO_DATA" },
+          { error: "Logo file is too large", code: "LOGO_TOO_LARGE" },
           { status: 400 }
         );
       }
@@ -235,6 +253,9 @@ export async function PUT(request: NextRequest) {
 
       if (themeKey !== undefined) {
         updateData.cardTheme = themeKey;
+      }
+      if (planKey !== undefined) {
+        updateData.planKey = isPlanKey(planKey) ? planKey : "professional";
       }
       // Always allow updating agent fields, even if they're empty (to clear them)
       if (agentName !== undefined) {
@@ -294,6 +315,7 @@ export async function PUT(request: NextRequest) {
         await db.insert(userPreferences).values({
           userId: user.id,
           cardTheme: themeKey || DEFAULT_CARD_THEME_KEY,
+          planKey: isPlanKey(planKey) ? planKey : "professional",
           agentName: agentName === "" || agentName === null ? null : (agentName?.trim() || null),
           agentAgency: agentAgency === "" || agentAgency === null ? null : (agentAgency?.trim() || null),
           organizationName: organizationName === "" || organizationName === null ? null : (organizationName?.trim() || null),
@@ -335,6 +357,7 @@ export async function PUT(request: NextRequest) {
       const prefs =
         updated[0] || {
           themeKey: themeKey || DEFAULT_CARD_THEME_KEY,
+          planKey: isPlanKey(planKey) ? planKey : "professional",
           agentName: agentName ?? null,
           agentAgency: agentAgency ?? null,
           organizationName: organizationName ?? null,
@@ -352,6 +375,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({
         themeKey: prefs.themeKey,
         theme: getCardTheme(prefs.themeKey),
+        planKey: prefs.planKey || "professional",
         agentName: prefs.agentName,
         agentAgency: prefs.agentAgency,
         organizationName: prefs.organizationName,
