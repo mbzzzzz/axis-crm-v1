@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
 
+type LeaseStatus = "active" | "expired" | "pending" | "terminated";
+
 interface Tenant {
   id: number;
   name: string;
@@ -42,7 +44,7 @@ interface Tenant {
   phone?: string;
   property?: any;
   propertyId?: number;
-  leaseStatus: "active" | "expired" | "pending";
+  leaseStatus: LeaseStatus;
   leaseStart: string;
   leaseEnd: string;
   monthlyRent?: number;
@@ -96,6 +98,7 @@ function TenantsPageContent() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExtractingLease, setIsExtractingLease] = useState(false);
+  const [revokingTenantId, setRevokingTenantId] = useState<number | null>(null);
   const [newTenant, setNewTenant] = useState({
     name: "",
     email: "",
@@ -103,7 +106,7 @@ function TenantsPageContent() {
     propertyId: "",
     leaseStart: "",
     leaseEnd: "",
-    leaseStatus: "active" as "active" | "expired" | "pending",
+    leaseStatus: "active" as LeaseStatus,
     monthlyRent: "",
     yearlyIncreaseRate: "10",
     expectedNextYearRent: "",
@@ -237,6 +240,38 @@ function TenantsPageContent() {
       setIsExtractingLease(false);
       // Reset file input
       e.target.value = "";
+    }
+  };
+
+  const handleRevokeLease = async (tenant: Tenant) => {
+    const confirmation = window.confirm(
+      `Revoke ${tenant.name}'s lease and remove their property access?`
+    );
+    if (!confirmation) return;
+
+    setRevokingTenantId(tenant.id);
+    try {
+      const response = await fetch("/api/tenants/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: tenant.id,
+          reason: "Lease terminated from dashboard",
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Lease revoked and tenant access updated");
+        fetchTenants();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to revoke lease");
+      }
+    } catch (error) {
+      console.error("Failed to revoke lease:", error);
+      toast.error("Failed to revoke lease");
+    } finally {
+      setRevokingTenantId(null);
     }
   };
 
@@ -494,15 +529,18 @@ function TenantsPageContent() {
     return invoices.filter(inv => inv.tenantId === tenantId);
   };
 
-  const getPaymentSummary = (tenant: Tenant) => {
+const getPaymentSummary = (tenant: Tenant) => {
     // This would ideally come from invoice data
     // For now, return placeholder based on lease status
-    if (tenant.leaseStatus === "pending") {
+  if (tenant.leaseStatus === "pending") {
       return { summary: "Awaiting Deposit", details: `Lease starts ${new Date(tenant.leaseStart).toLocaleDateString()}` };
     }
-    if (tenant.leaseStatus === "expired") {
+  if (tenant.leaseStatus === "expired") {
       return { summary: "Overdue", details: "Lease expired" };
     }
+  if (tenant.leaseStatus === "terminated") {
+    return { summary: "Lease Terminated", details: "Tenant access removed" };
+  }
     return { summary: "Paid", details: `Next due: ${new Date(tenant.leaseEnd).toLocaleDateString()}` };
   };
 
@@ -511,6 +549,7 @@ function TenantsPageContent() {
       active: "bg-green-100 text-green-700",
       expired: "bg-red-100 text-red-700",
       pending: "bg-yellow-100 text-yellow-700",
+    terminated: "bg-slate-200 text-slate-800",
     };
     return colors[status.toLowerCase()] || "bg-gray-100 text-gray-700";
   };
@@ -653,13 +692,13 @@ function TenantsPageContent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="leaseStatus">Lease Status *</Label>
-                  <Select
-                    value={newTenant.leaseStatus}
-                    onValueChange={(value: "active" | "expired" | "pending") =>
-                      setNewTenant({ ...newTenant, leaseStatus: value })
-                    }
-                  >
+                <Label htmlFor="leaseStatus">Lease Status *</Label>
+                <Select
+                  value={newTenant.leaseStatus}
+                  onValueChange={(value: LeaseStatus) =>
+                    setNewTenant({ ...newTenant, leaseStatus: value })
+                  }
+                >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -667,6 +706,7 @@ function TenantsPageContent() {
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="expired">Expired</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="terminated">Terminated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -749,6 +789,7 @@ function TenantsPageContent() {
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="expired">Expired</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="terminated">Terminated</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -872,6 +913,24 @@ function TenantsPageContent() {
                               }}
                             >
                               <Edit className="size-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-destructive text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRevokeLease(tenant)}
+                              disabled={revokingTenantId === tenant.id || tenant.leaseStatus === "terminated"}
+                              title={
+                                tenant.leaseStatus === "terminated"
+                                  ? "Lease already terminated"
+                                  : "Terminate lease and remove tenant property access"
+                              }
+                            >
+                              {revokingTenantId === tenant.id
+                                ? "Revoking..."
+                                : tenant.leaseStatus === "terminated"
+                                  ? "Terminated"
+                                  : "Terminate"}
                             </Button>
                             <Button
                               variant="ghost"

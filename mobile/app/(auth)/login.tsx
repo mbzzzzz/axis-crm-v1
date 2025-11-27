@@ -51,6 +51,7 @@ export default function LoginScreen() {
         await AsyncStorage.setItem("tenant_token", data.token);
         await AsyncStorage.setItem("tenant_id", String(data.tenant.id));
         await AsyncStorage.setItem("tenant_email", data.tenant.email);
+        await AsyncStorage.setItem("tenant_name", data.tenant.name || "");
         
         // Navigate to home
         router.replace("/(tabs)");

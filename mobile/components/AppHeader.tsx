@@ -5,11 +5,12 @@ interface AppHeaderProps {
   title?: string;
   subtitle?: string;
   showLogo?: boolean;
+  horizontalPadding?: number;
 }
 
-export function AppHeader({ title, subtitle, showLogo = false }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, showLogo = false, horizontalPadding = 24 }: AppHeaderProps) {
   return (
-    <View className="px-6 pt-4 pb-6">
+    <View className="pt-4 pb-6" style={{ paddingHorizontal: horizontalPadding }}>
       {showLogo && (
         <View className="mb-4 items-center">
           <AxisLogo variant="icon" size="md" />

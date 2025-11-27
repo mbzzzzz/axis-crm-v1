@@ -15,7 +15,7 @@ async function getCurrentUser() {
   };
 }
 
-const VALID_LEASE_STATUSES = ['active', 'expired', 'pending'];
+const VALID_LEASE_STATUSES = ['active', 'expired', 'pending', 'terminated'];
 
 export async function GET(request: NextRequest) {
   try {

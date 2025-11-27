@@ -33,24 +33,31 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const idParam = searchParams.get('id');
+    const emailParam = searchParams.get('email')?.toLowerCase() ?? null;
 
-    if (!id) {
+    if (!idParam && !emailParam) {
       return NextResponse.json(
-        { error: 'Tenant ID is required', code: 'MISSING_ID' },
+        { error: 'Tenant identifier is required', code: 'MISSING_IDENTIFIER' },
         { status: 400 }
       );
     }
 
-    // Verify the tenant ID matches the token
-    if (parseInt(id) !== decoded.tenantId) {
+    // Ensure identifiers line up with token claims
+    if (idParam && parseInt(idParam) !== decoded.tenantId) {
       return NextResponse.json(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 403 }
       );
     }
 
-    // Fetch tenant with property
+    if (emailParam && decoded.email && emailParam !== decoded.email.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
+
     const tenant = await db
       .select({
         id: tenants.id,
@@ -64,7 +71,11 @@ export async function GET(request: NextRequest) {
         monthlyRent: tenants.monthlyRent,
       })
       .from(tenants)
-      .where(eq(tenants.id, parseInt(id)))
+      .where(
+        emailParam
+          ? eq(tenants.email, emailParam)
+          : eq(tenants.id, parseInt(idParam!))
+      )
       .limit(1);
 
     if (tenant.length === 0) {
@@ -76,43 +87,42 @@ export async function GET(request: NextRequest) {
 
     const tenantData = tenant[0];
 
-    // Fetch property if exists - ONLY the property linked to this tenant
-    // Security: Tenant can ONLY see their own property
-    let property = null;
-    if (tenantData.propertyId) {
-      const propertyResult = await db
-        .select({
-          id: properties.id,
-          title: properties.title,
-          address: properties.address,
-          city: properties.city,
-          state: properties.state,
-          images: properties.images,
-        })
-        .from(properties)
-        .where(eq(properties.id, tenantData.propertyId))
-        .limit(1);
+    if (!tenantData.propertyId) {
+      const responseCode = tenantData.leaseStatus === 'terminated' ? 'LEASE_TERMINATED' : 'NO_PROPERTY';
+      const message =
+        responseCode === 'LEASE_TERMINATED'
+          ? 'This lease has been terminated by your property manager.'
+          : 'No property assigned to this tenant';
 
-      if (propertyResult.length > 0) {
-        property = propertyResult[0];
-      } else {
-        // Tenant has propertyId but property doesn't exist
-        return NextResponse.json(
-          { error: 'Property not found', code: 'PROPERTY_NOT_FOUND' },
-          { status: 404 }
-        );
-      }
-    } else {
-      // Tenant has no property assigned
       return NextResponse.json(
-        { error: 'No property assigned to this tenant', code: 'NO_PROPERTY' },
+        { error: message, code: responseCode, tenant: tenantData },
+        { status: 404 }
+      );
+    }
+
+    const propertyResult = await db
+      .select({
+        id: properties.id,
+        title: properties.title,
+        address: properties.address,
+        city: properties.city,
+        state: properties.state,
+        images: properties.images,
+      })
+      .from(properties)
+      .where(eq(properties.id, tenantData.propertyId))
+      .limit(1);
+
+    if (propertyResult.length === 0) {
+      return NextResponse.json(
+        { error: 'Property not found', code: 'PROPERTY_NOT_FOUND' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       ...tenantData,
-      property,
+      property: propertyResult[0],
     }, { status: 200 });
   } catch (error) {
     console.error('GET tenant mobile error:', error);

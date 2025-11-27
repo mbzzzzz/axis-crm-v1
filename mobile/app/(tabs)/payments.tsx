@@ -1,8 +1,10 @@
-import { View, Text, FlatList, TouchableOpacity, Alert } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, Alert, RefreshControl, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FileText, Download, CheckCircle, AlertCircle } from "lucide-react-native";
+import { AppHeader } from "../../components/AppHeader";
+import { AxisLogo } from "../../components/AxisLogo";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://axis-crm-v1.vercel.app";
 
@@ -18,36 +20,70 @@ interface Invoice {
 export default function PaymentsScreen() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const { width } = useWindowDimensions();
+  const horizontalPadding = width >= 768 ? 32 : 24;
+
+  const loadInvoices = useCallback(
+    async ({ isPullToRefresh = false }: { isPullToRefresh?: boolean } = {}) => {
+      try {
+        if (isPullToRefresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        const [[, token], [, email]] = await AsyncStorage.multiGet(["tenant_token", "tenant_email"]);
+
+        if (!token || !email) {
+          setStatusMessage("Please sign in again to view your invoices.");
+          setInvoices([]);
+          return;
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/invoices/mobile?tenantEmail=${encodeURIComponent(email)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setInvoices(Array.isArray(data) ? data : []);
+          setStatusMessage("");
+        } else if (response.status === 401) {
+          setStatusMessage("Session expired. Please log in again.");
+          setInvoices([]);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          setStatusMessage(errorData.error || "Unable to load invoices right now.");
+          setInvoices([]);
+        }
+      } catch (error) {
+        console.error("Failed to load invoices:", error);
+        setStatusMessage("Unable to load invoices. Please try again.");
+        setInvoices([]);
+      } finally {
+        if (isPullToRefresh) {
+          setIsRefreshing(false);
+        } else {
+          setIsLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadInvoices();
-  }, []);
+  }, [loadInvoices]);
 
-  const loadInvoices = async () => {
-    try {
-      const token = await AsyncStorage.getItem("tenant_token");
-      const email = await AsyncStorage.getItem("tenant_email");
-
-      if (!token || !email) return;
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/invoices/mobile?tenantEmail=${encodeURIComponent(email)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setInvoices(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Failed to load invoices:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRefresh = () => {
+    loadInvoices({ isPullToRefresh: true });
   };
 
   const handleDownloadPDF = async (invoiceId: number) => {
@@ -104,13 +140,12 @@ export default function PaymentsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-black">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6 border-b border-neutral-800">
-        <Text className="text-2xl font-bold text-white mb-1">Payments</Text>
-        <Text className="text-sm text-neutral-400">
-          View and download your invoices
-        </Text>
-      </View>
+      <AppHeader
+        showLogo
+        title="Payments"
+        subtitle="View and download your invoices"
+        horizontalPadding={horizontalPadding}
+      />
 
       {/* Invoices List */}
       {isLoading ? (
@@ -119,16 +154,22 @@ export default function PaymentsScreen() {
         </View>
       ) : invoices.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <FileText size={48} color="#71717a" />
+          <AxisLogo variant="icon" size="lg" />
           <Text className="text-neutral-400 text-center mt-4">
-            No invoices found
+            {statusMessage || "No invoices found"}
           </Text>
         </View>
       ) : (
         <FlatList
           data={invoices}
           keyExtractor={(item) => String(item.id)}
-          contentContainerClassName="p-6"
+          contentContainerStyle={{
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: 120,
+          }}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor="#ffffff" />
+          }
           renderItem={({ item }) => (
             <View className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 mb-4">
               <View className="flex-row items-start justify-between mb-3">

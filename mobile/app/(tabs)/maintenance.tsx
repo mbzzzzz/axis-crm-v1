@@ -1,9 +1,11 @@
-import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Alert, ScrollView, Image } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, Modal, TextInput, Alert, ScrollView, Image, RefreshControl, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Plus, Wrench, Clock, CheckCircle, X } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import { AppHeader } from "../../components/AppHeader";
+import { AxisLogo } from "../../components/AxisLogo";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "https://axis-crm-v1.vercel.app";
 
@@ -19,6 +21,7 @@ interface MaintenanceRequest {
 export default function MaintenanceScreen() {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newRequest, setNewRequest] = useState({
     title: "",
@@ -26,36 +29,77 @@ export default function MaintenanceScreen() {
     imageUri: null as string | null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasPropertyAccess, setHasPropertyAccess] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
+  const { width } = useWindowDimensions();
+  const horizontalPadding = width >= 768 ? 32 : 24;
+
+  const loadMaintenanceRequests = useCallback(
+    async ({ isPullToRefresh = false }: { isPullToRefresh?: boolean } = {}) => {
+      try {
+        if (isPullToRefresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        const [[, token], [, tenantId]] = await AsyncStorage.multiGet(["tenant_token", "tenant_id"]);
+
+        if (!token || !tenantId) {
+          setHasPropertyAccess(false);
+          setStatusMessage("Please sign in again to submit maintenance requests.");
+          setRequests([]);
+          return;
+        }
+
+        const response = await fetch(
+          `${API_BASE_URL}/api/maintenance/mobile?tenantId=${tenantId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setRequests(Array.isArray(data) ? data : []);
+          setHasPropertyAccess(true);
+          setStatusMessage("");
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 404 && errorData.code === "NO_PROPERTY") {
+            setHasPropertyAccess(false);
+            setStatusMessage(
+              errorData.error || "You no longer have an active property linked to this account."
+            );
+            setRequests([]);
+          } else if (response.status === 401) {
+            Alert.alert("Session expired", "Please log in again.");
+          } else {
+            Alert.alert("Error", errorData.error || "Failed to load maintenance requests.");
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load maintenance requests:", error);
+        Alert.alert("Error", "Unable to load maintenance requests.");
+      } finally {
+        if (isPullToRefresh) {
+          setIsRefreshing(false);
+        } else {
+          setIsLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     loadMaintenanceRequests();
-  }, []);
+  }, [loadMaintenanceRequests]);
 
-  const loadMaintenanceRequests = async () => {
-    try {
-      const token = await AsyncStorage.getItem("tenant_token");
-      const tenantId = await AsyncStorage.getItem("tenant_id");
-
-      if (!token || !tenantId) return;
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/maintenance/mobile?tenantId=${tenantId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setRequests(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Failed to load maintenance requests:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRefresh = () => {
+    loadMaintenanceRequests({ isPullToRefresh: true });
   };
 
   const getStatusColor = (status: string) => {
@@ -154,18 +198,22 @@ export default function MaintenanceScreen() {
   return (
     <SafeAreaView className="flex-1 bg-black">
       <View className="flex-1">
-        {/* Header */}
-        <View className="px-6 pt-4 pb-6 border-b border-neutral-800">
-          <Text className="text-2xl font-bold text-white mb-1">
-            Maintenance Requests
-          </Text>
-          <Text className="text-sm text-neutral-400">
-            Track and manage your repair requests
-          </Text>
-        </View>
+        <AppHeader
+          showLogo
+          title="Maintenance Requests"
+          subtitle="Track and manage your repair requests"
+          horizontalPadding={horizontalPadding}
+        />
 
         {/* Requests List */}
-        {isLoading ? (
+        {!hasPropertyAccess ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <AxisLogo variant="icon" size="lg" />
+            <Text className="text-neutral-400 text-center mt-4">
+              {statusMessage || "You do not currently have a property assigned for maintenance."}
+            </Text>
+          </View>
+        ) : isLoading ? (
           <View className="flex-1 items-center justify-center">
             <Text className="text-white">Loading...</Text>
           </View>
@@ -183,7 +231,12 @@ export default function MaintenanceScreen() {
           <FlatList
             data={requests}
             keyExtractor={(item) => String(item.id)}
-            contentContainerClassName="p-6"
+            contentContainerStyle={{
+              paddingHorizontal: horizontalPadding,
+              paddingBottom: 120,
+            }}
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
             renderItem={({ item }) => (
               <View className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 mb-4">
                 <View className="flex-row items-start justify-between mb-2">
@@ -213,13 +266,15 @@ export default function MaintenanceScreen() {
         )}
 
         {/* Floating Action Button */}
-        <TouchableOpacity
-          onPress={() => setIsModalOpen(true)}
-          className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-white items-center justify-center shadow-lg"
-          activeOpacity={0.8}
-        >
-          <Plus size={24} color="#000000" />
-        </TouchableOpacity>
+        {hasPropertyAccess && (
+          <TouchableOpacity
+            onPress={() => setIsModalOpen(true)}
+            className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-white items-center justify-center shadow-lg"
+            activeOpacity={0.8}
+          >
+            <Plus size={24} color="#000000" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Create Request Modal */}
