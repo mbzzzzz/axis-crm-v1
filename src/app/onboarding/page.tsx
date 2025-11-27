@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, DragEvent } from "react";
+import { useEffect, useState, DragEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ interface PreferencesResponse {
   onboardingCompleted: boolean;
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
@@ -423,6 +423,23 @@ export default function OnboardingPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <p>Loading onboarding...</p>
+          </div>
+        </div>
+      }
+    >
+      <OnboardingContent />
+    </Suspense>
   );
 }
 

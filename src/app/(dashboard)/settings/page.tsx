@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,15 @@ import MagicBento from "@/components/magic-bento";
 import { useCardTheme } from "@/components/card-theme-provider";
 import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
 
+type SettingsFormState = {
+  name: string;
+  companyName: string;
+  email: string;
+  currentPlan: string;
+  agentName: string;
+  agentAgency: string;
+};
+
 export default function SettingsPage() {
   const { data: session, isPending: isSessionPending } = useSession();
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +29,7 @@ export default function SettingsPage() {
     totalTenants: 0,
     averageRating: 4.8,
   });
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<SettingsFormState>({
     name: "",
     companyName: "",
     email: "",
@@ -28,8 +37,18 @@ export default function SettingsPage() {
     agentName: "",
     agentAgency: "",
   });
+  const initializedUserRef = useRef<string | null>(null);
+  const hasUserEditedRef = useRef(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
   const { theme, themeKey, setTheme, isSaving } = useCardTheme();
+
+  const updateFormData = (field: keyof SettingsFormState, value: string) => {
+    hasUserEditedRef.current = true;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   useEffect(() => {
     // Wait for session to load before fetching data
@@ -86,14 +105,27 @@ export default function SettingsPage() {
         });
         
         if (session?.user) {
-          setFormData({
-            name: session.user.name || "",
-            companyName: "",
-            email: session.user.email || "",
-            currentPlan: "Free",
-            agentName: preferences?.agentName || "",
-            agentAgency: preferences?.agentAgency || "",
-          });
+          const currentUserId = session.user.id;
+          const isNewUser = initializedUserRef.current !== currentUserId;
+          const canInitialize = isNewUser || !hasUserEditedRef.current;
+
+          if (canInitialize) {
+            if (isNewUser) {
+              hasUserEditedRef.current = false;
+            }
+
+            setFormData((prev) => ({
+              ...prev,
+              name: session.user.name || prev.name,
+              companyName: prev.companyName,
+              email: session.user.email || prev.email,
+              currentPlan: prev.currentPlan,
+              agentName: preferences?.agentName || prev.agentName,
+              agentAgency: preferences?.agentAgency || prev.agentAgency,
+            }));
+
+            initializedUserRef.current = currentUserId;
+          }
         }
       } catch (error) {
         console.error("Failed to fetch stats:", error);
@@ -204,7 +236,7 @@ export default function SettingsPage() {
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => updateFormData("name", e.target.value)}
                 placeholder="Enter your name"
               />
             </div>
@@ -213,7 +245,7 @@ export default function SettingsPage() {
               <Input
                 id="company"
                 value={formData.companyName}
-                onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                onChange={(e) => updateFormData("companyName", e.target.value)}
                 placeholder="Enter company name"
               />
             </div>
@@ -223,7 +255,7 @@ export default function SettingsPage() {
                 id="email"
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) => updateFormData("email", e.target.value)}
                 placeholder="Enter your email"
               />
             </div>
@@ -245,7 +277,7 @@ export default function SettingsPage() {
               <Input
                 id="agentName"
                 value={formData.agentName}
-                onChange={(e) => setFormData({ ...formData, agentName: e.target.value })}
+                onChange={(e) => updateFormData("agentName", e.target.value)}
                 placeholder="Enter agent name"
                 disabled={isSavingAgent}
               />
@@ -255,7 +287,7 @@ export default function SettingsPage() {
               <Input
                 id="agentAgency"
                 value={formData.agentAgency}
-                onChange={(e) => setFormData({ ...formData, agentAgency: e.target.value })}
+                onChange={(e) => updateFormData("agentAgency", e.target.value)}
                 placeholder="Enter organization name"
                 disabled={isSavingAgent}
               />
@@ -285,7 +317,7 @@ export default function SettingsPage() {
               <Input
                 id="plan"
                 value={formData.currentPlan}
-                onChange={(e) => setFormData({ ...formData, currentPlan: e.target.value })}
+                onChange={(e) => updateFormData("currentPlan", e.target.value)}
                 placeholder="Enter current plan"
               />
             </div>
