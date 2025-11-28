@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { CommandPalette } from "@/components/command-palette";
+import { CardThemeProvider } from "@/components/card-theme-provider";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
@@ -171,7 +172,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </header>
           <main className="flex-1 overflow-auto bg-background p-3 sm:p-4 md:p-6">
-            {children}
+            <CardThemeProvider userId={session?.user?.id || ""}>
+              {children}
+            </CardThemeProvider>
           </main>
         </SidebarInset>
         <Toaster />

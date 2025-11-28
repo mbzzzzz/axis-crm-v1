@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, ImagePlus, X, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
+import { ShaderAnimation } from "@/components/ui/shader-animation";
 
 type LogoMode = "text" | "image";
 
@@ -209,8 +210,9 @@ function OnboardingContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#020617] text-white">
-        <div className="glass-panel flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-6 text-sm text-slate-200 backdrop-blur-xl">
+      <div className="relative flex min-h-screen items-center justify-center text-white">
+        <ShaderAnimation />
+        <div className="relative z-10 glass-panel flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-8 py-6 text-sm text-slate-200 backdrop-blur-xl">
           <Loader2 className="h-8 w-8 animate-spin text-white" />
           <p>Preparing your onboarding experience…</p>
         </div>
@@ -219,12 +221,8 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#010314] text-white">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="shader shader-one" />
-        <div className="shader shader-two" />
-        <div className="shader-grid" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <ShaderAnimation />
 
       <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:py-16">
         <div className="space-y-3 text-center">
@@ -441,62 +439,6 @@ function OnboardingContent() {
           </CardContent>
         </Card>
       </div>
-
-      <style jsx>{`
-        .shader {
-          position: absolute;
-          filter: blur(120px);
-          opacity: 0.45;
-          transform: translate3d(0, 0, 0);
-          animation: float 18s ease-in-out infinite alternate;
-        }
-        .shader-one {
-          top: -10%;
-          left: -5%;
-          width: 45vw;
-          height: 45vw;
-          background: radial-gradient(circle at 30% 30%, rgba(120, 119, 255, 0.8), transparent 60%);
-          animation-delay: -6s;
-        }
-        .shader-two {
-          bottom: -15%;
-          right: -10%;
-          width: 50vw;
-          height: 50vw;
-          background: radial-gradient(circle at 70% 40%, rgba(14, 197, 255, 0.7), transparent 55%);
-        }
-        .shader-grid {
-          inset: 0;
-          background-image: linear-gradient(
-              120deg,
-              rgba(255, 255, 255, 0.03) 1px,
-              transparent 1px
-            ),
-            linear-gradient(0deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-          background-size: 80px 80px;
-          opacity: 0.35;
-          animation: shimmer 30s linear infinite;
-        }
-        @keyframes float {
-          0% {
-            transform: translate3d(0px, 0px, 0);
-          }
-          50% {
-            transform: translate3d(20px, -30px, 0);
-          }
-          100% {
-            transform: translate3d(-15px, 25px, 0);
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            transform: translate3d(0, 0, 0);
-          }
-          100% {
-            transform: translate3d(-80px, -80px, 0);
-          }
-        }
-      `}</style>
     </div>
   );
 }
