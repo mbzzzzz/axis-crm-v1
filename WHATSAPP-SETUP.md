@@ -1,6 +1,6 @@
-# WhatsApp WAHA Integration - Free Setup Guide
+# WhatsApp WAHA Integration - Complete Setup Guide
 
-This guide will help you set up WhatsApp integration using WAHA (WhatsApp HTTP API) completely free of charge.
+This guide covers everything you need to set up WhatsApp integration using WAHA (WhatsApp HTTP API) - both local development and production deployment.
 
 ## Prerequisites (All Free)
 
@@ -49,14 +49,15 @@ Dashboard available at http://localhost:3000
 
 ## Step 4: Configure Your Next.js App
 
+### For Local Development:
 1. Open your `.env.local` file in the project root
 2. Add these environment variables:
 
 ```env
-# WhatsApp Integration (WAHA)
+# WhatsApp Integration (WAHA) - Local
 WHATSAPP_API_URL=http://localhost:3000/api
 WHATSAPP_SESSION=default
-# WHATSAPP_API_KEY=  # Leave empty unless WAHA requires it (usually not needed for local)
+WHATSAPP_API_KEY=acc25055b75b4c938c565e694a201f38
 ```
 
 3. Save the file
@@ -65,6 +66,14 @@ WHATSAPP_SESSION=default
    # Stop the server (Ctrl+C) and restart:
    npm run dev
    ```
+
+### For Production (Railway + Vercel):
+Your production environment is already configured:
+- **Railway WAHA URL:** `https://waha-production-0727.up.railway.app/api`
+- **API Key:** `acc25055b75b4c938c565e694a201f38`
+- **Vercel Environment Variables:** Already set (Production, Preview, Development)
+
+**Note:** Environment variables are already configured in Vercel. No action needed!
 
 ## Step 5: Connect Your WhatsApp Account
 
@@ -168,28 +177,29 @@ To stop it later:
 docker stop waha
 ```
 
-## Production Deployment (Free Options)
+## Production Deployment (Already Configured)
 
-### Option 1: Railway (Free Tier)
-1. Sign up at https://railway.app (free tier available)
-2. Create new project → Deploy from Dockerfile
-3. Use this Dockerfile:
-   ```dockerfile
-   FROM devlikeapro/waha
-   EXPOSE 3000
-   ```
-4. Get the Railway URL and update `WHATSAPP_API_URL` in production env vars
+### Railway Deployment (Current Setup)
+Your WAHA service is already deployed on Railway:
+- **URL:** https://waha-production-0727.up.railway.app
+- **API URL:** https://waha-production-0727.up.railway.app/api
+- **Dashboard:** https://waha-production-0727.up.railway.app
+- **Username:** `admin`
+- **Password:** `833187f430e3464ead17032f10e62406`
 
-### Option 2: Render (Free Tier)
-1. Sign up at https://render.com (free tier available)
-2. New → Web Service → Use Docker
-3. Image: `devlikeapro/waha`
-4. Port: `3000`
-5. Get the Render URL and update `WHATSAPP_API_URL`
+### Vercel Environment Variables (Already Set)
+All WhatsApp environment variables are configured in your Vercel project:
+- `WHATSAPP_API_URL` = `https://waha-production-0727.up.railway.app/api`
+- `WHATSAPP_API_KEY` = `acc25055b75b4c938c565e694a201f38`
+- `WHATSAPP_SESSION` = `default`
 
-### Option 3: Keep Running Locally
-- Use a service like `pm2` or Windows Task Scheduler to keep WAHA running
-- Or use the background Docker command above
+**All set for Production, Preview, and Development environments!**
+
+### For Local Development
+If you want to run WAHA locally instead:
+- Install Docker Desktop
+- Run: `docker run -it --rm -p 3000:3000 --name waha devlikeapro/waha`
+- Use: `WHATSAPP_API_URL=http://localhost:3000/api` in `.env.local`
 
 ## Important Notes
 
