@@ -29,11 +29,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles, MessageSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
+import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 
 type LeaseStatus = "active" | "expired" | "pending" | "terminated";
 
@@ -473,6 +474,59 @@ function TenantsPageContent() {
     }
   };
 
+  const handleSendInvoiceWhatsApp = async (tenant: Tenant) => {
+    // First generate invoice if needed, then send via WhatsApp
+    if (!tenant.propertyId || !tenant.monthlyRent) {
+      toast.error("Tenant must have a property and monthly rent");
+      return;
+    }
+
+    if (!tenant.phone) {
+      toast.error("Tenant must have a phone number to send via WhatsApp");
+      return;
+    }
+
+    try {
+      // Generate invoice first
+      const generateResponse = await fetch("/api/invoices/generate-rent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenantId: tenant.id,
+        }),
+      });
+
+      let invoiceId: number;
+
+      if (!generateResponse.ok) {
+        const error = await generateResponse.json();
+        // If invoice already exists, use that invoice ID
+        if (error.code === 'DUPLICATE_INVOICE' && error.invoice) {
+          invoiceId = error.invoice.id;
+        } else {
+          toast.error(error.error || "Failed to generate invoice");
+          return;
+        }
+      } else {
+        const invoiceData = await generateResponse.json();
+        invoiceId = invoiceData.invoice.id;
+      }
+
+      // Send via WhatsApp
+      const result = await sendInvoiceWithCaption(invoiceId);
+
+      if (result.success) {
+        toast.success(result.message || "Rent invoice sent via WhatsApp");
+        fetchInvoices();
+      } else {
+        toast.error(result.error || result.message || "Failed to send invoice via WhatsApp");
+      }
+    } catch (error) {
+      console.error("WhatsApp send error:", error);
+      toast.error("Failed to send invoice via WhatsApp");
+    }
+  };
+
   const handlePreviewInvoice = async (invoice: Invoice) => {
     try {
       // Fetch property details if needed
@@ -904,6 +958,16 @@ const getPaymentSummary = (tenant: Tenant) => {
                             >
                               <Mail className="size-4" />
                             </Button>
+                            {tenant.phone && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSendInvoiceWhatsApp(tenant)}
+                                title="Send Rent Invoice via WhatsApp"
+                              >
+                                <MessageSquare className="size-4" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"

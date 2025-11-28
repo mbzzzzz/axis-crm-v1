@@ -27,13 +27,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail } from "lucide-react";
+import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail, MessageSquare } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { ImportExportDialog } from "@/components/import-export-dialog";
 import { InvoiceForm } from "@/components/invoice-form";
 import { downloadInvoicePDF } from "@/lib/pdf-generator";
+import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 
 interface Invoice {
   id: number;
@@ -213,6 +214,22 @@ export default function InvoicesPage() {
       }
     } catch (error) {
       toast.error("Failed to send invoice");
+    }
+  };
+
+  const handleSendInvoiceWhatsApp = async (invoice: Invoice) => {
+    try {
+      const result = await sendInvoiceWithCaption(invoice.id);
+
+      if (result.success) {
+        toast.success(result.message || "Invoice sent via WhatsApp successfully");
+        fetchInvoices(); // Refresh to update status
+      } else {
+        toast.error(result.error || result.message || "Failed to send invoice via WhatsApp");
+      }
+    } catch (error) {
+      console.error("WhatsApp send error:", error);
+      toast.error("Failed to send invoice via WhatsApp");
     }
   };
 
@@ -501,14 +518,26 @@ export default function InvoicesPage() {
                           <Download className="size-4" />
                         </Button>
                         {(invoice.paymentStatus === "overdue" || invoice.paymentStatus === "draft" || invoice.paymentStatus === "sent") && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSendInvoice(invoice)}
-                            title="Send invoice via email"
-                          >
-                            <Mail className="size-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSendInvoice(invoice)}
+                              title="Send invoice via email"
+                            >
+                              <Mail className="size-4" />
+                            </Button>
+                            {invoice.clientPhone && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSendInvoiceWhatsApp(invoice)}
+                                title="Send invoice via WhatsApp"
+                              >
+                                <MessageSquare className="size-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                         {invoice.paymentStatus === "draft" && (
                           <>

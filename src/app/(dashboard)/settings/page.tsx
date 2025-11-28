@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import MagicBento from "@/components/magic-bento";
 import { useCardTheme } from "@/components/card-theme-provider";
+import Link from "next/link";
+import { MessageSquare } from "lucide-react";
 import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
 import {
   FEATURE_LABELS,
@@ -384,6 +386,25 @@ export default function SettingsPage() {
             <Button className="w-full" onClick={handleSavePlan} disabled={isSavingPlan}>
               {isSavingPlan ? "Saving..." : "Update Plan"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* WhatsApp Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>WhatsApp Integration</CardTitle>
+            <CardDescription>Connect WhatsApp to send invoices and messages</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Link your WhatsApp account to send invoices and notifications directly to tenants via WhatsApp.
+            </p>
+            <Link href="/settings/whatsapp">
+              <Button variant="outline" className="w-full">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Configure WhatsApp
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
