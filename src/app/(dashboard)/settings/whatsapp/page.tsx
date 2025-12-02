@@ -30,7 +30,20 @@ export default function WhatsAppSettingsPage() {
       const response = await fetch("/api/whatsapp/status");
       
       if (!response.ok) {
-        throw new Error(`Failed to check status: ${response.statusText}`);
+        // Try to get detailed error from response
+        let errorMessage = `Failed to check status: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += ` - ${errorData.details}`;
+            }
+          }
+        } catch {
+          // If JSON parsing fails, use the default message
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -64,7 +77,20 @@ export default function WhatsAppSettingsPage() {
       const response = await fetch("/api/whatsapp/qr");
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch QR code: ${response.statusText}`);
+        // Try to get detailed error from response
+        let errorMessage = `Failed to fetch QR code: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+            if (errorData.details) {
+              errorMessage += ` - ${errorData.details}`;
+            }
+          }
+        } catch {
+          // If JSON parsing fails, use the default message
+        }
+        throw new Error(errorMessage);
       }
 
       const blob = await response.blob();

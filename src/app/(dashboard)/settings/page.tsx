@@ -399,12 +399,12 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               Link your WhatsApp account to send invoices and notifications directly to tenants via WhatsApp.
             </p>
-            <Link href="/settings/whatsapp">
-              <Button variant="outline" className="w-full">
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/settings/whatsapp">
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Configure WhatsApp
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
