@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { maintenanceRequests, properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { logActivityServer } from '@/lib/audit-log';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -232,6 +233,12 @@ export async function POST(request: NextRequest) {
 
     const newRequest = await db.insert(maintenanceRequests).values(insertData).returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'create', 'maintenance_request', `Created maintenance request: ${newRequest[0].title}`, newRequest[0].id, {
+      urgency: newRequest[0].urgency,
+      status: newRequest[0].status,
+    });
+
     return NextResponse.json(newRequest[0], { status: 201 });
   } catch (error) {
     console.error('POST error:', error);
@@ -385,6 +392,9 @@ export async function PUT(request: NextRequest) {
       )
       .returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'update', 'maintenance_request', `Updated maintenance request: ${updatedRequest[0].title}`, updatedRequest[0].id);
+
     return NextResponse.json(updatedRequest[0], { status: 200 });
   } catch (error) {
     console.error('PUT error:', error);
@@ -442,6 +452,9 @@ export async function DELETE(request: NextRequest) {
         )
       )
       .returning();
+
+    // Log activity
+    await logActivityServer(user.id, 'delete', 'maintenance_request', `Deleted maintenance request: ${deleted[0].title}`, deleted[0].id);
 
     return NextResponse.json(
       {

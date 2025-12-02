@@ -16,7 +16,13 @@ export default function TermsOfServicePage() {
       {/* Header */}
       <header className="relative z-10 border-b border-white/20 bg-black/30 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-          <AxisLogo variant="full" size="navbar" className="text-white" />
+          <button
+            onClick={() => router.push("/")}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label="Go to home page"
+          >
+            <AxisLogo variant="full" size="navbar" className="text-white" />
+          </button>
           <nav className="flex items-center gap-2 sm:gap-4" aria-label="Main navigation">
             <Button 
               variant="ghost" 

@@ -31,6 +31,11 @@ export function RecentActivity() {
 
   useEffect(() => {
     fetchActivities();
+    // Refresh every 30 seconds to show new activities
+    const interval = setInterval(() => {
+      fetchActivities();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchActivities = async () => {
@@ -48,6 +53,21 @@ export function RecentActivity() {
   };
 
   const handleActivityClick = async (activity: ActivityLog) => {
+    // Don't open dialogs for deleted items
+    if (activity.action === "delete") {
+      // For deleted items, just navigate to the list page
+      if (activity.entityType === "property") {
+        router.push("/properties");
+      } else if (activity.entityType === "tenant") {
+        router.push("/tenants");
+      } else if (activity.entityType === "maintenance_request") {
+        router.push("/maintenance");
+      } else if (activity.entityType === "invoice") {
+        router.push("/invoices");
+      }
+      return;
+    }
+
     if (activity.entityType === "property" && activity.entityId) {
       try {
         const response = await fetch(`/api/properties?id=${activity.entityId}`);
@@ -55,6 +75,11 @@ export function RecentActivity() {
           const property = await response.json();
           setSelectedProperty(property);
           setIsPropertyDialogOpen(true);
+        } else if (response.status === 404) {
+          // Property not found (might have been deleted)
+          console.warn("Property not found, may have been deleted");
+        } else {
+          console.error("Failed to fetch property: Response not OK");
         }
       } catch (error) {
         console.error("Failed to fetch property:", error);
@@ -63,6 +88,8 @@ export function RecentActivity() {
       router.push("/tenants");
     } else if (activity.entityType === "maintenance_request" && activity.entityId) {
       router.push(`/maintenance`);
+    } else if (activity.entityType === "invoice" && activity.entityId) {
+      router.push("/invoices");
     }
   };
 
@@ -144,17 +171,27 @@ export function RecentActivity() {
           
           <div className="space-y-4">
             {activities.map((activity, index) => {
-              const isClickable = 
-                (activity.entityType === "property" && activity.entityId) ||
-                (activity.entityType === "tenant" && activity.entityId) ||
-                (activity.entityType === "maintenance_request" && activity.entityId);
+              // All activities with entityId are clickable
+              const isClickable = !!activity.entityId && (
+                activity.entityType === "property" ||
+                activity.entityType === "tenant" ||
+                activity.entityType === "maintenance_request" ||
+                activity.entityType === "invoice"
+              );
               
               return (
                 <div 
                   key={activity.id} 
-                  className="relative flex items-start gap-3"
+                  className={`relative flex items-start gap-3 ${isClickable ? "cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors" : ""}`}
                   onClick={() => isClickable && handleActivityClick(activity)}
-                  style={{ cursor: isClickable ? "pointer" : "default" }}
+                  role={isClickable ? "button" : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
+                  onKeyDown={(e) => {
+                    if (isClickable && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      handleActivityClick(activity);
+                    }
+                  }}
                 >
                   {/* Timeline dot */}
                   <div className="relative z-10 flex items-center justify-center">

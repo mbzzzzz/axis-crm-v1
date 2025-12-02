@@ -129,7 +129,7 @@ export default function SettingsPage() {
             setFormData((prev) => ({
               ...prev,
               name: session.user.name || prev.name,
-              companyName: prev.companyName,
+              companyName: preferences?.organizationName || prev.companyName,
               email: session.user.email || prev.email,
               agentName: preferences?.agentName || prev.agentName,
               agentAgency: preferences?.agentAgency || prev.agentAgency,
@@ -150,9 +150,39 @@ export default function SettingsPage() {
     fetchStats();
   }, [session, isSessionPending]);
 
-  const handleSave = () => {
-    toast.success("Settings saved successfully");
-    // In a real app, this would call an API to save settings
+  const handleSave = async () => {
+    try {
+      // Update user metadata in Clerk for name and email
+      if (session?.user) {
+        // Note: Email updates typically require re-authentication in Clerk
+        // We'll only update the name here
+        const response = await fetch("/api/preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationName: formData.companyName || null,
+          }),
+        });
+
+        if (response.ok) {
+          const savedData = await response.json();
+          // Update form data with saved values
+          setFormData(prev => ({
+            ...prev,
+            companyName: savedData.organizationName || "",
+          }));
+          toast.success("Settings saved successfully");
+        } else {
+          const error = await response.json();
+          toast.error(error.error || "Failed to save settings");
+        }
+      } else {
+        toast.error("Please sign in to save settings");
+      }
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      toast.error("Failed to save settings. Please try again.");
+    }
   };
 
   const handleSaveAgentInfo = async () => {

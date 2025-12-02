@@ -22,6 +22,7 @@ import {
   Bed,
   Bath,
   Edit,
+  ExternalLink,
 } from "lucide-react";
 import { PropertyForm } from "./property-form";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
@@ -219,6 +220,81 @@ export function PropertyDetailsDialog({
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {property.description || "No description available"}
                   </p>
+                </CardContent>
+              </Card>
+
+              {/* Extension Buttons - List on External Sites */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">List on External Sites</CardTitle>
+                  <CardDescription>Open listing pages in new tabs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.zameen.com/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Zameen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.zillow.com/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Zillow
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.realtor.com/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Realtor
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.bayut.com/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Bayut
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.propertyfinder.ae/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Property Finder
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.dubizzle.com/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Dubizzle
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open("https://www.propsearch.ae/", "_blank")}
+                      className="justify-start"
+                    >
+                      <ExternalLink className="mr-2 size-4" />
+                      Propsearch
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

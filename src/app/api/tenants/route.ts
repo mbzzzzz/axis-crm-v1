@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { tenants, properties } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
+import { logActivityServer } from '@/lib/audit-log';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -218,6 +219,12 @@ export async function POST(request: NextRequest) {
 
     const newTenant = await db.insert(tenants).values(insertData).returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'create', 'tenant', `Created tenant: ${newTenant[0].name}`, newTenant[0].id, {
+      email: newTenant[0].email,
+      leaseStatus: newTenant[0].leaseStatus,
+    });
+
     return NextResponse.json(newTenant[0], { status: 201 });
   } catch (error) {
     console.error('POST error:', error);
@@ -364,6 +371,9 @@ export async function PUT(request: NextRequest) {
       )
       .returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'update', 'tenant', `Updated tenant: ${updatedTenant[0].name}`, updatedTenant[0].id);
+
     return NextResponse.json(updatedTenant[0], { status: 200 });
   } catch (error) {
     console.error('PUT error:', error);
@@ -421,6 +431,9 @@ export async function DELETE(request: NextRequest) {
         )
       )
       .returning();
+
+    // Log activity
+    await logActivityServer(user.id, 'delete', 'tenant', `Deleted tenant: ${deleted[0].name}`, deleted[0].id);
 
     return NextResponse.json(
       {

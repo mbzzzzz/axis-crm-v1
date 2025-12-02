@@ -5,6 +5,7 @@ import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import postgres from 'postgres';
 import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
+import { logActivityServer } from '@/lib/audit-log';
 
 const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family'];
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
@@ -531,6 +532,14 @@ export async function POST(request: NextRequest) {
                 console.log(`[POST /api/properties] User ${user.id} created property ${property.id}`);
             }
 
+            // Log activity (property from raw SQL uses snake_case)
+            const propertyTitle = property.title || (property as any).title;
+            await logActivityServer(user.id, 'create', 'property', `Created property: ${propertyTitle}`, property.id, {
+              address: property.address || (property as any).address,
+              propertyType: (property as any).property_type || property.propertyType,
+              status: property.status,
+            });
+
             return NextResponse.json(property, { status: 201 });
         } finally {
             await pgClient.end();
@@ -865,6 +874,9 @@ export async function PUT(request: NextRequest) {
       )
       .returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'update', 'property', `Updated property: ${updatedProperty[0].title}`, updatedProperty[0].id);
+
     return NextResponse.json(updatedProperty[0], { status: 200 });
   } catch (error) {
     console.error('PUT error:', error);
@@ -924,6 +936,9 @@ export async function DELETE(request: NextRequest) {
         )
       )
       .returning();
+
+    // Log activity
+    await logActivityServer(user.id, 'delete', 'property', `Deleted property: ${deleted[0].title}`, deleted[0].id);
 
     return NextResponse.json(
       {

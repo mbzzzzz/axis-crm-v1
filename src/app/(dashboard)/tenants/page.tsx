@@ -29,11 +29,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles, MessageSquare } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles, MessageSquare, Download } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { generateInvoicePDF } from "@/lib/pdf-generator";
+import { generateInvoicePDF, downloadInvoicePDF } from "@/lib/pdf-generator";
 import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 
 type LeaseStatus = "active" | "expired" | "pending" | "terminated";
@@ -100,6 +100,8 @@ function TenantsPageContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExtractingLease, setIsExtractingLease] = useState(false);
   const [revokingTenantId, setRevokingTenantId] = useState<number | null>(null);
+  const [selectedInvoiceForPreview, setSelectedInvoiceForPreview] = useState<Invoice | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [newTenant, setNewTenant] = useState({
     name: "",
     email: "",
@@ -529,54 +531,92 @@ function TenantsPageContent() {
 
   const handlePreviewInvoice = async (invoice: Invoice) => {
     try {
+      // Fetch full invoice details
+      const response = await fetch(`/api/invoices?id=${invoice.id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch invoice details");
+      }
+      const fullInvoice = await response.json();
+      setSelectedInvoiceForPreview(fullInvoice);
+      setIsPreviewOpen(true);
+    } catch (error) {
+      console.error("Failed to preview invoice:", error);
+      toast.error("Failed to preview invoice");
+    }
+  };
+
+  const handleDownloadInvoice = async (invoice: Invoice) => {
+    try {
+      // Fetch full invoice details
+      const response = await fetch(`/api/invoices?id=${invoice.id}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch invoice details");
+      }
+      const fullInvoice = await response.json();
+
       // Fetch property details if needed
       let property = null;
-      if (invoice.propertyId) {
-        const propertyResponse = await fetch(`/api/properties?id=${invoice.propertyId}`);
+      if (fullInvoice.propertyId) {
+        const propertyResponse = await fetch(`/api/properties?id=${fullInvoice.propertyId}`);
         if (propertyResponse.ok) {
           property = await propertyResponse.json();
         }
       }
 
       const pdfData = {
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceDate: invoice.invoiceDate,
-        dueDate: invoice.dueDate,
+        invoiceNumber: fullInvoice.invoiceNumber,
+        invoiceDate: fullInvoice.invoiceDate,
+        dueDate: fullInvoice.dueDate,
         propertyAddress: property?.address,
         propertyUnit: property?.unit,
         propertyType: property?.propertyType,
-        clientName: invoice.clientName,
-        clientEmail: invoice.clientEmail,
-        clientAddress: invoice.clientAddress,
-        clientPhone: invoice.clientPhone,
-        agentName: invoice.agentName,
-        agentAgency: invoice.agentAgency,
-        agentEmail: invoice.agentEmail,
-        agentPhone: invoice.agentPhone,
-        ownerName: invoice.ownerName,
-        ownerEmail: invoice.ownerEmail,
-        ownerPhone: invoice.ownerPhone,
-        items: invoice.items || [],
-        subtotal: invoice.subtotal || 0,
-        taxRate: invoice.taxRate || 0,
-        taxAmount: invoice.taxAmount || 0,
-        totalAmount: invoice.totalAmount,
-        paymentTerms: invoice.paymentTerms,
-        lateFeePolicy: invoice.lateFeePolicy,
-        notes: invoice.notes,
-        logoMode: invoice.logoMode,
-        logoDataUrl: invoice.logoDataUrl,
-        logoWidth: invoice.logoWidth,
-        companyName: invoice.companyName,
-        companyTagline: invoice.companyTagline,
+        clientName: fullInvoice.clientName,
+        clientEmail: fullInvoice.clientEmail,
+        clientAddress: fullInvoice.clientAddress,
+        clientPhone: fullInvoice.clientPhone,
+        agentName: fullInvoice.agentName,
+        agentAgency: fullInvoice.agentAgency,
+        agentEmail: fullInvoice.agentEmail,
+        agentPhone: fullInvoice.agentPhone,
+        ownerName: fullInvoice.ownerName,
+        ownerEmail: fullInvoice.ownerEmail,
+        ownerPhone: fullInvoice.ownerPhone,
+        items: fullInvoice.items || [],
+        subtotal: fullInvoice.subtotal || 0,
+        taxRate: fullInvoice.taxRate || 0,
+        taxAmount: fullInvoice.taxAmount || 0,
+        totalAmount: fullInvoice.totalAmount,
+        paymentTerms: fullInvoice.paymentTerms,
+        lateFeePolicy: fullInvoice.lateFeePolicy,
+        notes: fullInvoice.notes,
+        logoMode: fullInvoice.logoMode,
+        logoDataUrl: fullInvoice.logoDataUrl,
+        logoWidth: fullInvoice.logoWidth,
+        companyName: fullInvoice.companyName,
+        companyTagline: fullInvoice.companyTagline,
       } as any;
 
-      const pdf = generateInvoicePDF(pdfData);
-      pdf.output('dataurlnewwindow');
+      downloadInvoicePDF(pdfData, `invoice-${fullInvoice.invoiceNumber}.pdf`);
+      toast.success("Invoice downloaded successfully");
     } catch (error) {
-      console.error("Failed to preview invoice:", error);
-      toast.error("Failed to preview invoice");
+      console.error("Failed to download PDF:", error);
+      toast.error("Failed to download PDF");
     }
+  };
+
+  const getStatusBadge = (invoice: Invoice) => {
+    const statusColors: Record<string, string> = {
+      paid: "bg-green-100 text-green-700",
+      overdue: "bg-red-100 text-red-700",
+      sent: "bg-blue-100 text-blue-700",
+      draft: "bg-gray-100 text-gray-700",
+      cancelled: "bg-slate-100 text-slate-700",
+    };
+    return (
+      <Badge className={statusColors[invoice.paymentStatus] || statusColors.draft}>
+        {invoice.paymentStatus.charAt(0).toUpperCase() + invoice.paymentStatus.slice(1)}
+      </Badge>
+    );
   };
 
   const getTenantInvoices = (tenantId: number) => {
@@ -905,43 +945,56 @@ const getPaymentSummary = (tenant: Tenant) => {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                const tenantInvoices = getTenantInvoices(tenant.id);
-                                if (tenantInvoices.length > 0) {
-                                  if (tenantInvoices.length === 1) {
-                                    handlePreviewInvoice(tenantInvoices[0]);
-                                  } else {
-                                    // Show dialog with list of invoices
-                                    toast.info(`${tenantInvoices.length} invoices found. Previewing the latest.`);
-                                    const latestInvoice = tenantInvoices.sort((a, b) => 
-                                      new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
-                                    )[0];
-                                    handlePreviewInvoice(latestInvoice);
-                                  }
-                                } else {
-                                  // Generate invoice first, then preview
-                                  await handleGenerateInvoice(tenant);
-                                  // Wait a moment for invoice to be created, then fetch and preview
-                                  setTimeout(async () => {
-                                    await fetchInvoices();
-                                    const updatedInvoices = getTenantInvoices(tenant.id);
-                                    if (updatedInvoices.length > 0) {
-                                      const latestInvoice = updatedInvoices.sort((a, b) => 
-                                        new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
-                                      )[0];
-                                      handlePreviewInvoice(latestInvoice);
-                                    }
-                                  }, 1000);
-                                }
-                              }}
-                              title="View Invoice Preview"
-                            >
-                              <Eye className="size-4 mr-1" />
-                              View Invoice
-                            </Button>
+                            {(() => {
+                              const tenantInvoices = getTenantInvoices(tenant.id);
+                              const latestInvoice = tenantInvoices.length > 0
+                                ? tenantInvoices.sort((a, b) => 
+                                    new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+                                  )[0]
+                                : null;
+
+                              return (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                      if (latestInvoice) {
+                                        handlePreviewInvoice(latestInvoice);
+                                      } else {
+                                        // Generate invoice first, then preview
+                                        await handleGenerateInvoice(tenant);
+                                        // Wait a moment for invoice to be created, then fetch and preview
+                                        setTimeout(async () => {
+                                          await fetchInvoices();
+                                          const updatedInvoices = getTenantInvoices(tenant.id);
+                                          if (updatedInvoices.length > 0) {
+                                            const updatedLatest = updatedInvoices.sort((a, b) => 
+                                              new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+                                            )[0];
+                                            handlePreviewInvoice(updatedLatest);
+                                          }
+                                        }, 1000);
+                                      }
+                                    }}
+                                    title="View Invoice Preview"
+                                  >
+                                    <Eye className="size-4 mr-1" />
+                                    View Invoice
+                                  </Button>
+                                  {latestInvoice && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDownloadInvoice(latestInvoice)}
+                                      title="Download Invoice PDF"
+                                    >
+                                      <Download className="size-4" />
+                                    </Button>
+                                  )}
+                                </>
+                              );
+                            })()}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -1013,6 +1066,143 @@ const getPaymentSummary = (tenant: Tenant) => {
             )}
         </CardContent>
       </Card>
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="relative">
+            <DialogTitle className="pr-8">
+              Invoice #{selectedInvoiceForPreview?.invoiceNumber || "N/A"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedInvoiceForPreview && getStatusBadge(selectedInvoiceForPreview)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedInvoiceForPreview && (
+            <div className="space-y-6 mt-4">
+              {/* Bill To Section */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-lg">Bill To</h3>
+                <div className="space-y-1 text-sm">
+                  <p className="font-medium">{selectedInvoiceForPreview.clientName}</p>
+                  {selectedInvoiceForPreview.clientAddress && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientAddress}</p>
+                  )}
+                  {selectedInvoiceForPreview.clientEmail && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientEmail}</p>
+                  )}
+                  {selectedInvoiceForPreview.clientPhone && (
+                    <p className="text-muted-foreground">{selectedInvoiceForPreview.clientPhone}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Invoice Details */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Issue Date</p>
+                  <p className="font-medium">
+                    {new Date(selectedInvoiceForPreview.invoiceDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Due Date</p>
+                  <p className="font-medium">
+                    {new Date(selectedInvoiceForPreview.dueDate).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Line Items Table */}
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedInvoiceForPreview.items && Array.isArray(selectedInvoiceForPreview.items) && selectedInvoiceForPreview.items.length > 0 ? (
+                      selectedInvoiceForPreview.items.map((item: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell>
+                            {item.description || item.name || "Item"}
+                            {item.quantity && item.rate && (
+                              <span className="text-muted-foreground text-xs ml-2">
+                                (Qty: {item.quantity} × ${item.rate})
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ${(item.amount || item.total || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                          No line items
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-2 border-t pt-4">
+                {selectedInvoiceForPreview.subtotal !== undefined && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-medium">
+                      ${selectedInvoiceForPreview.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+                {selectedInvoiceForPreview.taxRate !== undefined && selectedInvoiceForPreview.taxRate > 0 && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        Tax ({selectedInvoiceForPreview.taxRate}%)
+                      </span>
+                      <span className="font-medium">
+                        ${(selectedInvoiceForPreview.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-lg font-bold border-t pt-2">
+                  <span>Total Amount</span>
+                  <span>
+                    ${selectedInvoiceForPreview.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              {selectedInvoiceForPreview.notes && (
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-sm">Notes</h4>
+                  <p className="text-sm text-muted-foreground">{selectedInvoiceForPreview.notes}</p>
+                </div>
+              )}
+
+              {/* Download Button */}
+              <div className="flex justify-end pt-4 border-t">
+                <Button
+                  onClick={() => handleDownloadInvoice(selectedInvoiceForPreview)}
+                  variant="outline"
+                >
+                  <Download className="size-4 mr-2" />
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

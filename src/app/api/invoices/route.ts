@@ -4,6 +4,7 @@ import { invoices, properties, tenants } from '@/db/schema';
 import { eq, like, and, or, desc } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
+import { logActivityServer } from '@/lib/audit-log';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -403,6 +404,12 @@ export async function POST(request: NextRequest) {
       .values(insertData)
       .returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'create', 'invoice', `Created invoice: ${newInvoice[0].invoiceNumber} for ${newInvoice[0].clientName}`, newInvoice[0].id, {
+      totalAmount: newInvoice[0].totalAmount,
+      paymentStatus: newInvoice[0].paymentStatus,
+    });
+
     return NextResponse.json(newInvoice[0], { status: 201 });
   } catch (error) {
     console.error('POST error:', error);
@@ -742,6 +749,9 @@ export async function PUT(request: NextRequest) {
       )
       .returning();
 
+    // Log activity
+    await logActivityServer(user.id, 'update', 'invoice', `Updated invoice: ${updatedInvoice[0].invoiceNumber}`, updatedInvoice[0].id);
+
     return NextResponse.json(updatedInvoice[0], { status: 200 });
   } catch (error) {
     console.error('PUT error:', error);
@@ -798,6 +808,9 @@ export async function DELETE(request: NextRequest) {
         )
       )
       .returning();
+
+    // Log activity
+    await logActivityServer(user.id, 'delete', 'invoice', `Deleted invoice: ${deleted[0].invoiceNumber}`, deleted[0].id);
 
     return NextResponse.json({
       message: 'Invoice deleted successfully',
