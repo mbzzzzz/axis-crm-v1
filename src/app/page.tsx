@@ -170,6 +170,9 @@ export default function Home() {
           <nav className="mt-4 flex flex-wrap justify-center gap-4 sm:gap-6" aria-label="Footer navigation">
             <a href="/login" className="hover:text-white transition-colors">Sign In</a>
             <a href="/register" className="hover:text-white transition-colors">Get Started</a>
+            <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms-of-service" className="hover:text-white transition-colors">Terms of Service</a>
+            <a href="/compliance" className="hover:text-white transition-colors">Compliance</a>
           </nav>
         </div>
       </footer>
