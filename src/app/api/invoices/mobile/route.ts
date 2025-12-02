@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find tenant by email
+    // Find tenant by email - ensures tenants only see invoices for their email
     const tenant = await db
       .select()
       .from(tenants)
@@ -64,9 +64,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const tenantId = tenant[0].id;
+    const tenantData = tenant[0];
 
-    // Fetch invoices for this tenant
+    // Verify tenant ID from database matches token
+    if (tenantData.id !== decoded.tenantId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - tenant ID mismatch', code: 'UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
+
+    // Fetch invoices ONLY for this tenant - filtered by tenantId linked to their email
     const tenantInvoices = await db
       .select({
         id: invoices.id,
@@ -77,7 +85,7 @@ export async function GET(request: NextRequest) {
         paymentStatus: invoices.paymentStatus,
       })
       .from(invoices)
-      .where(eq(invoices.tenantId, tenantId))
+      .where(eq(invoices.tenantId, tenantData.id))
       .orderBy(desc(invoices.invoiceDate));
 
     return NextResponse.json(tenantInvoices, { status: 200 });

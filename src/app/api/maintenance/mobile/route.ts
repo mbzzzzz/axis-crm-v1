@@ -50,8 +50,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch maintenance requests for tenant's property
-    // First, we need to get the tenant's propertyId
+    // Fetch tenant by ID and verify email matches token for security
     const tenant = await db
       .select()
       .from(tenants)
@@ -65,6 +64,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Verify tenant email matches token email - ensures tenants only see their own property's requests
+    if (tenant[0].email.toLowerCase() !== decoded.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Unauthorized - email mismatch', code: 'UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
+
     const propertyId = tenant[0].propertyId;
 
     if (!propertyId) {
@@ -74,7 +81,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch maintenance requests for the property
+    // Fetch maintenance requests ONLY for the tenant's property
+    // These requests are created by tenants and show up in landlord's panel via userId
     const requests = await db
       .select({
         id: maintenanceRequests.id,
@@ -126,7 +134,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get tenant's propertyId
+    // Get tenant's propertyId - verify tenant exists and has property linked to their email
     const { tenants } = await import('@/db/schema-postgres');
     const tenant = await db
       .select()
@@ -134,16 +142,29 @@ export async function POST(request: NextRequest) {
       .where(eq(tenants.id, decoded.tenantId))
       .limit(1);
 
-    if (tenant.length === 0 || !tenant[0].propertyId) {
+    if (tenant.length === 0) {
       return NextResponse.json(
-        { error: 'Tenant property not found', code: 'NO_PROPERTY' },
+        { error: 'Tenant not found', code: 'TENANT_NOT_FOUND' },
+        { status: 404 }
+      );
+    }
+
+    // Verify tenant email matches token email for security
+    if (tenant[0].email.toLowerCase() !== decoded.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Unauthorized - email mismatch', code: 'UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
+
+    if (!tenant[0].propertyId) {
+      return NextResponse.json(
+        { error: 'No property assigned to this tenant. Please contact your property manager.', code: 'NO_PROPERTY' },
         { status: 400 }
       );
     }
 
-    // Create maintenance request
-    // Note: We use the property owner's userId for the request
-    // In a real scenario, you'd want to track which tenant created it
+    // Fetch property to get owner's userId - ensures request shows in landlord's panel
     const property = await db
       .select()
       .from(properties)
@@ -158,20 +179,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create maintenance request with property owner's userId
-    // This ensures the request appears in the agent's web app
-    // The userId is the property owner (agent), so the request will show up
-    // in their maintenance dashboard filtered by userId
+    // CRITICAL: Using property owner's userId ensures the request appears in the landlord's/agent's web app
+    // The maintenance panel filters by userId, so requests created by tenants will show up
+    // in the property owner's maintenance dashboard
     const newRequest = await db
       .insert(maintenanceRequests)
       .values({
-        userId: property[0].userId, // Property owner's userId (agent) - ensures it shows in web app
-        propertyId: tenant[0].propertyId, // Tenant's property - ensures it's linked correctly
+        userId: property[0].userId, // Property owner's userId (landlord/agent) - ensures it shows in web app maintenance panel
+        propertyId: tenant[0].propertyId!, // Tenant's property - ensures it's linked correctly
         title: title.trim(),
         description: description.trim(),
         urgency: 'medium',
         status: 'open',
         location: property[0].address || '',
         reportedDate: new Date().toISOString().split('T')[0],
+        notes: `Created by tenant: ${tenant[0].name} (${tenant[0].email})`, // Track which tenant created it
       })
       .returning();
 

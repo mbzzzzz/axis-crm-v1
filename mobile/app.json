@@ -30,7 +30,16 @@
     },
     "scheme": "axiscrm",
     "plugins": [
-      "expo-router"
-    ]
+      "expo-router",
+      "expo-asset"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "802af7e9-4af0-4cfe-9d09-a9618eeb0827"
+      }
+    }
   }
 }

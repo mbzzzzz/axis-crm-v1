@@ -37,6 +37,7 @@ interface SortableMaintenanceCardProps {
   formatDate: (dateString: string) => string;
   onStatusChange?: (newStatus: string) => void;
   availableStatuses?: string[];
+  onClick?: (request: MaintenanceRequest) => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -52,6 +53,7 @@ export function SortableMaintenanceCard({
   formatDate,
   onStatusChange,
   availableStatuses = [],
+  onClick,
 }: SortableMaintenanceCardProps) {
   const {
     attributes,
@@ -75,9 +77,24 @@ export function SortableMaintenanceCard({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger click when dragging or clicking on dropdown
+    if (isDragging) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('[role="menuitem"]') || target.closest('button')) {
+      return;
+    }
+    if (onClick) {
+      onClick(request);
+    }
+  };
+
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+      <Card 
+        className="cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+        onClick={handleCardClick}
+      >
         <CardContent className="p-4 space-y-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 font-semibold text-sm">

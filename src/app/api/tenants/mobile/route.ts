@@ -33,31 +33,27 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const idParam = searchParams.get('id');
     const emailParam = searchParams.get('email')?.toLowerCase() ?? null;
 
-    if (!idParam && !emailParam) {
+    // Always use email from token for security - tenants can only access their own data
+    const tenantEmail = decoded.email?.toLowerCase();
+    
+    if (!tenantEmail) {
       return NextResponse.json(
-        { error: 'Tenant identifier is required', code: 'MISSING_IDENTIFIER' },
-        { status: 400 }
+        { error: 'Invalid token - email not found', code: 'INVALID_TOKEN' },
+        { status: 401 }
       );
     }
 
-    // Ensure identifiers line up with token claims
-    if (idParam && parseInt(idParam) !== decoded.tenantId) {
+    // Verify email param matches token email (if provided)
+    if (emailParam && emailParam !== tenantEmail) {
       return NextResponse.json(
-        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
+        { error: 'Unauthorized - email mismatch', code: 'UNAUTHORIZED' },
         { status: 403 }
       );
     }
 
-    if (emailParam && decoded.email && emailParam !== decoded.email.toLowerCase()) {
-      return NextResponse.json(
-        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-        { status: 403 }
-      );
-    }
-
+    // Fetch tenant by email from token - ensures tenants only see their own property
     const tenant = await db
       .select({
         id: tenants.id,
@@ -71,11 +67,7 @@ export async function GET(request: NextRequest) {
         monthlyRent: tenants.monthlyRent,
       })
       .from(tenants)
-      .where(
-        emailParam
-          ? eq(tenants.email, emailParam)
-          : eq(tenants.id, parseInt(idParam!))
-      )
+      .where(eq(tenants.email, tenantEmail))
       .limit(1);
 
     if (tenant.length === 0) {
@@ -86,6 +78,14 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantData = tenant[0];
+
+    // Verify tenant ID from database matches token
+    if (tenantData.id !== decoded.tenantId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - tenant ID mismatch', code: 'UNAUTHORIZED' },
+        { status: 403 }
+      );
+    }
 
     if (!tenantData.propertyId) {
       const responseCode = tenantData.leaseStatus === 'terminated' ? 'LEASE_TERMINATED' : 'NO_PROPERTY';
@@ -100,6 +100,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch property linked to tenant's email - ensures tenants only see their assigned property
     const propertyResult = await db
       .select({
         id: properties.id,

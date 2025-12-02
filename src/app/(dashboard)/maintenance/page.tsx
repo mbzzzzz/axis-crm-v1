@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/empty-state";
+import { MaintenanceRequestPreviewDialog } from "@/components/maintenance-request-preview-dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -73,6 +74,8 @@ export default function MaintenancePage() {
   const [selectedProperty, setSelectedProperty] = useState<string>("all");
   const [selectedUrgency, setSelectedUrgency] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [newRequest, setNewRequest] = useState({
     title: "",
     description: "",
@@ -278,6 +281,18 @@ export default function MaintenancePage() {
 
   const updateTicketStatus = async (ticketId: number, newStatus: string) => {
     await handleStatusChange(ticketId, newStatus);
+  };
+
+  const handleRequestClick = (request: MaintenanceRequest) => {
+    setSelectedRequestId(request.id);
+    setIsPreviewOpen(true);
+  };
+
+  const handlePreviewClose = () => {
+    setIsPreviewOpen(false);
+    setSelectedRequestId(null);
+    // Refresh requests after closing preview
+    fetchRequests();
   };
 
   const sensors = useSensors(
@@ -680,6 +695,7 @@ export default function MaintenancePage() {
                             formatDate={formatDate}
                             onStatusChange={(newStatus) => handleStatusChange(request.id, newStatus)}
                             availableStatuses={columns.map((col) => col.status).filter((s) => s !== request.status)}
+                            onClick={handleRequestClick}
                           />
                         ))}
                       </SortableContext>
@@ -703,6 +719,16 @@ export default function MaintenancePage() {
             </Card>
           </div>
         </DndContext>
+      )}
+
+      {selectedRequestId && (
+        <MaintenanceRequestPreviewDialog
+          requestId={selectedRequestId}
+          open={isPreviewOpen}
+          onOpenChange={handlePreviewClose}
+          onStatusChange={(requestId, newStatus) => handleStatusChange(requestId, newStatus)}
+          onRefresh={fetchRequests}
+        />
       )}
     </div>
   );

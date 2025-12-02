@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth-client";
 import { Toaster } from "@/components/ui/sonner";
 import { Input } from "@/components/ui/input";
-import { Bell, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { CommandPalette } from "@/components/command-palette";
 import { CardThemeProvider } from "@/components/card-theme-provider";
+import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
@@ -130,13 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 />
               </div>
               <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
-                <button 
-                  className="relative rounded-full p-1.5 sm:p-2 hover:bg-muted transition-colors"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-4 sm:size-5" />
-                  <span className="absolute right-0.5 sm:right-1 top-0.5 sm:top-1 size-1.5 sm:size-2 rounded-full bg-red-500" />
-                </button>
+                <NotificationsDropdown />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="flex items-center gap-2 rounded-full hover:opacity-80">

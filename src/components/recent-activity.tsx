@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, Edit, Trash2, FileText, Building2, Users, Wrench } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
+import { PropertyDetailsDialog } from "./property-details-dialog";
+import { useRouter } from "next/navigation";
 
 interface ActivityLog {
   id: number;
@@ -23,6 +25,9 @@ interface ActivityLog {
 export function RecentActivity() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<any>(null);
+  const [isPropertyDialogOpen, setIsPropertyDialogOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     fetchActivities();
@@ -39,6 +44,25 @@ export function RecentActivity() {
       console.error("Failed to fetch activities:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleActivityClick = async (activity: ActivityLog) => {
+    if (activity.entityType === "property" && activity.entityId) {
+      try {
+        const response = await fetch(`/api/properties?id=${activity.entityId}`);
+        if (response.ok) {
+          const property = await response.json();
+          setSelectedProperty(property);
+          setIsPropertyDialogOpen(true);
+        }
+      } catch (error) {
+        console.error("Failed to fetch property:", error);
+      }
+    } else if (activity.entityType === "tenant" && activity.entityId) {
+      router.push("/tenants");
+    } else if (activity.entityType === "maintenance_request" && activity.entityId) {
+      router.push(`/maintenance`);
     }
   };
 
@@ -119,38 +143,66 @@ export function RecentActivity() {
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-border" />
           
           <div className="space-y-4">
-            {activities.map((activity, index) => (
-              <div key={activity.id} className="relative flex items-start gap-3">
-                {/* Timeline dot */}
-                <div className="relative z-10 flex items-center justify-center">
-                  <div className="rounded-full bg-background border-2 border-border p-1">
-                    {getActionIcon(activity.action, activity.entityType)}
+            {activities.map((activity, index) => {
+              const isClickable = 
+                (activity.entityType === "property" && activity.entityId) ||
+                (activity.entityType === "tenant" && activity.entityId) ||
+                (activity.entityType === "maintenance_request" && activity.entityId);
+              
+              return (
+                <div 
+                  key={activity.id} 
+                  className="relative flex items-start gap-3"
+                  onClick={() => isClickable && handleActivityClick(activity)}
+                  style={{ cursor: isClickable ? "pointer" : "default" }}
+                >
+                  {/* Timeline dot */}
+                  <div className="relative z-10 flex items-center justify-center">
+                    <div className="rounded-full bg-background border-2 border-border p-1">
+                      {getActionIcon(activity.action, activity.entityType)}
+                    </div>
                   </div>
-                </div>
-                
-                {/* Content */}
-                <div className="flex-1 min-w-0 pb-4">
-                  <div className="flex items-start gap-2">
-                    <Avatar className="size-6">
-                      <AvatarFallback className="text-xs">
-                        {getInitials(activity.description)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm leading-tight">
-                        <span className="font-medium">{activity.description}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
-                      </p>
+                  
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 pb-4">
+                    <div className="flex items-start gap-2">
+                      <Avatar className="size-6">
+                        <AvatarFallback className="text-xs">
+                          {getInitials(activity.description)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm leading-tight ${isClickable ? "hover:text-primary transition-colors" : ""}`}>
+                          <span className="font-medium">{activity.description}</span>
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs text-muted-foreground font-light">
+                            {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                          </p>
+                          <span className="text-xs text-muted-foreground font-light">•</span>
+                          <p className="text-xs text-muted-foreground font-light">
+                            {format(new Date(activity.createdAt), "MMM d, yyyy 'at' h:mm a")}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </CardContent>
+      {selectedProperty && (
+        <PropertyDetailsDialog
+          property={selectedProperty}
+          open={isPropertyDialogOpen}
+          onOpenChange={setIsPropertyDialogOpen}
+          onUpdate={() => {
+            fetchActivities();
+          }}
+        />
+      )}
     </Card>
   );
 }

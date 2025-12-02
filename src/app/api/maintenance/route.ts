@@ -102,6 +102,38 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
+    // Check if we should include property info
+    const includeProperty = searchParams.get('includeProperty') === 'true';
+    
+    if (includeProperty) {
+      // Fetch property details for each request
+      const resultsWithProperties = await Promise.all(
+        results.map(async (request) => {
+          if (request.propertyId) {
+            const property = await db
+              .select({
+                id: properties.id,
+                address: properties.address,
+                city: properties.city,
+                state: properties.state,
+                zipCode: properties.zipCode,
+                title: properties.title,
+              })
+              .from(properties)
+              .where(eq(properties.id, request.propertyId))
+              .limit(1);
+            return {
+              ...request,
+              property: property[0] || undefined,
+            };
+          }
+          return { ...request, property: undefined };
+        })
+      );
+
+      return NextResponse.json(resultsWithProperties, { status: 200 });
+    }
+
     return NextResponse.json(results, { status: 200 });
   } catch (error) {
     console.error('GET error:', error);
