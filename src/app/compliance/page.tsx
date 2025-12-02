@@ -9,7 +9,7 @@ export default function CompliancePage() {
   const router = useRouter();
 
   return (
-    <div className="relative flex min-h-screen flex-col">
+    <div className="relative min-h-screen overflow-x-hidden">
       {/* Shader Animation Background */}
       <ShaderAnimation />
 
@@ -46,7 +46,7 @@ export default function CompliancePage() {
       </header>
 
       {/* Content */}
-      <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-4xl">
+      <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 max-w-4xl pb-16">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-white drop-shadow-lg">Compliance</h1>
           <p className="text-white/70 text-sm sm:text-base">Our commitment to security, privacy, and regulatory compliance</p>
