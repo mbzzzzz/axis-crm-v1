@@ -1,17 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/invoices/auto-send",
-      "schedule": "0 0 1 * *"
-    },
-    {
-      "path": "/api/cron/recurring-invoices",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/late-fees",
-      "schedule": "0 2 * * *"
-    }
-  ]
+  "crons": []
 }
 
