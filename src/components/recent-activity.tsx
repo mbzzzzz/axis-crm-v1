@@ -29,6 +29,40 @@ interface ActivityLog {
   };
 }
 
+// Helper functions shared across compact sidebar view and full preview dialog
+function getActionIcon(action: string, entityType: string) {
+  const iconClass = "size-4";
+
+  if (action === "create") {
+    switch (entityType) {
+      case "property":
+        return <Building2 className={`${iconClass} text-green-500`} />;
+      case "tenant":
+        return <Users className={`${iconClass} text-green-500`} />;
+      case "invoice":
+        return <FileText className={`${iconClass} text-green-500`} />;
+      case "maintenance_request":
+        return <Wrench className={`${iconClass} text-green-500`} />;
+      default:
+        return <Plus className={`${iconClass} text-green-500`} />;
+    }
+  } else if (action === "update") {
+    return <Edit className={`${iconClass} text-blue-500`} />;
+  } else if (action === "delete") {
+    return <Trash2 className={`${iconClass} text-red-500`} />;
+  }
+  return <Edit className={`${iconClass} text-gray-500`} />;
+}
+
+function getInitials(description: string) {
+  // Extract name from description (e.g., "John created..." -> "J")
+  const match = description.match(/^(\w+)/);
+  if (match) {
+    return match[1][0].toUpperCase();
+  }
+  return "U";
+}
+
 export function RecentActivity() {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,39 +133,6 @@ export function RecentActivity() {
     } else if (activity.entityType === "invoice" && activity.entityId) {
       router.push("/invoices");
     }
-  };
-
-  const getActionIcon = (action: string, entityType: string) => {
-    const iconClass = "size-4";
-    
-    if (action === "create") {
-      switch (entityType) {
-        case "property":
-          return <Building2 className={`${iconClass} text-green-500`} />;
-        case "tenant":
-          return <Users className={`${iconClass} text-green-500`} />;
-        case "invoice":
-          return <FileText className={`${iconClass} text-green-500`} />;
-        case "maintenance_request":
-          return <Wrench className={`${iconClass} text-green-500`} />;
-        default:
-          return <Plus className={`${iconClass} text-green-500`} />;
-      }
-    } else if (action === "update") {
-      return <Edit className={`${iconClass} text-blue-500`} />;
-    } else if (action === "delete") {
-      return <Trash2 className={`${iconClass} text-red-500`} />;
-    }
-    return <Edit className={`${iconClass} text-gray-500`} />;
-  };
-
-  const getInitials = (description: string) => {
-    // Extract name from description (e.g., "John created..." -> "J")
-    const match = description.match(/^(\w+)/);
-    if (match) {
-      return match[1][0].toUpperCase();
-    }
-    return "U";
   };
 
   if (isLoading) {
