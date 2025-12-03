@@ -227,72 +227,74 @@ export function PropertyDetailsDialog({
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">List on External Sites</CardTitle>
-                  <CardDescription>Open listing pages in new tabs</CardDescription>
+                  <CardDescription className="text-sm">
+                    Quick shortcuts to open marketplace listing pages in a new tab.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.zameen.com/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Zameen
+                      <span>Zameen</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.zillow.com/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Zillow
+                      <span>Zillow</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.realtor.com/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Realtor
+                      <span>Realtor</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.bayut.com/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Bayut
+                      <span>Bayut</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.propertyfinder.ae/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Property Finder
+                      <span>Property&nbsp;Finder</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.dubizzle.com/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Dubizzle
+                      <span>Dubizzle</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => window.open("https://www.propsearch.ae/", "_blank")}
-                      className="justify-start"
+                      className="w-full justify-between text-xs md:text-sm"
                     >
-                      <ExternalLink className="mr-2 size-4" />
-                      Propsearch
+                      <span>Propsearch</span>
+                      <ExternalLink className="ml-2 size-3.5" />
                     </Button>
                   </div>
                 </CardContent>

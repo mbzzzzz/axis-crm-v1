@@ -33,6 +33,7 @@ import { toast } from "sonner";
 import { PropertyForm } from "@/components/property-form";
 import { PropertyDetailsDialog } from "@/components/property-details-dialog";
 import { ImportExportDialog } from "@/components/import-export-dialog";
+import { formatCurrency, type CurrencyCode } from "@/lib/currency-formatter";
 
 interface Property {
   id: number;
@@ -347,7 +348,12 @@ export default function PropertiesPage() {
                     {property.status.replace(/_/g, " ")}
                   </Badge>
                   <div className="text-lg font-semibold">
-                    ${property.price.toLocaleString()}{property.status === "rented" ? "/mo" : ""}
+                    {formatCurrency(
+                      property.price,
+                      (property.currency || "USD") as CurrencyCode,
+                      { compact: false, showDecimals: false }
+                    )}
+                    {property.status === "rented" ? "/mo" : ""}
                   </div>
                   <div className="text-sm text-muted-foreground">
                     Tenant: {getTenantForProperty(property.id) || "N/A"}
