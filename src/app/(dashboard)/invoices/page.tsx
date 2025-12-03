@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail, MessageSquare } from "lucide-react";
+import { Plus, Search, FileText, Download, Eye, Edit, Trash2, Upload, Mail, MessageSquare, Repeat } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -35,6 +35,9 @@ import { ImportExportDialog } from "@/components/import-export-dialog";
 import { InvoiceForm } from "@/components/invoice-form";
 import { downloadInvoicePDF } from "@/lib/pdf-generator";
 import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LateFeeBadge } from "@/components/invoices/late-fee-badge";
+import { RecurringInvoiceForm } from "@/components/invoices/recurring-invoice-form";
 
 interface Invoice {
   id: number;
@@ -391,35 +394,44 @@ export default function InvoicesPage() {
         </Dialog>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search by tenant..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              All Statuses
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem>All Statuses</DropdownMenuItem>
-            <DropdownMenuItem>Paid</DropdownMenuItem>
-            <DropdownMenuItem>Overdue</DropdownMenuItem>
-            <DropdownMenuItem>Sent</DropdownMenuItem>
-            <DropdownMenuItem>Draft</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Input type="date" className="w-40" placeholder="mm/dd/yyyy" />
-      </div>
+      <Tabs defaultValue="invoices" className="w-full">
+        <TabsList>
+          <TabsTrigger value="invoices">Invoices</TabsTrigger>
+          <TabsTrigger value="recurring">
+            <Repeat className="mr-2 size-4" />
+            Recurring
+          </TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="invoices" className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by tenant..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  All Statuses
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem>All Statuses</DropdownMenuItem>
+                <DropdownMenuItem>Paid</DropdownMenuItem>
+                <DropdownMenuItem>Overdue</DropdownMenuItem>
+                <DropdownMenuItem>Sent</DropdownMenuItem>
+                <DropdownMenuItem>Draft</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Input type="date" className="w-40" placeholder="mm/dd/yyyy" />
+          </div>
 
-      {isLoading ? (
+          {isLoading ? (
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-1/4" />
@@ -464,9 +476,10 @@ export default function InvoicesPage() {
                   <TableHead>PROPERTY</TableHead>
                   <TableHead>ISSUE DATE</TableHead>
                   <TableHead>DUE DATE</TableHead>
-                  <TableHead>AMOUNT</TableHead>
-                  <TableHead>STATUS</TableHead>
-                  <TableHead>ACTIONS</TableHead>
+                      <TableHead>AMOUNT</TableHead>
+                      <TableHead>STATUS</TableHead>
+                      <TableHead>LATE FEE</TableHead>
+                      <TableHead>ACTIONS</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -498,6 +511,12 @@ export default function InvoicesPage() {
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(invoice)}
+                    </TableCell>
+                    <TableCell>
+                      <LateFeeBadge
+                        lateFeeAmount={invoice.lateFeeAmount || 0}
+                        daysOverdue={isInvoiceOverdue ? Math.ceil((new Date().getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24)) : undefined}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -773,6 +792,20 @@ export default function InvoicesPage() {
         </DialogContent>
       </Dialog>
 
+          <ImportExportDialog
+            open={isImportExportOpen}
+            onOpenChange={setIsImportExportOpen}
+            type="invoices"
+            data={invoices}
+            onImportSuccess={fetchInvoices}
+          />
+        </TabsContent>
+
+        <TabsContent value="recurring">
+          <RecurringInvoicesTab />
+        </TabsContent>
+      </Tabs>
+
       <ImportExportDialog
         open={isImportExportOpen}
         onOpenChange={setIsImportExportOpen}
@@ -780,6 +813,198 @@ export default function InvoicesPage() {
         data={invoices}
         onImportSuccess={fetchInvoices}
       />
+    </div>
+  );
+}
+
+// Recurring Invoices Tab Component
+function RecurringInvoicesTab() {
+  const [recurringInvoices, setRecurringInvoices] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedRecurring, setSelectedRecurring] = useState<any | null>(null);
+
+  const fetchRecurring = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/invoices/recurring");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRecurringInvoices(data);
+      }
+    } catch (error) {
+      console.error("Error fetching recurring invoices:", error);
+      toast.error("Failed to load recurring invoices");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecurring();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this recurring invoice?")) return;
+
+    try {
+      const res = await fetch(`/api/invoices/recurring/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("Recurring invoice deleted");
+        fetchRecurring();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Failed to delete");
+      }
+    } catch (error) {
+      toast.error("Failed to delete recurring invoice");
+    }
+  };
+
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">Recurring Invoices</h2>
+          <p className="text-sm text-muted-foreground">Automatically generate invoices on a schedule</p>
+        </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 size-4" />
+              Create Recurring Invoice
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selectedRecurring ? "Edit" : "Create"} Recurring Invoice</DialogTitle>
+              <DialogDescription>Set up automatic invoice generation</DialogDescription>
+            </DialogHeader>
+            <RecurringInvoiceForm
+              initialData={selectedRecurring}
+              onSuccess={() => {
+                setIsAddDialogOpen(false);
+                setSelectedRecurring(null);
+                fetchRecurring();
+              }}
+              onCancel={() => {
+                setIsAddDialogOpen(false);
+                setSelectedRecurring(null);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {isLoading ? (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : recurringInvoices.length === 0 ? (
+        <Card className="flex min-h-[400px] items-center justify-center">
+          <CardContent className="text-center">
+            <Repeat className="mx-auto size-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">No recurring invoices</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Create a recurring invoice to automatically generate invoices on a schedule
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {recurringInvoices.map((rec) => (
+            <Card key={rec.id}>
+              <CardContent className="pt-6">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold">{rec.tenant?.name || "Unknown Tenant"}</h3>
+                      <Badge variant={rec.isActive === 1 ? "default" : "secondary"}>
+                        {rec.isActive === 1 ? "Active" : "Paused"}
+                      </Badge>
+                      {rec.invoiceTemplate && (
+                        <div className="text-sm text-muted-foreground">
+                          Amount: ${(rec.invoiceTemplate as any)?.totalAmount?.toLocaleString() || "N/A"}
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {rec.property?.title || rec.property?.address || "Unknown Property"}
+                    </p>
+                    <div className="flex gap-4 text-sm">
+                      <span>
+                        <strong>Frequency:</strong> {rec.frequency}
+                      </span>
+                      <span>
+                        <strong>Day:</strong> {rec.dayOfMonth}
+                      </span>
+                      {rec.nextGenerationDate && (
+                        <span>
+                          <strong>Next:</strong> {new Date(rec.nextGenerationDate).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    {rec.invoiceTemplate && (rec.invoiceTemplate as any)?.items?.[0]?.description && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Description: {(rec.invoiceTemplate as any).items[0].description}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedRecurring(rec);
+                        setIsAddDialogOpen(true);
+                      }}
+                    >
+                      <Edit className="size-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch(`/api/invoices/recurring/${rec.id}`, {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ isActive: rec.isActive === 1 ? 0 : 1 }),
+                          });
+                          if (res.ok) {
+                            toast.success(rec.isActive === 1 ? "Recurring invoice paused" : "Recurring invoice resumed");
+                            fetchRecurring();
+                          } else {
+                            toast.error("Failed to update recurring invoice");
+                          }
+                        } catch (error) {
+                          toast.error("Failed to update recurring invoice");
+                        }
+                      }}
+                    >
+                      {rec.isActive === 1 ? "Pause" : "Resume"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(rec.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

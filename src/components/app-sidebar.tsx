@@ -14,6 +14,7 @@ import {
   DollarSign,
   BarChart3,
   UserPlus,
+  FileSignature,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -67,6 +68,11 @@ const navItems = [
     title: "Invoicing",
     url: "/invoices",
     icon: FileText,
+  },
+  {
+    title: "Leases",
+    url: "/leases",
+    icon: FileSignature,
   },
   {
     title: "Maintenance",

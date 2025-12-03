@@ -12,8 +12,18 @@ import { Skeleton } from "@/components/ui/skeleton";
 import MagicBento from "@/components/magic-bento";
 import { useCardTheme } from "@/components/card-theme-provider";
 import Link from "next/link";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, DollarSign, Plus, Edit, Trash2 } from "lucide-react";
 import { CARD_THEME_OPTIONS } from "@/lib/card-themes";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { LateFeePolicyForm } from "@/components/invoices/late-fee-policy-form";
+import { Badge } from "@/components/ui/badge";
 import {
   FEATURE_LABELS,
   PLAN_DEFINITIONS,
@@ -53,6 +63,9 @@ export default function SettingsPage() {
   const [isSavingAgent, setIsSavingAgent] = useState(false);
   const [isSavingPlan, setIsSavingPlan] = useState(false);
   const { theme, themeKey, setTheme, isSaving } = useCardTheme();
+  const [lateFeePolicies, setLateFeePolicies] = useState<any[]>([]);
+  const [isLateFeeDialogOpen, setIsLateFeeDialogOpen] = useState(false);
+  const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
 
   const updateFormData = (field: keyof SettingsFormState, value: string) => {
     hasUserEditedRef.current = true;
@@ -70,10 +83,11 @@ export default function SettingsPage() {
 
     const fetchStats = async () => {
       try {
-        const [propertiesResult, tenantsResult, preferencesResult] = await Promise.allSettled([
+        const [propertiesResult, tenantsResult, preferencesResult, policiesResult] = await Promise.allSettled([
           fetch("/api/properties"),
           fetch("/api/tenants"),
           fetch("/api/preferences"),
+          fetch("/api/late-fee-policies"),
         ]);
         
         let properties: any[] = [];
@@ -96,8 +110,17 @@ export default function SettingsPage() {
           } catch (e) {
             console.error("Failed to parse tenants JSON:", e);
           }
-        } else if (tenantsResult.status === "rejected") {
+        } else         if (tenantsResult.status === "rejected") {
           console.error("Failed to fetch tenants:", tenantsResult.reason);
+        }
+        
+        if (policiesResult.status === "fulfilled" && policiesResult.value.ok) {
+          try {
+            const policies = await policiesResult.value.json();
+            setLateFeePolicies(Array.isArray(policies) ? policies : []);
+          } catch (e) {
+            console.error("Failed to parse policies JSON:", e);
+          }
         }
         
         if (preferencesResult.status === "fulfilled" && preferencesResult.value.ok) {
@@ -435,6 +458,122 @@ export default function SettingsPage() {
                 Configure WhatsApp
               </Link>
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Late Fee Policies */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Late Fee Policies</CardTitle>
+                <CardDescription>Configure late fee rules for overdue invoices</CardDescription>
+              </div>
+              <Dialog open={isLateFeeDialogOpen} onOpenChange={setIsLateFeeDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" onClick={() => setSelectedPolicy(null)}>
+                    <Plus className="mr-2 size-4" />
+                    Add Policy
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>{selectedPolicy ? "Edit" : "Create"} Late Fee Policy</DialogTitle>
+                    <DialogDescription>
+                      Set up rules for calculating late fees on overdue invoices
+                    </DialogDescription>
+                  </DialogHeader>
+                  <LateFeePolicyForm
+                    initialData={selectedPolicy}
+                    onSuccess={() => {
+                      setIsLateFeeDialogOpen(false);
+                      setSelectedPolicy(null);
+                      fetch("/api/late-fee-policies")
+                        .then(res => res.json())
+                        .then(data => setLateFeePolicies(Array.isArray(data) ? data : []))
+                        .catch(console.error);
+                    }}
+                    onCancel={() => {
+                      setIsLateFeeDialogOpen(false);
+                      setSelectedPolicy(null);
+                    }}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {lateFeePolicies.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No late fee policies configured. Create one to automatically apply late fees to overdue invoices.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {lateFeePolicies.map((policy) => (
+                  <div
+                    key={policy.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{policy.name}</span>
+                        {policy.isDefault === 1 && (
+                          <Badge variant="default" className="text-xs">Default</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {policy.type === "flat" ? (
+                          <>${policy.amount?.toFixed(2)} flat fee</>
+                        ) : (
+                          <>{policy.percentage}% of rent</>
+                        )}
+                        {policy.gracePeriodDays > 0 && (
+                          <> • {policy.gracePeriodDays} day grace period</>
+                        )}
+                        {policy.maxCap && (
+                          <> • Max ${policy.maxCap.toFixed(2)}</>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedPolicy(policy);
+                          setIsLateFeeDialogOpen(true);
+                        }}
+                      >
+                        <Edit className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          if (!confirm("Are you sure you want to delete this policy?")) return;
+                          try {
+                            const res = await fetch(`/api/late-fee-policies/${policy.id}`, {
+                              method: "DELETE",
+                            });
+                            if (res.ok) {
+                              toast.success("Policy deleted");
+                              const updated = await fetch("/api/late-fee-policies").then(r => r.json());
+                              setLateFeePolicies(Array.isArray(updated) ? updated : []);
+                            } else {
+                              toast.error("Failed to delete policy");
+                            }
+                          } catch (error) {
+                            toast.error("Failed to delete policy");
+                          }
+                        }}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

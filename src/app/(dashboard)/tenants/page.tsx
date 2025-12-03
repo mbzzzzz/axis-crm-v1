@@ -29,12 +29,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles, MessageSquare, Download } from "lucide-react";
+import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkles, MessageSquare, Download, UserPlus, Copy } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { generateInvoicePDF, downloadInvoicePDF } from "@/lib/pdf-generator";
 import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
+import { LateFeeBadge } from "@/components/invoices/late-fee-badge";
 
 type LeaseStatus = "active" | "expired" | "pending" | "terminated";
 
@@ -102,6 +104,8 @@ function TenantsPageContent() {
   const [revokingTenantId, setRevokingTenantId] = useState<number | null>(null);
   const [selectedInvoiceForPreview, setSelectedInvoiceForPreview] = useState<Invoice | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [registrationLink, setRegistrationLink] = useState<string | null>(null);
+  const [selectedTenantForRegistration, setSelectedTenantForRegistration] = useState<Tenant | null>(null);
   const [newTenant, setNewTenant] = useState({
     name: "",
     email: "",
@@ -624,18 +628,26 @@ function TenantsPageContent() {
   };
 
 const getPaymentSummary = (tenant: Tenant) => {
+    const tenantInvoices = getTenantInvoices(tenant.id);
+    const overdueInvoices = tenantInvoices.filter(inv => {
+      const dueDate = new Date(inv.dueDate);
+      const today = new Date();
+      return dueDate < today && inv.paymentStatus !== 'paid';
+    });
+    const totalLateFees = overdueInvoices.reduce((sum, inv) => sum + (inv.lateFeeAmount || 0), 0);
+    
     // This would ideally come from invoice data
     // For now, return placeholder based on lease status
   if (tenant.leaseStatus === "pending") {
-      return { summary: "Awaiting Deposit", details: `Lease starts ${new Date(tenant.leaseStart).toLocaleDateString()}` };
+      return { summary: "Awaiting Deposit", details: `Lease starts ${new Date(tenant.leaseStart).toLocaleDateString()}`, lateFees: totalLateFees };
     }
   if (tenant.leaseStatus === "expired") {
-      return { summary: "Overdue", details: "Lease expired" };
+      return { summary: "Overdue", details: "Lease expired", lateFees: totalLateFees };
     }
   if (tenant.leaseStatus === "terminated") {
-    return { summary: "Lease Terminated", details: "Tenant access removed" };
+    return { summary: "Lease Terminated", details: "Tenant access removed", lateFees: totalLateFees };
   }
-    return { summary: "Paid", details: `Next due: ${new Date(tenant.leaseEnd).toLocaleDateString()}` };
+    return { summary: "Paid", details: `Next due: ${new Date(tenant.leaseEnd).toLocaleDateString()}`, lateFees: totalLateFees };
   };
 
   const getLeaseStatusColor = (status: string) => {
@@ -941,12 +953,43 @@ const getPaymentSummary = (tenant: Tenant) => {
                           <div>
                             <div className="font-medium">{payment.summary}</div>
                             <div className="text-sm text-muted-foreground">{payment.details}</div>
+                            {payment.lateFees > 0 && (
+                              <div className="mt-1">
+                                <LateFeeBadge lateFeeAmount={payment.lateFees} />
+                              </div>
+                            )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const tenantInvoices = getTenantInvoices(tenant.id);
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch("/api/tenants/generate-registration-link", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ tenantId: tenant.id, sendEmail: false }),
+                                });
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  setRegistrationLink(data.registrationLink);
+                                  setSelectedTenantForRegistration(tenant);
+                                  toast.success("Registration link generated");
+                                } else {
+                                  toast.error("Failed to generate registration link");
+                                }
+                              } catch (error) {
+                                toast.error("Failed to generate registration link");
+                              }
+                            }}
+                            title="Generate Registration Link"
+                          >
+                            <UserPlus className="size-4" />
+                          </Button>
+                          {(() => {
+                            const tenantInvoices = getTenantInvoices(tenant.id);
                               const latestInvoice = tenantInvoices.length > 0
                                 ? tenantInvoices.sort((a, b) => 
                                     new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
@@ -1201,6 +1244,73 @@ const getPaymentSummary = (tenant: Tenant) => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Registration Link Dialog */}
+      <Dialog open={!!registrationLink} onOpenChange={(open) => !open && setRegistrationLink(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Tenant Registration Link</DialogTitle>
+            <DialogDescription>
+              Share this link with {selectedTenantForRegistration?.name || "the tenant"} to allow them to create their portal account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Registration Link</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={registrationLink || ""}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (registrationLink) {
+                      navigator.clipboard.writeText(registrationLink);
+                      toast.success("Link copied to clipboard");
+                    }
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                This link expires in 7 days. The tenant can use it to create their account.
+              </p>
+            </div>
+            {selectedTenantForRegistration?.email && (
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/tenants/generate-registration-link", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        tenantId: selectedTenantForRegistration.id,
+                        sendEmail: true,
+                      }),
+                    });
+                    if (res.ok) {
+                      toast.success("Registration email sent to tenant");
+                      setRegistrationLink(null);
+                    } else {
+                      toast.error("Failed to send email");
+                    }
+                  } catch (error) {
+                    toast.error("Failed to send email");
+                  }
+                }}
+              >
+                <Mail className="mr-2 size-4" />
+                Send Registration Email to {selectedTenantForRegistration.email}
+              </Button>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

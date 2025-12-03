@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, tenants } from '@/db/schema';
+import { invoices, tenants } from '@/db/schema-postgres';
 import { eq } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { sendGmailEmail } from '@/lib/email/gmail';
+import { processRecurringInvoices } from '@/lib/recurring-invoice-engine';
 
 // Helper function to get current authenticated user
 async function getCurrentUser() {
@@ -68,6 +69,9 @@ export async function POST(request: NextRequest) {
     const currentMonth = currentDate.getMonth() + 1;
     const currentYear = currentDate.getFullYear();
 
+    // Process recurring invoices first
+    const recurringResults = await processRecurringInvoices();
+
     // Get all active tenants (you can filter by user if needed)
     const allTenants = await db.select()
       .from(tenants)
@@ -78,7 +82,12 @@ export async function POST(request: NextRequest) {
       created: 0,
       sent: 0,
       errors: [] as any[],
-      invoices: [] as any[]
+      invoices: [] as any[],
+      recurring: {
+        processed: recurringResults.processed,
+        generated: recurringResults.generated,
+        errors: recurringResults.errors,
+      },
     };
 
     for (const tenant of allTenants) {
@@ -174,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Processed ${results.processed} tenants`,
+      message: `Processed ${results.processed} tenants and ${recurringResults.generated} recurring invoices`,
       results
     }, { status: 200 });
 

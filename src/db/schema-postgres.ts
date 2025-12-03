@@ -65,6 +65,9 @@ export const invoices = pgTable('invoices', {
   ownerPhone: text('owner_phone'),
   paymentTerms: text('payment_terms'),
   lateFeePolicy: text('late_fee_policy'),
+  // Late fee fields
+  lateFeeAmount: real('late_fee_amount').default(0),
+  lateFeeAppliedAt: timestamp('late_fee_applied_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -82,6 +85,7 @@ export const tenants = pgTable('tenants', {
   monthlyRent: real('monthly_rent'),
   deposit: real('deposit'),
   notes: text('notes'),
+  lateFeePolicyId: integer('late_fee_policy_id'), // Reference to lateFeePolicies table
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -204,6 +208,72 @@ export const leads = pgTable('leads', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
+// Tenant Portal Authentication
+export const tenantAuth = pgTable('tenant_auth', {
+  id: serial('id').primaryKey(),
+  tenantId: integer('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull().unique(),
+  email: text('email').notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  isActive: integer('is_active').default(1).notNull(), // 1 = active, 0 = inactive
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Recurring Invoices
+export const recurringInvoices = pgTable('recurring_invoices', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Supabase Auth user ID
+  tenantId: integer('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
+  invoiceTemplate: jsonb('invoice_template').notNull(), // Stores invoice structure (items, tax rate, notes, etc.)
+  frequency: text('frequency').notNull(), // 'monthly', 'quarterly', 'yearly'
+  dayOfMonth: integer('day_of_month').notNull(), // Day of month to generate (1-31)
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'), // Optional end date
+  isActive: integer('is_active').default(1).notNull(), // 1 = active, 0 = paused
+  lastGeneratedAt: timestamp('last_generated_at'),
+  nextGenerationDate: timestamp('next_generation_date'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Late Fee Policies
+export const lateFeePolicies = pgTable('late_fee_policies', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Supabase Auth user ID
+  name: text('name').notNull(),
+  type: text('type').notNull(), // 'flat' or 'percentage'
+  gracePeriodDays: integer('grace_period_days').default(0).notNull(), // Days after due date before late fee applies
+  amount: real('amount'), // Flat fee amount (if type is 'flat')
+  percentage: real('percentage'), // Percentage of rent (if type is 'percentage')
+  maxCap: real('max_cap'), // Maximum late fee cap (optional)
+  isDefault: integer('is_default').default(0).notNull(), // 1 = default policy for user, 0 = custom
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Leases
+export const leases = pgTable('leases', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Supabase Auth user ID
+  tenantId: integer('tenant_id').references(() => tenants.id, { onDelete: 'set null' }).notNull(),
+  propertyId: integer('property_id').references(() => properties.id, { onDelete: 'cascade' }).notNull(),
+  leaseType: text('lease_type').notNull(), // 'residential', 'commercial'
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date').notNull(),
+  monthlyRent: real('monthly_rent').notNull(),
+  deposit: real('deposit'),
+  terms: jsonb('terms'), // Custom lease terms stored as JSON
+  status: text('status').notNull(), // 'draft', 'pending_signature', 'active', 'expired', 'renewed', 'terminated'
+  signedByTenant: integer('signed_by_tenant').default(0).notNull(), // 1 = signed, 0 = not signed
+  signedByOwner: integer('signed_by_owner').default(0).notNull(), // 1 = signed, 0 = not signed
+  signedAt: timestamp('signed_at'), // Date when both parties signed
+  documentUrl: text('document_url'), // URL to signed lease PDF in Supabase Storage
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Relations
 export const propertiesRelations = relations(properties, ({ many }) => ({
   invoices: many(invoices),
@@ -230,6 +300,12 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
     references: [properties.id],
   }),
   invoices: many(invoices),
+  leases: many(leases),
+  recurringInvoices: many(recurringInvoices),
+  tenantAuth: one(tenantAuth, {
+    fields: [tenants.id],
+    references: [tenantAuth.tenantId],
+  }),
 }));
 
 export const maintenanceRequestsRelations = relations(maintenanceRequests, ({ one, many }) => ({
@@ -268,6 +344,35 @@ export const documentsRelations = relations(documents, ({ one }) => ({
   property: one(properties, {
     fields: [documents.propertyId],
     references: [properties.id],
+  }),
+}));
+
+export const leasesRelations = relations(leases, ({ one }) => ({
+  property: one(properties, {
+    fields: [leases.propertyId],
+    references: [properties.id],
+  }),
+  tenant: one(tenants, {
+    fields: [leases.tenantId],
+    references: [tenants.id],
+  }),
+}));
+
+export const recurringInvoicesRelations = relations(recurringInvoices, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [recurringInvoices.tenantId],
+    references: [tenants.id],
+  }),
+  property: one(properties, {
+    fields: [recurringInvoices.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+export const tenantAuthRelations = relations(tenantAuth, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantAuth.tenantId],
+    references: [tenants.id],
   }),
 }));
 
