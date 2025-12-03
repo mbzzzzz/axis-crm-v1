@@ -33,7 +33,6 @@ import { Plus, Search, Eye, Edit, Trash2, Filter, FileText, Mail, Upload, Sparkl
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { generateInvoicePDF, downloadInvoicePDF } from "@/lib/pdf-generator";
 import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 import { LateFeeBadge } from "@/components/invoices/late-fee-badge";
