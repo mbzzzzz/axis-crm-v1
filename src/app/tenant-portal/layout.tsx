@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getTenantFromToken } from "@/lib/tenant-auth";
 import { Toaster } from "@/components/ui/sonner";
 
 export default function TenantPortalLayout({
@@ -30,16 +29,27 @@ export default function TenantPortalLayout({
         return;
       }
 
-      const tenant = await getTenantFromToken(token);
-      if (!tenant) {
+      // Use API route instead of direct server-side function
+      try {
+        const response = await fetch("/api/auth/tenant/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!response.ok) {
+          localStorage.removeItem("tenant_token");
+          router.push("/tenant-portal/login");
+          setIsChecking(false);
+          return;
+        }
+
+        setIsAuthenticated(true);
+        setIsChecking(false);
+      } catch (error) {
+        console.error("Auth check error:", error);
         localStorage.removeItem("tenant_token");
         router.push("/tenant-portal/login");
         setIsChecking(false);
-        return;
       }
-
-      setIsAuthenticated(true);
-      setIsChecking(false);
     };
 
     checkAuth();

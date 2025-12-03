@@ -8,7 +8,8 @@ import { AxisLogo } from "@/components/axis-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Github, Loader2, Mail, Shield } from "lucide-react";
+import { Github, Loader2, Mail, Shield, User } from "lucide-react";
+import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -179,6 +180,27 @@ export default function LoginPage() {
           <p className="text-xs text-center text-white/70 flex items-center justify-center gap-2">
             <Shield className="size-4" /> Secure authentication powered by Supabase
           </p>
+          
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/20" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-black/40 px-2 text-white/70">Or</span>
+            </div>
+          </div>
+
+          <Link href="/tenant-portal/login">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-white/20 bg-white/5 text-white hover:bg-white/10"
+            >
+              <User className="mr-2 size-4" />
+              Tenant Login
+            </Button>
+          </Link>
+
           <p className="text-sm text-center text-white/80">
             Need an account?{" "}
             <button
