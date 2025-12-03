@@ -88,24 +88,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="size-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Loading...</p>
+          <p className="mt-4 text-sm text-muted-foreground">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   if (!session?.user) return null;
-
-  if (isCheckingOnboarding) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="size-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Setting up your workspace...</p>
-        </div>
-      </div>
-    );
-  }
 
   const userInitials = session?.user?.name
     ?.split(" ")

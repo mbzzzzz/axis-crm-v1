@@ -179,6 +179,10 @@ export default function App() {
       setIsAutofilling(false);
     }
   }
+
+  function openListingSite(url: string) {
+    browser.tabs.create({ url });
+  }
   function openDashboard() {
     const url = state?.settings.apiBaseUrl || "https://axis-crm-v1.vercel.app";
     browser.tabs.create({ url });
@@ -335,6 +339,32 @@ export default function App() {
             onClick={handleExtractLead}
           >
             {isExtractingLead ? "Extracting Lead..." : "Extract Lead from Page"}
+          </button>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+          <button className="button secondary" onClick={() => openListingSite("https://www.zameen.com/")}>
+            Zameen
+          </button>
+          <button className="button secondary" onClick={() => openListingSite("https://www.zillow.com/")}>
+            Zillow
+          </button>
+          <button className="button secondary" onClick={() => openListingSite("https://www.realtor.com/")}>
+            Realtor
+          </button>
+          <button className="button secondary" onClick={() => openListingSite("https://www.bayut.com/")}>
+            Bayut
+          </button>
+          <button
+            className="button secondary"
+            onClick={() => openListingSite("https://www.propertyfinder.ae/")}
+          >
+            Property Finder
+          </button>
+          <button className="button secondary" onClick={() => openListingSite("https://www.dubizzle.com/")}>
+            Dubizzle
+          </button>
+          <button className="button secondary" onClick={() => openListingSite("https://www.propsearch.ae/")}>
+            Propsearch
           </button>
         </div>
         <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 12 }}>
