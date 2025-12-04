@@ -32,13 +32,34 @@ const VALID_PAYMENT_STATUSES = ['draft', 'sent', 'paid', 'overdue', 'cancelled']
 
 export async function GET(request: NextRequest) {
   try {
-    // CRITICAL: Authenticate user first
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
+    // Support both tenant and regular user authentication
+    const authHeader = request.headers.get('authorization');
+    let user: any = null;
+    let tenantIdFromToken: number | null = null;
+
+    // Try tenant authentication first
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const { verifyTenantToken } = await import('@/lib/tenant-auth');
+        const token = authHeader.substring(7);
+        const payload = verifyTenantToken(token);
+        if (payload) {
+          tenantIdFromToken = payload.tenantId;
+        }
+      } catch (e) {
+        // Not a tenant token, try regular auth
+      }
+    }
+
+    // Fall back to regular user authentication if not a tenant
+    if (!tenantIdFromToken) {
+      user = await getCurrentUser();
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
+          { status: 401 }
+        );
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -53,16 +74,30 @@ export async function GET(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // CRITICAL: Filter by userId to ensure data isolation
-      const invoice = await db.select()
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.id, parseInt(id)),
-            eq(invoices.userId, user.id)
+      // For tenant authentication, filter by tenantId
+      // For regular user authentication, filter by userId
+      let invoice;
+      if (tenantIdFromToken) {
+        invoice = await db.select()
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.id, parseInt(id)),
+              eq(invoices.tenantId, tenantIdFromToken)
+            )
           )
-        )
-        .limit(1);
+          .limit(1);
+      } else {
+        invoice = await db.select()
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.id, parseInt(id)),
+              eq(invoices.userId, user.id)
+            )
+          )
+          .limit(1);
+      }
 
       if (invoice.length === 0) {
         return NextResponse.json({ 

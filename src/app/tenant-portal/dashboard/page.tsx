@@ -52,6 +52,7 @@ export default function TenantDashboardPage() {
       }
 
       const tenantData = await tenantRes.json();
+      // Ensure property is included in tenant data
       setTenant(tenantData.tenant);
 
       // Fetch invoices

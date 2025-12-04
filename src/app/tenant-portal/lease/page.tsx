@@ -36,11 +36,22 @@ export default function TenantLeasePage() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("tenant_token");
-      const tenantId = localStorage.getItem("tenant_id");
 
-      if (!token || !tenantId) {
+      if (!token) {
         return;
       }
+
+      // First, fetch tenant data to get tenant ID
+      const tenantRes = await fetch("/api/auth/tenant/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!tenantRes.ok) {
+        throw new Error("Failed to fetch tenant data");
+      }
+
+      const tenantData = await tenantRes.json();
+      const tenantId = tenantData.tenant.id;
 
       // Fetch leases for this tenant
       const response = await fetch(`/api/leases?tenantId=${tenantId}`, {
@@ -54,6 +65,9 @@ export default function TenantLeasePage() {
           ? data.find((l: Lease) => l.status === "active") || data[0]
           : null;
         setLease(activeLease);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to load lease information");
       }
     } catch (error) {
       console.error("Error fetching lease:", error);

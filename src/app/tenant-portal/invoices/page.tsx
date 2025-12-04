@@ -24,31 +24,47 @@ interface Invoice {
 export default function TenantInvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [tenant, setTenant] = useState<any>(null);
 
   useEffect(() => {
-    fetchInvoices();
+    fetchData();
   }, []);
 
-  const fetchInvoices = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("tenant_token");
-      const tenantEmail = localStorage.getItem("tenant_email");
-
-      if (!token || !tenantEmail) {
+      
+      if (!token) {
         return;
       }
 
-      const response = await fetch(`/api/invoices/mobile?tenantEmail=${encodeURIComponent(tenantEmail)}`, {
+      // First, fetch tenant data to get email
+      const tenantRes = await fetch("/api/auth/tenant/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!tenantRes.ok) {
+        throw new Error("Failed to fetch tenant data");
+      }
+
+      const tenantData = await tenantRes.json();
+      setTenant(tenantData.tenant);
+
+      // Then fetch invoices using tenant email
+      const response = await fetch(`/api/invoices/mobile?tenantEmail=${encodeURIComponent(tenantData.tenant.email)}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.ok) {
         const data = await response.json();
         setInvoices(Array.isArray(data) ? data : []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to load invoices");
       }
     } catch (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("Error fetching data:", error);
       toast.error("Failed to load invoices");
     } finally {
       setIsLoading(false);
@@ -57,11 +73,22 @@ export default function TenantInvoicesPage() {
 
   const handleDownloadPDF = async (invoice: Invoice) => {
     try {
-      // Fetch full invoice details
-      const response = await fetch(`/api/invoices?id=${invoice.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch invoice details");
+      const token = localStorage.getItem("tenant_token");
+      if (!token) {
+        toast.error("Not authenticated");
+        return;
       }
+
+      // Fetch full invoice details with tenant authentication
+      const response = await fetch(`/api/invoices?id=${invoice.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to fetch invoice details");
+      }
+      
       const fullInvoice = await response.json();
       await downloadInvoicePDF(fullInvoice);
       toast.success("Invoice downloaded successfully");

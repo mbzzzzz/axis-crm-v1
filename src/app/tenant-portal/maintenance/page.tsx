@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TenantHeader } from "@/components/tenant-portal/tenant-header";
-import { Plus, Wrench, Clock, CheckCircle } from "lucide-react";
+import { Plus, Wrench, Clock, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface MaintenanceRequest {
@@ -39,6 +39,7 @@ export default function TenantMaintenancePage() {
     description: "",
     urgency: "medium",
   });
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   useEffect(() => {
     fetchRequests();
@@ -48,11 +49,22 @@ export default function TenantMaintenancePage() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem("tenant_token");
-      const tenantId = localStorage.getItem("tenant_id");
 
-      if (!token || !tenantId) {
+      if (!token) {
         return;
       }
+
+      // First, fetch tenant data to get tenant ID
+      const tenantRes = await fetch("/api/auth/tenant/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!tenantRes.ok) {
+        throw new Error("Failed to fetch tenant data");
+      }
+
+      const tenantData = await tenantRes.json();
+      const tenantId = tenantData.tenant.id;
 
       const response = await fetch(`/api/maintenance/mobile?tenantId=${tenantId}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -61,12 +73,57 @@ export default function TenantMaintenancePage() {
       if (response.ok) {
         const data = await response.json();
         setRequests(Array.isArray(data) ? data : []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || "Failed to load maintenance requests");
       }
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
       toast.error("Failed to load maintenance requests");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.title) {
+      toast.error("Please enter a title first");
+      return;
+    }
+
+    const token = localStorage.getItem("tenant_token");
+    if (!token) {
+      toast.error("Not authenticated");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const response = await fetch("/api/maintenance/generate-description/tenant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          urgency: formData.urgency,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({ ...formData, description: data.description });
+        toast.success("Description generated successfully");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to generate description");
+      }
+    } catch (error) {
+      console.error("Error generating description:", error);
+      toast.error("Failed to generate description");
+    } finally {
+      setIsGeneratingDescription(false);
     }
   };
 
@@ -170,7 +227,20 @@ export default function TenantMaintenancePage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description *</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="description">Description *</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateDescription}
+                        disabled={isGeneratingDescription || !formData.title}
+                        className="gap-2"
+                      >
+                        <Sparkles className="size-4" />
+                        {isGeneratingDescription ? "Generating..." : "Auto Generate"}
+                      </Button>
+                    </div>
                     <Textarea
                       id="description"
                       value={formData.description}

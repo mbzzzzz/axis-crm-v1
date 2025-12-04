@@ -83,6 +83,7 @@ export async function GET(request: NextRequest) {
         dueDate: invoices.dueDate,
         totalAmount: invoices.totalAmount,
         paymentStatus: invoices.paymentStatus,
+        lateFeeAmount: invoices.lateFeeAmount,
       })
       .from(invoices)
       .where(eq(invoices.tenantId, tenantData.id))
