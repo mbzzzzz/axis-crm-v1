@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { ShaderAnimation } from "@/components/ui/shader-animation";
@@ -20,7 +20,7 @@ const providers = [
 
 type UserRole = "agent" | "tenant" | null;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedRole, setSelectedRole] = useState<UserRole>(null);
@@ -336,5 +336,26 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="relative flex min-h-screen items-center justify-center px-4">
+        <div className="absolute inset-0">
+          <ShaderAnimation />
+        </div>
+        <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-center">
+              <Loader2 className="size-6 animate-spin text-white" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
