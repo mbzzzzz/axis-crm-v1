@@ -40,16 +40,26 @@ function TenantRegisterForm() {
         })
         .catch(() => setTokenValid(false));
     } else if (tenantId) {
-      // If tenantId but no token, fetch tenant email
-      fetch(`/api/tenants?id=${tenantId}`)
-        .then(res => res.json())
+      // If tenantId but no token, fetch tenant email from public endpoint
+      fetch(`/api/auth/tenant/registration-info?tenantId=${tenantId}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch tenant information');
+          }
+          return res.json();
+        })
         .then(data => {
           if (data && data.email) {
             setEmail(data.email);
             setTokenValid(true); // Allow registration without token (for testing)
+          } else {
+            setTokenValid(false);
           }
         })
-        .catch(console.error);
+        .catch(error => {
+          console.error('Error fetching tenant info:', error);
+          setTokenValid(false);
+        });
     } else {
       setTokenValid(false);
     }
@@ -58,13 +68,20 @@ function TenantRegisterForm() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match");
+    // Validate email
+    if (!email || !email.trim()) {
+      toast.error("Email is required");
       return;
     }
 
-    if (password.length < 6) {
+    // Validate password
+    if (!password || password.length < 6) {
       toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -175,7 +192,7 @@ function TenantRegisterForm() {
             <Button
               type="submit"
               className="w-full bg-white text-black hover:bg-white/90"
-              disabled={isLoading || !tenantId || tokenValid === false}
+              disabled={isLoading || !tenantId || tokenValid === false || (tokenValid === null && tenantId)}
             >
               {isLoading ? (
                 <>

@@ -10,9 +10,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { email, password, tenantId, token } = body;
 
-    if (!email || !password || !tenantId) {
+    // Validate required fields
+    if (!email || !email.trim()) {
       return NextResponse.json(
-        { error: 'Email, password, and tenant ID are required', success: false },
+        { error: 'Email is required', success: false },
+        { status: 400 }
+      );
+    }
+
+    if (!password || !password.trim()) {
+      return NextResponse.json(
+        { error: 'Password is required', success: false },
+        { status: 400 }
+      );
+    }
+
+    if (!tenantId) {
+      return NextResponse.json(
+        { error: 'Tenant ID is required', success: false },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate tenantId
+    const tenantIdInt = typeof tenantId === 'number' ? tenantId : parseInt(tenantId);
+    if (isNaN(tenantIdInt) || tenantIdInt <= 0) {
+      return NextResponse.json(
+        { error: 'Valid tenant ID is required', success: false },
         { status: 400 }
       );
     }
@@ -26,7 +50,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      if (tokenPayload.tenantId !== parseInt(tenantId)) {
+      if (tokenPayload.tenantId !== tenantIdInt) {
         return NextResponse.json(
           { error: 'Token does not match tenant ID', success: false },
           { status: 400 }
@@ -40,6 +64,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Trim email for consistency
+    const trimmedEmail = email.trim();
+
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Password must be at least 6 characters', success: false },
@@ -51,7 +78,7 @@ export async function POST(request: NextRequest) {
     const tenant = await db
       .select()
       .from(tenants)
-      .where(eq(tenants.id, tenantId))
+      .where(eq(tenants.id, tenantIdInt))
       .limit(1);
 
     if (tenant.length === 0) {
@@ -61,7 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (tenant[0].email.toLowerCase().trim() !== email.toLowerCase().trim()) {
+    if (tenant[0].email.toLowerCase().trim() !== trimmedEmail.toLowerCase().trim()) {
       return NextResponse.json(
         { error: 'Email does not match tenant record', success: false },
         { status: 400 }
@@ -72,7 +99,7 @@ export async function POST(request: NextRequest) {
     const existingAuth = await db
       .select()
       .from(tenantAuth)
-      .where(eq(tenantAuth.tenantId, tenantId))
+      .where(eq(tenantAuth.tenantId, tenantIdInt))
       .limit(1);
 
     if (existingAuth.length > 0) {
@@ -83,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create tenant auth account
-    await createTenantAuth(tenantId, email, password);
+    await createTenantAuth(tenantIdInt, trimmedEmail, password);
 
     return NextResponse.json({
       success: true,
