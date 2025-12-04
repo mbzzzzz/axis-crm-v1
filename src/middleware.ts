@@ -12,10 +12,16 @@ const publicRoutes = [
   "/auth/callback",
   "/api/webhooks",
   "/api/auth",
+  "/tenant-portal/login",
+  "/tenant-portal/register",
 ];
 
 function isPublicRoute(pathname: string) {
   return publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+function isTenantRoute(pathname: string) {
+  return pathname.startsWith("/tenant-portal");
 }
 
 export async function middleware(request: NextRequest) {
@@ -45,9 +51,24 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session && !isPublicRoute(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+
+  // Allow public routes
+  if (isPublicRoute(pathname)) {
+    return response;
+  }
+
+  // Handle tenant portal routes - they use localStorage token (client-side check)
+  // Middleware can't access localStorage, so we let it through and check client-side
+  if (isTenantRoute(pathname)) {
+    return response;
+  }
+
+  // For agent routes, require Supabase session
+  if (!session) {
     const redirectUrl = new URL("/login", request.url);
-    redirectUrl.searchParams.set("redirectedFrom", request.nextUrl.pathname);
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    redirectUrl.searchParams.set("role", "agent");
     return NextResponse.redirect(redirectUrl);
   }
 

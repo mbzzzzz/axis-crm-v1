@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AxisLogo } from "@/components/axis-logo";
+import { Shield, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function TenantLoginPage() {
@@ -15,6 +17,14 @@ export default function TenantLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if already logged in
+    const token = localStorage.getItem("tenant_token");
+    if (token) {
+      router.replace("/tenant-portal/dashboard");
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,52 +58,85 @@ export default function TenantLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-      <Card className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute inset-0">
+        <ShaderAnimation />
+      </div>
+
+      <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
         <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center">
-            <AxisLogo variant="full" size="navbar" />
+          <div className="mx-auto flex items-center justify-center">
+            <AxisLogo variant="full" size="lg" className="text-white" />
           </div>
-          <div>
-            <CardTitle className="text-2xl">Tenant Portal</CardTitle>
-            <CardDescription>Sign in to access your account</CardDescription>
+          <div className="flex items-center justify-center gap-2 text-white/80">
+            <Home className="size-5" />
+            <CardDescription className="text-base text-white/80">
+              Tenant Portal
+            </CardDescription>
           </div>
+          <CardDescription className="text-sm text-white/70">
+            Sign in to view your invoices, pay rent, and request maintenance
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white/90">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 required
                 disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-white/90">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 required
                 disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+            <Button
+              type="submit"
+              className="w-full bg-white text-black hover:bg-white/90"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in with Email"
+              )}
             </Button>
           </form>
-          <div className="mt-4 text-center text-sm text-muted-foreground">
+
+          <p className="text-xs text-center text-white/70 flex items-center justify-center gap-2">
+            <Shield className="size-4" /> Secure authentication
+          </p>
+
+          <div className="mt-4 text-center text-sm text-white/80">
             <p>
               Don't have an account?{" "}
-              <Link href="/tenant-portal/register" className="text-primary hover:underline">
+              <Link href="/tenant-portal/register" className="font-semibold underline-offset-4 hover:underline">
                 Register here
+              </Link>
+            </p>
+            <p className="mt-2 text-xs text-white/60">
+              Are you an agent?{" "}
+              <Link href="/login?role=agent" className="underline-offset-4 hover:underline">
+                Sign in as agent
               </Link>
             </p>
           </div>

@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { ShaderAnimation } from "@/components/ui/shader-animation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AxisLogo } from "@/components/axis-logo";
+import { Shield, Home, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function TenantRegisterPage() {
@@ -102,84 +104,110 @@ export default function TenantRegisterPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-900 to-black p-4">
-      <Card className="w-full max-w-md">
+    <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute inset-0">
+        <ShaderAnimation />
+      </div>
+
+      <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
         <CardHeader className="space-y-4 text-center">
-          <div className="flex justify-center">
-            <AxisLogo variant="full" size="navbar" />
+          <div className="mx-auto flex items-center justify-center">
+            <AxisLogo variant="full" size="lg" className="text-white" />
           </div>
-          <div>
-            <CardTitle className="text-2xl">Create Account</CardTitle>
-            <CardDescription>Set up your tenant portal account</CardDescription>
+          <div className="flex items-center justify-center gap-2 text-white/80">
+            <Home className="size-5" />
+            <CardDescription className="text-base text-white/80">
+              Tenant Portal Registration
+            </CardDescription>
           </div>
+          <CardDescription className="text-sm text-white/70">
+            Set up your tenant portal account to access invoices and maintenance requests
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-white/90">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 required
                 disabled={isLoading || !!tenantId}
               />
               {tenantId && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-white/60">
                   Email is pre-filled from your tenant record
                 </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-white/90">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Create a password (min. 6 characters)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 required
                 disabled={isLoading}
                 minLength={6}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-white/90">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="Confirm your password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
                 required
                 disabled={isLoading}
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading || !tenantId || tokenValid === false}>
-              {isLoading ? "Creating account..." : "Create Account"}
+            <Button
+              type="submit"
+              className="w-full bg-white text-black hover:bg-white/90"
+              disabled={isLoading || !tenantId || tokenValid === false}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
           {tokenValid === false && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">
+            <div className="mt-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <p className="text-sm text-red-200">
                 Invalid or expired registration link. Please contact your property manager for a new registration link.
               </p>
             </div>
           )}
           {!tenantId && tokenValid !== false && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
+            <div className="mt-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+              <p className="text-sm text-yellow-200">
                 You need a registration link from your property manager to create an account.
               </p>
             </div>
           )}
-          <div className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="text-xs text-center text-white/70 flex items-center justify-center gap-2">
+            <Shield className="size-4" /> Secure authentication
+          </p>
+          <div className="mt-4 text-center text-sm text-white/80">
             <p>
               Already have an account?{" "}
-              <Link href="/tenant-portal/login" className="text-primary hover:underline">
+              <Link href="/tenant-portal/login" className="font-semibold underline-offset-4 hover:underline">
                 Sign in here
               </Link>
             </p>
