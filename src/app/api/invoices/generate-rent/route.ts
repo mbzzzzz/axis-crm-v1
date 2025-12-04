@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, properties, tenants } from '@/db/schema';
+import { invoices, properties, tenants, userPreferences } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { UsageLimitError, consumePlanQuota } from '@/lib/usage-limits';
@@ -91,6 +91,23 @@ export async function POST(request: NextRequest) {
 
     const propertyData = property[0];
 
+    // Fetch user preferences for default billing information
+    const preferences = await db
+      .select({
+        agentName: userPreferences.agentName,
+        agentAgency: userPreferences.agentAgency,
+        organizationName: userPreferences.organizationName,
+        companyTagline: userPreferences.companyTagline,
+        defaultInvoiceLogoMode: userPreferences.defaultInvoiceLogoMode,
+        defaultInvoiceLogoDataUrl: userPreferences.defaultInvoiceLogoDataUrl,
+        defaultInvoiceLogoWidth: userPreferences.defaultInvoiceLogoWidth,
+      })
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, user.id))
+      .limit(1);
+
+    const prefs = preferences[0] || {};
+
     // Determine invoice date and due date
     const invoiceMonth = month || new Date().getMonth() + 1;
     const invoiceYear = year || new Date().getFullYear();
@@ -123,6 +140,9 @@ export async function POST(request: NextRequest) {
     const taxRate = 0; // Can be configured per property/user
     const taxAmount = 0;
     const totalAmount = subtotal;
+    
+    // Get currency from property (default to USD)
+    const currency = propertyData.currency || 'USD';
 
     try {
       await consumePlanQuota(user.id, "monthlyInvoices");
@@ -157,12 +177,18 @@ export async function POST(request: NextRequest) {
           rate: subtotal,
           amount: subtotal
         }],
-        // Branding fields with defaults
-        logoMode: 'text',
-        logoDataUrl: null,
-        logoWidth: 40,
-        companyName: 'AXIS CRM',
-        companyTagline: 'Real Estate Management',
+        // Branding fields from user preferences (with fallbacks)
+        logoMode: (prefs.defaultInvoiceLogoMode as 'text' | 'image') || 'text',
+        logoDataUrl: prefs.defaultInvoiceLogoDataUrl || null,
+        logoWidth: prefs.defaultInvoiceLogoWidth || 40,
+        companyName: prefs.organizationName || 'AXIS CRM',
+        companyTagline: prefs.companyTagline || 'Real Estate Management',
+        // Agent billing information from preferences
+        agentName: prefs.agentName || null,
+        agentAgency: prefs.agentAgency || null,
+        agentEmail: user.email || null,
+        // Currency from property
+        currency: currency,
         createdAt: new Date(),
         updatedAt: new Date()
       })

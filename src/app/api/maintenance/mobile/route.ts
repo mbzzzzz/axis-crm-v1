@@ -75,10 +75,8 @@ export async function GET(request: NextRequest) {
     const propertyId = tenant[0].propertyId;
 
     if (!propertyId) {
-      return NextResponse.json(
-        { error: 'No active property for this tenant', code: 'NO_PROPERTY' },
-        { status: 404 }
-      );
+      // Return empty array instead of error - tenant may not have property assigned yet
+      return NextResponse.json([], { status: 200 });
     }
 
     // Fetch maintenance requests ONLY for the tenant's property

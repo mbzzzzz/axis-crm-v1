@@ -73,13 +73,19 @@ export default function TenantMaintenancePage() {
       if (response.ok) {
         const data = await response.json();
         setRequests(Array.isArray(data) ? data : []);
+        // If empty array, that's fine - tenant just has no requests yet
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "Failed to load maintenance requests");
+        console.error("Maintenance API error:", response.status, errorData);
+        // Don't show error if tenant has no property or no requests - that's expected
+        if (errorData.code !== 'NO_PROPERTY' && response.status !== 200) {
+          toast.error(errorData.error || `Failed to load maintenance requests (${response.status})`);
+        }
+        setRequests([]); // Set empty array on error so UI shows "no requests" message
       }
     } catch (error) {
       console.error("Error fetching maintenance requests:", error);
-      toast.error("Failed to load maintenance requests");
+      toast.error("Failed to load maintenance requests. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -113,15 +119,20 @@ export default function TenantMaintenancePage() {
 
       if (response.ok) {
         const data = await response.json();
-        setFormData({ ...formData, description: data.description });
-        toast.success("Description generated successfully");
+        if (data.description) {
+          setFormData({ ...formData, description: data.description });
+          toast.success("Description generated successfully");
+        } else {
+          toast.error("No description generated. Please try again.");
+        }
       } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to generate description");
+        const error = await response.json().catch(() => ({}));
+        console.error("Generate description API error:", response.status, error);
+        toast.error(error.error || `Failed to generate description (${response.status})`);
       }
     } catch (error) {
       console.error("Error generating description:", error);
-      toast.error("Failed to generate description");
+      toast.error("Failed to generate description. Please check your connection and try again.");
     } finally {
       setIsGeneratingDescription(false);
     }

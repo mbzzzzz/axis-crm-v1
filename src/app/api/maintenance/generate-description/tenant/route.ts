@@ -50,20 +50,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch tenant's property if available
+    // Fetch tenant's property if available (optional - not required for generation)
     let propertyAddress = null;
     let propertyType = null;
-    if (tenant.propertyId) {
-      const property = await db
-        .select()
-        .from(properties)
-        .where(eq(properties.id, tenant.propertyId))
-        .limit(1);
-      
-      if (property.length > 0) {
-        propertyAddress = property[0].address;
-        propertyType = property[0].propertyType;
+    try {
+      if (tenant.propertyId) {
+        const property = await db
+          .select()
+          .from(properties)
+          .where(eq(properties.id, tenant.propertyId))
+          .limit(1);
+        
+        if (property.length > 0) {
+          propertyAddress = property[0].address;
+          propertyType = property[0].propertyType;
+        }
       }
+    } catch (propertyError) {
+      // Property fetch failed, but we can still generate description without it
+      console.warn('Failed to fetch property for tenant:', propertyError);
     }
 
     // Build maintenance details for description generation
@@ -130,19 +135,27 @@ Generate the maintenance request description now:`;
 
     if (!groqResponse.ok) {
       const errorData = await groqResponse.text();
-      console.error('Groq API error:', errorData);
+      console.error('Groq API error:', groqResponse.status, errorData);
+      let errorMessage = 'Failed to generate description. Please try again.';
+      try {
+        const errorJson = JSON.parse(errorData);
+        errorMessage = errorJson.error?.message || errorMessage;
+      } catch {
+        // Use default error message
+      }
       return NextResponse.json(
-        { error: 'Failed to generate description. Please try again.' },
+        { error: errorMessage },
         { status: 500 }
       );
     }
 
     const data = await groqResponse.json();
-    const description = data.choices[0]?.message?.content?.trim();
+    const description = data.choices?.[0]?.message?.content?.trim();
 
     if (!description) {
+      console.error('No description in Groq response:', data);
       return NextResponse.json(
-        { error: 'Failed to generate description. Please try again.' },
+        { error: 'Failed to generate description. The AI service returned an empty response.' },
         { status: 500 }
       );
     }

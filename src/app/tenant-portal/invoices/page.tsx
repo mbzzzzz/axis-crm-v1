@@ -9,6 +9,8 @@ import { TenantHeader } from "@/components/tenant-portal/tenant-header";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { downloadInvoicePDF } from "@/lib/pdf-generator";
+import { formatCurrency } from "@/lib/utils";
+import type { CurrencyCode } from "@/lib/currency-formatter";
 
 interface Invoice {
   id: number;
@@ -19,6 +21,8 @@ interface Invoice {
   paymentStatus: string;
   lateFeeAmount?: number;
   items?: any[];
+  currency?: string; // Currency code (USD, INR, etc.)
+  propertyId?: number;
 }
 
 export default function TenantInvoicesPage() {
@@ -59,13 +63,19 @@ export default function TenantInvoicesPage() {
       if (response.ok) {
         const data = await response.json();
         setInvoices(Array.isArray(data) ? data : []);
+        // If empty array, that's fine - tenant just has no invoices yet
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "Failed to load invoices");
+        console.error("Invoices API error:", response.status, errorData);
+        // Only show error for actual failures, not for empty results
+        if (response.status !== 404 && response.status !== 200) {
+          toast.error(errorData.error || `Failed to load invoices (${response.status})`);
+        }
+        setInvoices([]); // Set empty array on error so UI shows "no invoices" message
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("Failed to load invoices");
+      console.error("Error fetching invoices:", error);
+      toast.error("Failed to load invoices. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -180,14 +190,22 @@ export default function TenantInvoicesPage() {
                             <div>
                               <span className="text-sm text-muted-foreground">Total Amount: </span>
                               <span className="font-semibold text-lg">
-                                ${invoice.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                {formatCurrency(
+                                  invoice.totalAmount,
+                                  (invoice.currency || "USD") as CurrencyCode,
+                                  { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                                )}
                               </span>
                             </div>
                             {invoice.lateFeeAmount && invoice.lateFeeAmount > 0 && (
                               <div>
                                 <span className="text-sm text-muted-foreground">Late Fee: </span>
                                 <span className="font-semibold text-red-600">
-                                  ${invoice.lateFeeAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  {formatCurrency(
+                                    invoice.lateFeeAmount,
+                                    (invoice.currency || "USD") as CurrencyCode,
+                                    { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                                  )}
                                 </span>
                               </div>
                             )}

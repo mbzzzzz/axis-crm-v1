@@ -36,6 +36,8 @@ import { Label } from "@/components/ui/label";
 import { generateInvoicePDF, downloadInvoicePDF } from "@/lib/pdf-generator";
 import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 import { LateFeeBadge } from "@/components/invoices/late-fee-badge";
+import { formatCurrency } from "@/lib/utils";
+import type { CurrencyCode } from "@/lib/currency-formatter";
 
 type LeaseStatus = "active" | "expired" | "pending" | "terminated";
 
@@ -1199,7 +1201,11 @@ const getPaymentSummary = (tenant: Tenant) => {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="font-medium">
-                      ${selectedInvoiceForPreview.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(
+                        selectedInvoiceForPreview.subtotal,
+                        ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}
                     </span>
                   </div>
                 )}
@@ -1210,7 +1216,11 @@ const getPaymentSummary = (tenant: Tenant) => {
                         Tax ({selectedInvoiceForPreview.taxRate}%)
                       </span>
                       <span className="font-medium">
-                        ${(selectedInvoiceForPreview.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(
+                          selectedInvoiceForPreview.taxAmount || 0,
+                          ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                          { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                        )}
                       </span>
                     </div>
                   </>
@@ -1218,7 +1228,11 @@ const getPaymentSummary = (tenant: Tenant) => {
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total Amount</span>
                   <span>
-                    ${selectedInvoiceForPreview.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(
+                      selectedInvoiceForPreview.totalAmount,
+                      ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}
                   </span>
                 </div>
               </div>

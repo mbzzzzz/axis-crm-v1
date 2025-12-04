@@ -68,6 +68,8 @@ export const invoices = pgTable('invoices', {
   // Late fee fields
   lateFeeAmount: real('late_fee_amount').default(0),
   lateFeeAppliedAt: timestamp('late_fee_applied_at'),
+  // Currency field - uses property currency by default
+  currency: text('currency').default('USD'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

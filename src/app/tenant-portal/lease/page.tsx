@@ -67,11 +67,15 @@ export default function TenantLeasePage() {
         setLease(activeLease);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "Failed to load lease information");
+        console.error("Lease API error:", response.status, errorData);
+        // Don't show error toast if no lease found - that's expected for some tenants
+        if (response.status !== 404) {
+          toast.error(errorData.error || `Failed to load lease information (${response.status})`);
+        }
       }
     } catch (error) {
       console.error("Error fetching lease:", error);
-      toast.error("Failed to load lease information");
+      toast.error("Failed to load lease information. Please try again.");
     } finally {
       setIsLoading(false);
     }

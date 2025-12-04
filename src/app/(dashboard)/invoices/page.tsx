@@ -38,6 +38,8 @@ import { sendInvoiceWithCaption } from "@/app/actions/whatsapp";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LateFeeBadge } from "@/components/invoices/late-fee-badge";
 import { RecurringInvoiceForm } from "@/components/invoices/recurring-invoice-form";
+import { formatCurrency } from "@/lib/utils";
+import type { CurrencyCode } from "@/lib/currency-formatter";
 
 interface Invoice {
   id: number;
@@ -64,6 +66,8 @@ interface Invoice {
   paymentTerms?: string;
   lateFeePolicy?: string;
   notes?: string;
+  currency?: string; // Currency code (USD, INR, etc.)
+  propertyId?: number;
 }
 
 export default function InvoicesPage() {
@@ -507,7 +511,11 @@ export default function InvoicesPage() {
                       {new Date(invoice.dueDate).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="font-semibold">
-                      ${invoice.totalAmount.toLocaleString()}
+                      {formatCurrency(
+                        invoice.totalAmount,
+                        (invoice.currency || "USD") as CurrencyCode,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}
                     </TableCell>
                     <TableCell>
                       {getStatusBadge(invoice)}
@@ -756,7 +764,11 @@ export default function InvoicesPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="font-medium">
-                      ${selectedInvoiceForPreview.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatCurrency(
+                        selectedInvoiceForPreview.subtotal,
+                        ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}
                     </span>
                   </div>
                 )}
@@ -767,7 +779,11 @@ export default function InvoicesPage() {
                         Tax ({selectedInvoiceForPreview.taxRate}%)
                       </span>
                       <span className="font-medium">
-                        ${(selectedInvoiceForPreview.taxAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(
+                          selectedInvoiceForPreview.taxAmount || 0,
+                          ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                          { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                        )}
                       </span>
                     </div>
                   </>
@@ -775,7 +791,11 @@ export default function InvoicesPage() {
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total Amount</span>
                   <span>
-                    ${selectedInvoiceForPreview.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(
+                      selectedInvoiceForPreview.totalAmount,
+                      ((selectedInvoiceForPreview as any).currency || "USD") as CurrencyCode,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}
                   </span>
                 </div>
               </div>
@@ -931,7 +951,11 @@ function RecurringInvoicesTab() {
                       </Badge>
                       {rec.invoiceTemplate && (
                         <div className="text-sm text-muted-foreground">
-                          Amount: ${(rec.invoiceTemplate as any)?.totalAmount?.toLocaleString() || "N/A"}
+                          Amount: {formatCurrency(
+                            (rec.invoiceTemplate as any)?.totalAmount || 0,
+                            ((rec.invoiceTemplate as any)?.currency || "USD") as CurrencyCode,
+                            { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                          )}
                         </div>
                       )}
                     </div>
