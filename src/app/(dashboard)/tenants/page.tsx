@@ -407,7 +407,12 @@ function TenantsPageContent() {
       if (response.ok) {
         const data = await response.json();
         toast.success("Rent invoice generated successfully");
-        fetchInvoices();
+        fetchInvoices(); // Refresh local invoice list in tenant panel
+        
+        // Trigger invoice panel refresh if it's open in another tab/page
+        // Using localStorage event to communicate across tabs
+        window.localStorage.setItem('invoice_refresh_trigger', Date.now().toString());
+        window.dispatchEvent(new Event('invoice_refresh'));
       } else {
         const error = await response.json();
         toast.error(error.error || "Failed to generate invoice");
@@ -599,6 +604,7 @@ function TenantsPageContent() {
         logoWidth: fullInvoice.logoWidth,
         companyName: fullInvoice.companyName,
         companyTagline: fullInvoice.companyTagline,
+        currency: (fullInvoice as any).currency || 'USD', // Include currency for PDF
       } as any;
 
       downloadInvoicePDF(pdfData, `invoice-${fullInvoice.invoiceNumber}.pdf`);

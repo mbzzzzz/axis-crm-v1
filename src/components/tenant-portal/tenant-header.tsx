@@ -3,9 +3,18 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AxisLogo } from "@/components/axis-logo";
-import { LogOut, Home, FileText, Wrench, FileSignature } from "lucide-react";
+import { LogOut, Home, FileText, Wrench, FileSignature, User, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function TenantHeader() {
   const router = useRouter();
@@ -46,10 +55,25 @@ export function TenantHeader() {
             </Link>
           ))}
         </nav>
-        <Button variant="ghost" size="sm" onClick={handleLogout}>
-          <LogOut className="size-4" />
-          <span className="hidden sm:inline ml-2">Logout</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <User className="size-4" />
+                <span className="hidden sm:inline">Account</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+                <LogOut className="mr-2 size-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

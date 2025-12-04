@@ -95,27 +95,77 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if auth already exists
-    const existingAuth = await db
+    // Check if auth already exists (by tenant_id OR email to catch duplicates)
+    const existingAuthByTenant = await db
       .select()
       .from(tenantAuth)
       .where(eq(tenantAuth.tenantId, tenantIdInt))
       .limit(1);
 
-    if (existingAuth.length > 0) {
+    const existingAuthByEmail = await db
+      .select()
+      .from(tenantAuth)
+      .where(eq(tenantAuth.email, trimmedEmail.toLowerCase()))
+      .limit(1);
+
+    // If auth exists for this tenant, check if it's the same email
+    if (existingAuthByTenant.length > 0) {
+      if (existingAuthByTenant[0].email.toLowerCase() === trimmedEmail.toLowerCase()) {
+        return NextResponse.json(
+          { error: 'Account already exists. Please login instead.', success: false },
+          { status: 400 }
+        );
+      } else {
+        // Different email for same tenant - this shouldn't happen, but handle it
+        return NextResponse.json(
+          { error: 'This tenant already has an account with a different email.', success: false },
+          { status: 400 }
+        );
+      }
+    }
+
+    // If email is already registered to a different tenant
+    if (existingAuthByEmail.length > 0) {
       return NextResponse.json(
-        { error: 'Account already exists. Please login instead.', success: false },
+        { error: 'This email is already registered to a different tenant.', success: false },
         { status: 400 }
       );
     }
 
     // Create tenant auth account
-    await createTenantAuth(tenantIdInt, trimmedEmail, password);
+    try {
+      await createTenantAuth(tenantIdInt, trimmedEmail, password);
+      
+      // Verify it was created
+      const verifyAuth = await db
+        .select()
+        .from(tenantAuth)
+        .where(eq(tenantAuth.tenantId, tenantIdInt))
+        .limit(1);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Account created successfully',
-    });
+      if (verifyAuth.length === 0) {
+        console.error('[Tenant Registration] Auth record was not created after createTenantAuth call');
+        return NextResponse.json(
+          { error: 'Failed to create account. Please try again.', success: false },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Account created successfully',
+      });
+    } catch (createError: any) {
+      console.error('[Tenant Registration] Error creating auth:', createError);
+      // If it's a duplicate error, provide helpful message
+      if (createError.message?.includes('already exists')) {
+        return NextResponse.json(
+          { error: 'Account already exists. Please login instead.', success: false },
+          { status: 400 }
+        );
+      }
+      throw createError; // Re-throw to be caught by outer catch
+    }
   } catch (error: any) {
     console.error('Tenant registration error:', error);
     return NextResponse.json(

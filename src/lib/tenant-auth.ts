@@ -105,13 +105,23 @@ export async function authenticateTenant(
   email: string,
   password: string
 ): Promise<{ token: string; tenant: any } | null> {
+  // Normalize email but don't modify password (passwords may contain spaces intentionally)
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // Ensure password is not empty
+  if (!password || password.length === 0) {
+    console.log(`[Tenant Auth] Empty password provided for email: ${normalizedEmail}`);
+    return null;
+  }
+  
   const auth = await db
     .select()
     .from(tenantAuth)
-    .where(eq(tenantAuth.email, email.toLowerCase().trim()))
+    .where(eq(tenantAuth.email, normalizedEmail))
     .limit(1);
 
   if (auth.length === 0) {
+    console.log(`[Tenant Auth] No auth record found for email: ${normalizedEmail}`);
     return null;
   }
 
@@ -119,12 +129,24 @@ export async function authenticateTenant(
 
   // Check if account is active
   if (authData.isActive === 0) {
+    console.log(`[Tenant Auth] Account is inactive for email: ${normalizedEmail}`);
     return null;
   }
 
-  // Verify password
-  const isValid = await verifyPassword(password, authData.passwordHash);
-  if (!isValid) {
+  // Verify password - ensure password hash exists
+  if (!authData.passwordHash) {
+    console.error(`[Tenant Auth] No password hash found for email: ${normalizedEmail}`);
+    return null;
+  }
+
+  try {
+    const isValid = await verifyPassword(password, authData.passwordHash);
+    if (!isValid) {
+      console.log(`[Tenant Auth] Invalid password for email: ${normalizedEmail}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`[Tenant Auth] Password verification error for email: ${normalizedEmail}`, error);
     return null;
   }
 

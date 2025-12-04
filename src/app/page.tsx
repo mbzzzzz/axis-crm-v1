@@ -9,6 +9,7 @@ import { StructuredData } from "@/components/structured-data";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TrustedBrands } from "@/components/landing/TrustedBrands";
 import { FAQSection } from "@/components/landing/FAQSection";
+import { FeaturesCarousel } from "@/components/landing/FeaturesCarousel";
 
 export default function Home() {
   const router = useRouter();
@@ -156,6 +157,9 @@ export default function Home() {
 
       {/* Trusted Brands Section */}
       <TrustedBrands />
+
+      {/* Features Carousel Section */}
+      <FeaturesCarousel />
 
       {/* Pricing Section */}
       <PricingSection />

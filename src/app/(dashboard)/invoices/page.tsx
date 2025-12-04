@@ -112,6 +112,27 @@ export default function InvoicesPage() {
 
   useEffect(() => {
     fetchInvoices();
+    
+    // Listen for invoice refresh events (from tenant panel or other pages)
+    const handleInvoiceRefresh = () => {
+      fetchInvoices();
+    };
+    
+    window.addEventListener('invoice_refresh', handleInvoiceRefresh);
+    
+    // Also listen for storage events (cross-tab communication)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'invoice_refresh_trigger') {
+        fetchInvoices();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('invoice_refresh', handleInvoiceRefresh);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   useEffect(() => {
@@ -192,6 +213,7 @@ export default function InvoicesPage() {
         logoWidth: (fullInvoice as any).logoWidth,
         companyName: (fullInvoice as any).companyName,
         companyTagline: (fullInvoice as any).companyTagline,
+        currency: (fullInvoice as any).currency || 'USD', // Include currency for PDF
       } as any;
 
       downloadInvoicePDF(pdfData, `invoice-${fullInvoice.invoiceNumber}.pdf`);

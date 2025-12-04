@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatCurrency } from './utils';
+import type { CurrencyCode } from './currency-formatter';
 
 interface InvoiceItem {
   description: string;
@@ -46,6 +48,7 @@ interface InvoiceData {
   notes?: string;
   paymentTerms?: string;
   lateFeePolicy?: string;
+  currency?: string; // Currency code (USD, INR, etc.) - defaults to USD
 
   // Branding (optional)
   logoMode?: 'image' | 'text';
@@ -59,6 +62,9 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Get currency code (default to USD)
+  const currencyCode = (data.currency || 'USD') as CurrencyCode;
   
   // Colors
   const primaryColor: [number, number, number] = [52, 73, 94]; // Dark blue
@@ -212,12 +218,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   
   yPosition += 40;
   
-  // Line items table
+  // Line items table - format with currency
   const tableData = data.items.map(item => [
     item.description,
     item.quantity.toString(),
-    `$${item.rate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `$${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    formatCurrency(item.rate, currencyCode, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    formatCurrency(item.amount, currencyCode, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   ]);
   
   autoTable(doc, {
@@ -255,12 +261,12 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Subtotal:', totalsX, yPosition, { align: 'right' });
-  doc.text(`$${data.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 20, yPosition, { align: 'right' });
-  
+  doc.text(formatCurrency(data.subtotal, currencyCode, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, yPosition, { align: 'right' });
+
   yPosition += 7;
   doc.text(`Tax (${data.taxRate}%):`, totalsX, yPosition, { align: 'right' });
-  doc.text(`$${data.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 20, yPosition, { align: 'right' });
-  
+  doc.text(formatCurrency(data.taxAmount, currencyCode, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, yPosition, { align: 'right' });
+
   yPosition += 10;
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
@@ -268,7 +274,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.rect(totalsX - 10, yPosition - 5, pageWidth - totalsX - 10, 10, 'F');
   doc.text('TOTAL:', totalsX, yPosition, { align: 'right' });
   doc.setTextColor(...accentColor);
-  doc.text(`$${data.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, pageWidth - 20, yPosition, { align: 'right' });
+  doc.text(formatCurrency(data.totalAmount, currencyCode, { minimumFractionDigits: 2, maximumFractionDigits: 2 }), pageWidth - 20, yPosition, { align: 'right' });
   
   yPosition += 15;
   doc.setTextColor(...textColor);

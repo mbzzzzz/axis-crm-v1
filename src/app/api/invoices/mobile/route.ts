@@ -84,6 +84,8 @@ export async function GET(request: NextRequest) {
         totalAmount: invoices.totalAmount,
         paymentStatus: invoices.paymentStatus,
         lateFeeAmount: invoices.lateFeeAmount,
+        currency: invoices.currency, // Include currency for consistent display
+        propertyId: invoices.propertyId, // Include propertyId for reference
       })
       .from(invoices)
       .where(eq(invoices.tenantId, tenantData.id))

@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { TenantHeader } from "@/components/tenant-portal/tenant-header";
 import { FileText, Download, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
+import type { CurrencyCode } from "@/lib/currency-formatter";
 
 interface Lease {
   id: number;
@@ -27,6 +29,7 @@ interface Lease {
 export default function TenantLeasePage() {
   const [lease, setLease] = useState<Lease | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [tenant, setTenant] = useState<any>(null); // Store tenant data for currency
 
   useEffect(() => {
     fetchLease();
@@ -52,6 +55,7 @@ export default function TenantLeasePage() {
 
       const tenantData = await tenantRes.json();
       const tenantId = tenantData.tenant.id;
+      setTenant(tenantData.tenant); // Store tenant data including property
 
       // Fetch leases for this tenant
       const response = await fetch(`/api/leases?tenantId=${tenantId}`, {
@@ -65,13 +69,16 @@ export default function TenantLeasePage() {
           ? data.find((l: Lease) => l.status === "active") || data[0]
           : null;
         setLease(activeLease);
+        // No error toast if no lease - that's expected for some tenants
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("Lease API error:", response.status, errorData);
-        // Don't show error toast if no lease found - that's expected for some tenants
-        if (response.status !== 404) {
+        // Only show error for actual failures (not 404 or empty results)
+        if (response.status !== 404 && response.status !== 200) {
           toast.error(errorData.error || `Failed to load lease information (${response.status})`);
         }
+        // Set lease to null so UI shows "no lease" message instead of error
+        setLease(null);
       }
     } catch (error) {
       console.error("Error fetching lease:", error);
@@ -164,12 +171,24 @@ export default function TenantLeasePage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Monthly Rent</label>
-                  <p className="mt-1 font-semibold text-lg">${lease.monthlyRent.toLocaleString()}</p>
+                  <p className="mt-1 font-semibold text-lg">
+                    {formatCurrency(
+                      lease.monthlyRent,
+                      (tenant?.property?.currency || "USD") as CurrencyCode,
+                      { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                    )}
+                  </p>
                 </div>
                 {lease.deposit && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Security Deposit</label>
-                    <p className="mt-1 font-semibold">${lease.deposit.toLocaleString()}</p>
+                    <p className="mt-1 font-semibold">
+                      {formatCurrency(
+                        lease.deposit,
+                        (tenant?.property?.currency || "USD") as CurrencyCode,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      )}
+                    </p>
                   </div>
                 )}
                 <div>

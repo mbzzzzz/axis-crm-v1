@@ -47,7 +47,14 @@ export default function TenantLoginPage() {
         toast.success("Login successful");
         router.push("/tenant-portal/dashboard");
       } else {
-        toast.error(data.error || "Invalid email or password");
+        // Show more specific error messages
+        if (data.code === 'NOT_REGISTERED') {
+          toast.error(data.error || "Please register first using the registration link from your property manager.");
+        } else if (data.code === 'ACCOUNT_INACTIVE') {
+          toast.error(data.error || "Your account has been deactivated. Please contact your property manager.");
+        } else {
+          toast.error(data.error || "Invalid email or password");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);

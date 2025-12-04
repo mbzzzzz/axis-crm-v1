@@ -24,6 +24,14 @@ function isTenantRoute(pathname: string) {
   return pathname.startsWith("/tenant-portal");
 }
 
+function isTenantApiRoute(pathname: string) {
+  // Allow tenant-specific API routes (they use JWT tokens, not Supabase sessions)
+  return pathname.startsWith("/api/maintenance/generate-description/tenant") ||
+         pathname.startsWith("/api/maintenance/mobile") ||
+         pathname.startsWith("/api/invoices/mobile") ||
+         pathname.startsWith("/api/auth/tenant");
+}
+
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
@@ -55,6 +63,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow public routes
   if (isPublicRoute(pathname)) {
+    return response;
+  }
+
+  // Allow tenant API routes - they use JWT tokens, not Supabase sessions
+  if (isTenantApiRoute(pathname)) {
     return response;
   }
 
