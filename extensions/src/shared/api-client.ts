@@ -74,11 +74,22 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   }
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    let errorMessage = `Request failed (${response.status}): ${text || response.statusText}`;
+    // Try to parse as JSON first (API routes now return JSON 401, not HTML redirect)
+    let errorData: any = null;
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      try {
+        errorData = await response.json();
+      } catch {
+        // Not JSON, continue with text
+      }
+    }
+    
+    const text = errorData?.error || await response.text().catch(() => "") || response.statusText;
+    let errorMessage = `Request failed (${response.status}): ${text}`;
     
     if (response.status === 401 || response.status === 403) {
-      errorMessage = "Not signed in. Please log into AXIS CRM dashboard as an agent (not tenant portal), then try syncing again.";
+      errorMessage = "Not signed in. Your session may have expired.\n\nPlease:\n1. Open AXIS CRM dashboard in a new tab\n2. Make sure you're logged in\n3. Refresh the dashboard page to renew your session\n4. Then try syncing again";
     } else if (response.status === 404) {
       errorMessage = "API endpoint not found. Check your AXIS CRM URL in settings. Make sure you're using the main dashboard URL, not the tenant portal.";
     } else if (response.status >= 500) {

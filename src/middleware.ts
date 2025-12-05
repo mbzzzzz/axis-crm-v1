@@ -79,6 +79,15 @@ export async function middleware(request: NextRequest) {
 
   // For agent routes, require Supabase session
   if (!session) {
+    // For API routes, return JSON 401 instead of redirecting (prevents HTML responses)
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "Unauthorized. Please log in.", code: "UNAUTHORIZED" },
+        { status: 401 }
+      );
+    }
+    
+    // For page routes, redirect to login
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("redirectedFrom", pathname);
     redirectUrl.searchParams.set("role", "agent");
