@@ -88,12 +88,23 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
     let userMessage = errorMessage;
     let errorCode: string | undefined;
     
-    if (errorMessage.includes("Not signed in") || (error instanceof Error && (error as any).status === 401)) {
+    // Check for HTML response errors (tenant portal or login redirect)
+    if ((error as any).isHtml || errorMessage.includes("HTML instead of JSON") || errorMessage.includes("<!DOCTYPE")) {
+      errorCode = "HTML_RESPONSE";
+      if (errorMessage.includes("tenant portal") || errorMessage.includes("tenant-portal")) {
+        userMessage = "You're trying to access the tenant portal. The extension only works with the agent dashboard.\n\nPlease:\n1. Make sure you're logged into the main dashboard (not /tenant-portal)\n2. Check that your AXIS CRM URL in settings points to the main dashboard\n3. Try syncing again";
+      } else {
+        userMessage = "Not signed in or wrong URL.\n\nPlease:\n1. Open AXIS CRM dashboard in a new tab\n2. Log in as an agent (not tenant)\n3. Make sure you're on the main dashboard URL (not /tenant-portal)\n4. Then try syncing again";
+      }
+    } else if (errorMessage.includes("Not signed in") || (error instanceof Error && (error as any).status === 401)) {
       errorCode = "NOT_SIGNED_IN";
-      userMessage = "Not signed in. Please log into AXIS CRM dashboard, then try syncing again.";
+      userMessage = "Not signed in. Please log into AXIS CRM dashboard as an agent (not tenant portal), then try syncing again.";
     } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
       errorCode = "NETWORK_ERROR";
-      userMessage = "Network error. Check your internet connection and AXIS CRM URL.";
+      userMessage = "Network error. Check your internet connection and AXIS CRM URL. Make sure the URL points to the main dashboard, not the tenant portal.";
+    } else if (errorMessage.includes("tenant portal") || errorMessage.includes("tenant-portal")) {
+      errorCode = "TENANT_PORTAL_ERROR";
+      userMessage = "The extension only works with the agent dashboard, not the tenant portal. Please use the main dashboard URL.";
     }
     
     return { ok: false, type: "ERROR" as const, error: userMessage, code: errorCode };
