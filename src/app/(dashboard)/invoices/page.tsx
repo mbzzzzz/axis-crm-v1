@@ -172,14 +172,27 @@ export default function InvoicesPage() {
     try {
       // Fetch full invoice details if items are missing
       let fullInvoice = invoice;
-      if (!invoice.items) {
+      if (!invoice.items || !invoice.subtotal) {
         const response = await fetch(`/api/invoices?id=${invoice.id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch invoice: ${response.status}`);
+        }
         fullInvoice = await response.json();
       }
 
-      // Fetch property details
-      const propertyResponse = await fetch(`/api/properties?id=${(fullInvoice as any).propertyId}`);
-      const property = await propertyResponse.json();
+      // Fetch property details if propertyId exists
+      let property = null;
+      if ((fullInvoice as any).propertyId) {
+        try {
+          const propertyResponse = await fetch(`/api/properties?id=${(fullInvoice as any).propertyId}`);
+          if (propertyResponse.ok) {
+            property = await propertyResponse.json();
+          }
+        } catch (propError) {
+          console.warn("Failed to fetch property details:", propError);
+          // Continue without property details
+        }
+      }
 
       const pdfData = {
         invoiceNumber: fullInvoice.invoiceNumber,
@@ -188,8 +201,8 @@ export default function InvoicesPage() {
         propertyAddress: property?.address,
         propertyUnit: property?.unit,
         propertyType: property?.propertyType,
-        clientName: fullInvoice.clientName,
-        clientEmail: fullInvoice.clientEmail,
+        clientName: fullInvoice.clientName || '',
+        clientEmail: fullInvoice.clientEmail || '',
         clientAddress: fullInvoice.clientAddress,
         clientPhone: fullInvoice.clientPhone,
         agentName: fullInvoice.agentName,
@@ -203,7 +216,7 @@ export default function InvoicesPage() {
         subtotal: fullInvoice.subtotal || 0,
         taxRate: fullInvoice.taxRate || 0,
         taxAmount: fullInvoice.taxAmount || 0,
-        totalAmount: fullInvoice.totalAmount,
+        totalAmount: fullInvoice.totalAmount || 0,
         paymentTerms: fullInvoice.paymentTerms,
         lateFeePolicy: fullInvoice.lateFeePolicy,
         notes: fullInvoice.notes,
@@ -216,11 +229,17 @@ export default function InvoicesPage() {
         currency: (fullInvoice as any).currency || 'USD', // Include currency for PDF
       } as any;
 
+      // Validate required fields
+      if (!pdfData.invoiceNumber || !pdfData.clientName) {
+        throw new Error("Invoice data is incomplete");
+      }
+
       downloadInvoicePDF(pdfData, `invoice-${fullInvoice.invoiceNumber}.pdf`);
       toast.success("Invoice PDF downloaded");
     } catch (error) {
       console.error("Failed to download PDF:", error);
-      toast.error("Failed to download PDF");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to download PDF: ${errorMessage}`);
     }
   };
 

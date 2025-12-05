@@ -38,7 +38,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Search, Clipboard, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Search, Clipboard, CheckCircle2, AlertCircle, Trash2, X } from "lucide-react";
 import { SortableMaintenanceCard } from "@/components/sortable-maintenance-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -53,6 +53,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DroppableColumn } from "@/components/droppable-column";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface MaintenanceRequest {
   id: number;
@@ -76,6 +77,7 @@ export default function MaintenancePage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedClosedRequests, setSelectedClosedRequests] = useState<Set<number>>(new Set());
   const [newRequest, setNewRequest] = useState({
     title: "",
     description: "",
@@ -407,6 +409,89 @@ export default function MaintenancePage() {
     return filtered;
   };
 
+  const handleToggleClosedSelection = (requestId: number) => {
+    setSelectedClosedRequests((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(requestId)) {
+        newSet.delete(requestId);
+      } else {
+        newSet.add(requestId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllClosed = (checked: boolean) => {
+    const closedRequests = getRequestsByStatus("closed");
+    if (checked) {
+      setSelectedClosedRequests(new Set(closedRequests.map((req) => req.id)));
+    } else {
+      setSelectedClosedRequests(new Set());
+    }
+  };
+
+  const handleClearSelected = async () => {
+    if (selectedClosedRequests.size === 0) {
+      toast.error("No requests selected");
+      return;
+    }
+
+    try {
+      // Delete selected closed requests
+      const deletePromises = Array.from(selectedClosedRequests).map((id) =>
+        fetch(`/api/maintenance?id=${id}`, {
+          method: "DELETE",
+        })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const failed = results.filter((r) => !r.ok);
+
+      if (failed.length === 0) {
+        toast.success(`Successfully cleared ${selectedClosedRequests.size} request(s)`);
+        setSelectedClosedRequests(new Set());
+        fetchRequests();
+      } else {
+        toast.error(`Failed to clear ${failed.length} request(s)`);
+        fetchRequests();
+      }
+    } catch (error) {
+      console.error("Failed to clear requests:", error);
+      toast.error("Failed to clear selected requests");
+    }
+  };
+
+  const handleClearAllClosed = async () => {
+    const closedRequests = getRequestsByStatus("closed");
+    if (closedRequests.length === 0) {
+      toast.error("No closed requests to clear");
+      return;
+    }
+
+    try {
+      const deletePromises = closedRequests.map((req) =>
+        fetch(`/api/maintenance?id=${req.id}`, {
+          method: "DELETE",
+        })
+      );
+
+      const results = await Promise.all(deletePromises);
+      const failed = results.filter((r) => !r.ok);
+
+      if (failed.length === 0) {
+        toast.success(`Successfully cleared all ${closedRequests.length} closed request(s)`);
+        setSelectedClosedRequests(new Set());
+        fetchRequests();
+      } else {
+        toast.error(`Failed to clear ${failed.length} request(s)`);
+        fetchRequests();
+      }
+    } catch (error) {
+      console.error("Failed to clear all closed requests:", error);
+      toast.error("Failed to clear all closed requests");
+    }
+  };
+
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -671,15 +756,68 @@ export default function MaintenancePage() {
                   ? "Requests currently being worked on"
                   : "Completed maintenance requests";
 
+              const isClosedColumn = column.status === "closed";
+              const allClosedSelected = isClosedColumn && columnRequests.length > 0 && 
+                columnRequests.every((req) => selectedClosedRequests.has(req.id));
+              const someClosedSelected = isClosedColumn && 
+                columnRequests.some((req) => selectedClosedRequests.has(req.id));
+
               return (
                 <DroppableColumn key={column.id} id={column.id}>
                   <Card className="flex flex-col">
                     <CardHeader className="flex flex-row items-center justify-between pb-3">
                       <div className="flex items-center gap-2">
+                        {isClosedColumn && columnRequests.length > 0 && (
+                          <Checkbox
+                            checked={allClosedSelected}
+                            onCheckedChange={handleSelectAllClosed}
+                            className="mr-1"
+                          />
+                        )}
                         <CardTitle className="text-base">{column.title}</CardTitle>
                         <Badge variant="outline">{columnRequests.length}</Badge>
                       </div>
-                      <Button variant="ghost" size="sm">⋯</Button>
+                      {isClosedColumn && columnRequests.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {selectedClosedRequests.size > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleClearSelected}
+                                    className="h-7 px-2"
+                                  >
+                                    <X className="size-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Clear Selected ({selectedClosedRequests.size})</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleClearAllClosed}
+                                  className="h-7 px-2"
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Clear All</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      )}
+                      {!isClosedColumn && <Button variant="ghost" size="sm">⋯</Button>}
                     </CardHeader>
                     <CardContent className="flex-1 space-y-3 overflow-y-auto max-h-[600px]">
                       <SortableContext
@@ -687,16 +825,27 @@ export default function MaintenancePage() {
                         strategy={verticalListSortingStrategy}
                       >
                         {columnRequests.map((request) => (
-                          <SortableMaintenanceCard
-                            key={request.id}
-                            request={request}
-                            getUrgencyColor={getUrgencyColor}
-                            formatUrgency={formatUrgency}
-                            formatDate={formatDate}
-                            onStatusChange={(newStatus) => handleStatusChange(request.id, newStatus)}
-                            availableStatuses={columns.map((col) => col.status).filter((s) => s !== request.status)}
-                            onClick={handleRequestClick}
-                          />
+                          <div key={request.id} className="flex items-start gap-2">
+                            {isClosedColumn && (
+                              <Checkbox
+                                checked={selectedClosedRequests.has(request.id)}
+                                onCheckedChange={() => handleToggleClosedSelection(request.id)}
+                                className="mt-4"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                            <div className="flex-1">
+                              <SortableMaintenanceCard
+                                request={request}
+                                getUrgencyColor={getUrgencyColor}
+                                formatUrgency={formatUrgency}
+                                formatDate={formatDate}
+                                onStatusChange={(newStatus) => handleStatusChange(request.id, newStatus)}
+                                availableStatuses={columns.map((col) => col.status).filter((s) => s !== request.status)}
+                                onClick={handleRequestClick}
+                              />
+                            </div>
+                          </div>
                         ))}
                       </SortableContext>
                       {columnRequests.length === 0 && (

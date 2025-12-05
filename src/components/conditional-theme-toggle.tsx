@@ -6,8 +6,8 @@ import ThemeToggle from "@/components/ui/theme-toggle";
 export function ConditionalThemeToggle() {
   const pathname = usePathname();
   
-  // Hide theme toggle on landing page (root path)
-  if (pathname === "/") {
+  // Hide theme toggle on landing page (root path) and tenant portal pages
+  if (pathname === "/" || pathname?.startsWith("/tenant-portal")) {
     return null;
   }
   
