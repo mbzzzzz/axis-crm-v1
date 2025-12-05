@@ -99,34 +99,88 @@ interface ExtractLeadMessage {
 
 type RuntimeMessage = PingMessage | AutofillMessage | FillFormMessage | ExtractLeadMessage;
 
+// Helper function to wait for form container to be available
+async function waitForFormContainer(timeout = 5000): Promise<HTMLElement | null> {
+  const startTime = Date.now();
+  while (Date.now() - startTime < timeout) {
+    // Look for common form containers
+    const formSelectors = [
+      'form',
+      '[role="form"]',
+      '[class*="form"]',
+      '[class*="Form"]',
+      'main',
+      'article',
+      '[class*="container"]',
+    ];
+    
+    for (const selector of formSelectors) {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (element) {
+        return element;
+      }
+    }
+    
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return null;
+}
+
 // Helper function to set value with React event dispatching
 function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
+  // Focus the element first
+  element.focus();
+  
   if (element instanceof HTMLSelectElement) {
     element.value = value;
-    element.dispatchEvent(new Event("change", { bubbles: true }));
+    // Trigger multiple events for React compatibility
+    element.dispatchEvent(new Event("input", { bubbles: true, cancelable: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true, cancelable: true }));
+    element.dispatchEvent(new Event("blur", { bubbles: true, cancelable: true }));
+    element.focus();
     return;
   }
 
+  // Get native value setter to bypass React's value tracking
   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
     Object.getPrototypeOf(element),
     "value"
   )?.set;
   
+  // Set value using native setter
   if (nativeInputValueSetter) {
     nativeInputValueSetter.call(element, value);
   } else {
     element.value = value;
   }
 
-  // Dispatch React-compatible events
-  element.dispatchEvent(new Event("input", { bubbles: true }));
-  element.dispatchEvent(new Event("change", { bubbles: true }));
+  // Dispatch comprehensive events for React compatibility
+  const events = [
+    new Event("input", { bubbles: true, cancelable: true }),
+    new Event("change", { bubbles: true, cancelable: true }),
+    new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }),
+    new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: "Enter" }),
+  ];
   
-  // Also dispatch React synthetic events if needed
-  const inputEvent = new Event("input", { bubbles: true, cancelable: true });
-  const changeEvent = new Event("change", { bubbles: true, cancelable: true });
-  element.dispatchEvent(inputEvent);
-  element.dispatchEvent(changeEvent);
+  events.forEach(event => {
+    element.dispatchEvent(event);
+  });
+  
+  // Create React-compatible synthetic event
+  const reactInputEvent = new Event("input", { bubbles: true, cancelable: true });
+  Object.defineProperty(reactInputEvent, "target", { 
+    value: element, 
+    enumerable: true,
+    configurable: true 
+  });
+  element.dispatchEvent(reactInputEvent);
+  
+  // Trigger blur and refocus to ensure validation runs
+  element.blur();
+  // Small delay before refocus to let validation complete
+  setTimeout(() => {
+    element.focus();
+  }, 50);
 }
 
 // Handle Profolio (profolio.zameen.com) form filling
@@ -135,8 +189,14 @@ async function handleProfolioFill(payload: AutofillPayload) {
   
   const { property } = payload;
 
-  // Wait for page to be ready
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Wait for page to be ready and form elements to load
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  
+  // Wait for form container to be available
+  const formContainer = await waitForFormContainer();
+  if (!formContainer) {
+    console.warn("AXIS Autofill: Form container not found, continuing anyway");
+  }
 
   // Find Title Input: Look for input with placeholder 'Enter property title...' or label 'Title'
   const titleSelectors = [
@@ -174,6 +234,8 @@ async function handleProfolioFill(payload: AutofillPayload) {
   }
 
   if (titleInput) {
+    // Wait a bit for the input to be fully interactive
+    await new Promise((resolve) => setTimeout(resolve, 200));
     setNativeValue(titleInput, property.title);
     console.log("AXIS Autofill: Title filled");
   } else {
@@ -214,6 +276,7 @@ async function handleProfolioFill(payload: AutofillPayload) {
   }
 
   if (descriptionInput && property.description) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
     setNativeValue(descriptionInput, property.description);
     console.log("AXIS Autofill: Description filled");
   } else {
@@ -234,6 +297,7 @@ async function handleProfolioFill(payload: AutofillPayload) {
     if (priceInput) break;
   }
   if (priceInput && property.price) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
     setNativeValue(priceInput, String(property.price));
     console.log("AXIS Autofill: Price filled");
   }
@@ -254,6 +318,7 @@ async function handleProfolioFill(payload: AutofillPayload) {
     if (locationInput) break;
   }
   if (locationInput) {
+    await new Promise((resolve) => setTimeout(resolve, 200));
     const fullAddress = `${property.address}, ${property.city}${property.state ? `, ${property.state}` : ''}`.trim();
     setNativeValue(locationInput, fullAddress);
     console.log("AXIS Autofill: Location filled");
@@ -275,6 +340,7 @@ async function handleProfolioFill(payload: AutofillPayload) {
       if (areaInput) break;
     }
     if (areaInput) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
       setNativeValue(areaInput, String(property.sizeSqft));
       console.log("AXIS Autofill: Area filled");
     }

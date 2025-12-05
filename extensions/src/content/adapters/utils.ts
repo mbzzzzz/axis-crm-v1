@@ -1,10 +1,40 @@
 export function setInputValue(selector: string, value: string | number | undefined | null) {
   const element = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(selector);
   if (!element || value === undefined || value === null) return;
+  
+  // Focus the element first (React forms often need this)
+  element.focus();
+  
+  // Get native value setter
   const nativeDescriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), "value");
-  nativeDescriptor?.set?.call(element, String(value));
-  element.dispatchEvent(new Event("input", { bubbles: true }));
-  element.dispatchEvent(new Event("change", { bubbles: true }));
+  
+  // Set the value using native setter to bypass React's value tracking
+  if (nativeDescriptor?.set) {
+    nativeDescriptor.set.call(element, String(value));
+  } else {
+    element.value = String(value);
+  }
+  
+  // Trigger all possible events that React might be listening to
+  const events = [
+    new Event("input", { bubbles: true, cancelable: true }),
+    new Event("change", { bubbles: true, cancelable: true }),
+    new KeyboardEvent("keydown", { bubbles: true, cancelable: true }),
+    new KeyboardEvent("keyup", { bubbles: true, cancelable: true }),
+  ];
+  
+  events.forEach(event => {
+    element.dispatchEvent(event);
+  });
+  
+  // Also trigger React's synthetic events by creating a custom event
+  const reactEvent = new Event("input", { bubbles: true, cancelable: true });
+  Object.defineProperty(reactEvent, "target", { value: element, enumerable: true });
+  element.dispatchEvent(reactEvent);
+  
+  // Blur to trigger validation if needed
+  element.blur();
+  element.focus();
 }
 
 export function setSelectValue(selector: string, value: string | undefined | null) {

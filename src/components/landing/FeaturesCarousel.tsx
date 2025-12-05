@@ -222,37 +222,19 @@ export function FeaturesCarousel() {
 
       {/* Feature Detail Modal */}
       <Dialog open={!!selectedFeature} onOpenChange={(open) => !open && setSelectedFeature(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-black/95 backdrop-blur-xl border-white/20 text-white">
+        <DialogContent className="max-w-6xl w-[95vw] max-h-[90vh] h-[90vh] overflow-hidden bg-black/95 backdrop-blur-xl border-white/20 text-white p-0 grid grid-cols-1 md:grid-cols-2">
           {selectedFeature && (
             <>
-              <DialogHeader className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br ${selectedFeature.gradient} shadow-lg`}>
-                    {(() => {
-                      const Icon = selectedFeature.icon;
-                      return <Icon className="w-8 h-8 text-white" />;
-                    })()}
-                  </div>
-                  <div>
-                    <DialogTitle className="text-2xl sm:text-3xl font-black text-white">
-                      {selectedFeature.title}
-                    </DialogTitle>
-                  </div>
-                </div>
-                <DialogDescription className="text-base text-white/80 leading-relaxed pt-2">
-                  {selectedFeature.detailedDescription}
-                </DialogDescription>
-              </DialogHeader>
-              
-              {/* Screenshot in Modal */}
-              <div className="relative w-full h-[400px] sm:h-[500px] rounded-lg overflow-hidden border border-white/20 bg-black/40 mt-6">
-                <div className="relative w-full h-full">
+              {/* Image Section - Left Side */}
+              <div className="relative w-full h-full min-h-[300px] md:min-h-0 bg-transparent flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center">
                   <Image
                     src={selectedFeature.image}
                     alt={`${selectedFeature.title} screenshot`}
                     fill
-                    className="object-contain"
-                    sizes="(max-width: 768px) 100vw, 80vw"
+                    className="object-contain object-center"
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    priority
                     onError={(e) => {
                       // Fallback to placeholder on error
                       const target = e.target as HTMLImageElement;
@@ -273,6 +255,28 @@ export function FeaturesCarousel() {
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Content Section - Right Side */}
+              <div className="w-full h-full flex flex-col p-6 md:p-8 overflow-y-auto bg-black/95">
+                <DialogHeader className="space-y-4 mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br ${selectedFeature.gradient} shadow-lg flex-shrink-0`}>
+                      {(() => {
+                        const Icon = selectedFeature.icon;
+                        return <Icon className="w-8 h-8 text-white" />;
+                      })()}
+                    </div>
+                    <div className="flex-1">
+                      <DialogTitle className="text-2xl sm:text-3xl font-black text-white">
+                        {selectedFeature.title}
+                      </DialogTitle>
+                    </div>
+                  </div>
+                </DialogHeader>
+                <DialogDescription className="text-base text-white/80 leading-relaxed">
+                  {selectedFeature.detailedDescription}
+                </DialogDescription>
               </div>
             </>
           )}
