@@ -40,17 +40,31 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   
   if (isHtml) {
     const text = await response.text().catch(() => "");
-    // Check if this looks like a login page or tenant portal
-    const isLoginPage = text.includes("login") || text.includes("sign in") || text.includes("tenant-portal");
-    const isTenantPortal = text.includes("tenant-portal") || path.includes("tenant");
+    
+    // More precise tenant portal detection - check URL and page structure
+    const baseUrlLower = baseUrl.toLowerCase();
+    const pathLower = path.toLowerCase();
+    const urlContainsTenantPortal = baseUrlLower.includes("/tenant-portal") || pathLower.includes("/tenant-portal");
+    
+    // Check if HTML is clearly a tenant portal page (has tenant portal specific elements)
+    const isTenantPortalPage = urlContainsTenantPortal || 
+      (text.includes('tenant-portal/login') && text.includes('Tenant Portal')) ||
+      (text.includes('tenant-portal/dashboard') && !text.includes('Dashboard') && text.includes('tenant'));
+    
+    // Check if it's a login/redirect page
+    const isLoginRedirect = response.status === 401 || response.status === 403 || 
+      (text.includes('login') && (text.includes('sign in') || text.includes('Log in'))) ||
+      text.includes('redirectedFrom');
     
     let errorMessage = "Received HTML instead of JSON. ";
-    if (isTenantPortal) {
-      errorMessage += "You're trying to access the tenant portal. The extension only works with the agent dashboard. Please log into the main dashboard at the root URL (not /tenant-portal).";
-    } else if (isLoginPage || response.status === 401 || response.status === 403) {
-      errorMessage += "You're not signed in or your session expired. Please:\n1. Open AXIS CRM dashboard in a new tab\n2. Log in as an agent (not tenant)\n3. Make sure you're on the main dashboard (not tenant portal)\n4. Then try syncing again.";
+    
+    if (isTenantPortalPage) {
+      errorMessage += "You're trying to access the tenant portal. The extension only works with the agent dashboard.\n\nPlease:\n1. Make sure your AXIS CRM URL in settings points to the main dashboard (not /tenant-portal)\n2. Log into the main dashboard as an agent\n3. Try syncing again";
+    } else if (isLoginRedirect) {
+      errorMessage += "You're not signed in or your session expired.\n\nPlease:\n1. Open AXIS CRM dashboard in a new tab\n2. Log in as an agent (not tenant)\n3. Make sure you're on the main dashboard URL\n4. Then try syncing again";
     } else {
-      errorMessage += "The API endpoint returned an HTML page. This usually means:\n1. You're not logged in as an agent\n2. You're on the tenant portal instead of the main dashboard\n3. The API URL in settings is incorrect";
+      // Generic HTML response - could be various issues
+      errorMessage += "The API endpoint returned an HTML page instead of JSON.\n\nThis usually means:\n1. You're not logged in - please log into the dashboard first\n2. Your session expired - refresh the dashboard page\n3. The API URL in settings might be incorrect\n4. There's a server error - try again later";
     }
     
     const error = new Error(errorMessage);
@@ -178,11 +192,17 @@ async function axisPost<T>(baseUrl: string, path: string, body: any): Promise<T>
   
   if (isHtml) {
     const text = await response.text().catch(() => "");
-    const isTenantPortal = text.includes("tenant-portal") || path.includes("tenant");
+    
+    // More precise tenant portal detection
+    const baseUrlLower = baseUrl.toLowerCase();
+    const pathLower = path.toLowerCase();
+    const urlContainsTenantPortal = baseUrlLower.includes("/tenant-portal") || pathLower.includes("/tenant-portal");
+    const isTenantPortalPage = urlContainsTenantPortal || 
+      (text.includes('tenant-portal/login') && text.includes('Tenant Portal'));
     
     let errorMessage = "Received HTML instead of JSON. ";
-    if (isTenantPortal) {
-      errorMessage += "The extension only works with the agent dashboard, not the tenant portal.";
+    if (isTenantPortalPage) {
+      errorMessage += "The extension only works with the agent dashboard, not the tenant portal. Please use the main dashboard URL.";
     } else {
       errorMessage += "You're not signed in or your session expired. Please log into the agent dashboard and try again.";
     }
