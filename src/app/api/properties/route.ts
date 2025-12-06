@@ -32,6 +32,15 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        // Verify database connection
+        if (!process.env.SUPABASE_DATABASE_URL) {
+            console.error('SUPABASE_DATABASE_URL is not configured');
+            return NextResponse.json(
+                { error: 'Database connection not configured. Please contact support.', code: 'DATABASE_ERROR' },
+                { status: 500 }
+            );
+        }
+
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 

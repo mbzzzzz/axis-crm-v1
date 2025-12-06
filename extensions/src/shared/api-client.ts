@@ -96,7 +96,7 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
     let errorMessage = `Request failed (${response.status}): ${text}`;
     
     if (response.status === 401 || response.status === 403) {
-      errorMessage = "Not signed in. Your session may have expired.\n\nPlease:\n1. Open AXIS CRM dashboard in a new tab\n2. Make sure you're logged in\n3. Refresh the dashboard page to renew your session\n4. Then try syncing again";
+      errorMessage = "Not signed in or session expired.\n\nIMPORTANT: The extension needs you to be logged into the dashboard in the same browser.\n\nPlease:\n1. Open AXIS CRM dashboard in a new tab (use the same browser)\n2. Log in if you're not already logged in\n3. Make sure you're on the main dashboard (not tenant portal)\n4. Keep the dashboard tab open\n5. Return to the extension and click 'Sync from AXIS' again\n\nNote: Your session must be active in the browser for the extension to access your data.";
     } else if (response.status === 404) {
       errorMessage = "API endpoint not found. Check your AXIS CRM URL in settings. Make sure you're using the main dashboard URL, not the tenant portal.";
     } else if (response.status >= 500) {
