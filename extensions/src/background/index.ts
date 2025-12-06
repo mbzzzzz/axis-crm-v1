@@ -58,13 +58,30 @@ async function persistState(partial: Partial<ExtensionState>) {
 async function syncFromAxis(): Promise<RuntimeMessageResponse> {
   const current = await ensureState();
   await setStatus("loading");
+  
+  // Validate URL - prevent tenant portal URLs
+  const baseUrl = (current.settings.apiBaseUrl || "").trim();
+  if (!baseUrl) {
+    const error = "AXIS CRM URL is not configured. Please set it in extension settings.";
+    await setStatus("error", error);
+    return { ok: false, type: "ERROR" as const, error, code: "NO_URL" };
+  }
+  
+  // Check if URL contains tenant portal path
+  const urlLower = baseUrl.toLowerCase();
+  if (urlLower.includes("/tenant-portal") || urlLower.includes("tenant-portal")) {
+    const error = "The extension only works with the agent dashboard, not the tenant portal.\n\nPlease update your AXIS CRM URL in settings to point to the main dashboard (e.g., https://your-domain.com, not https://your-domain.com/tenant-portal)";
+    await setStatus("error", error);
+    return { ok: false, type: "ERROR" as const, error, code: "TENANT_PORTAL_URL" };
+  }
+  
   try {
     const [theme, properties] = await Promise.all([
-      fetchTheme(current.settings.apiBaseUrl).catch((err) => {
+      fetchTheme(baseUrl).catch((err) => {
         console.warn("Theme fetch failed:", err);
         return null;
       }),
-      fetchProperties(current.settings.apiBaseUrl),
+      fetchProperties(baseUrl),
     ]);
 
     if (theme) {
