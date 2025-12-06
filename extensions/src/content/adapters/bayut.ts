@@ -1,5 +1,8 @@
 import type { AutofillAdapter, AutofillPayload } from "./types";
 import { setInputValue, setSelectValue, uploadImages, waitForSelector } from "./utils";
+import { findFieldByType } from "./field-detection";
+import { highlightField } from "./field-highlight";
+import { getPlatformRequirements } from "./image-validation";
 
 async function fillBayutForm(payload: AutofillPayload) {
   console.log("AXIS Autofill: Starting Bayut form fill", payload.property);
@@ -104,18 +107,40 @@ async function fillBayutForm(payload: AutofillPayload) {
       }
     }
 
-    // Upload Images
+    // Enhanced image upload with Bayut-specific requirements
     await new Promise((resolve) => setTimeout(resolve, 500));
     if (property.images?.length) {
+      const requirements = getPlatformRequirements('bayut');
+      
+      // Check minimum image requirement
+      if (property.images.length < requirements.minCount) {
+        console.warn(`AXIS Autofill: Bayut requires minimum ${requirements.minCount} images, but only ${property.images.length} provided`);
+      }
+
       const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
         btn.textContent?.toLowerCase().includes("upload") || 
         btn.textContent?.toLowerCase().includes("image") ||
-        btn.textContent?.toLowerCase().includes("photo")
+        btn.textContent?.toLowerCase().includes("photo") ||
+        btn.getAttribute('data-testid')?.toLowerCase().includes('upload')
       );
+      
       if (uploadBtn) {
         (uploadBtn as HTMLButtonElement).click();
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        await uploadImages('input[type="file"]', property.images);
+        
+        const uploadResult = await uploadImages('input[type="file"]', property.images, 'bayut');
+        
+        if (uploadResult.success) {
+          console.log(`AXIS Autofill: Successfully uploaded ${uploadResult.uploadedCount} images to Bayut`);
+        } else {
+          console.warn(`AXIS Autofill: Image upload issues: ${uploadResult.errors.join(', ')}`);
+        }
+      } else {
+        // Try direct upload without button click
+        const uploadResult = await uploadImages('input[type="file"]', property.images, 'bayut');
+        if (!uploadResult.success) {
+          console.warn(`AXIS Autofill: Could not find upload button and direct upload failed`);
+        }
       }
     }
     

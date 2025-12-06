@@ -7,7 +7,9 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const redirectTo = requestUrl.searchParams.get("redirectedFrom") || "/dashboard";
+  // Always redirect to dashboard (never to landing page)
+  const redirectedFrom = requestUrl.searchParams.get("redirectedFrom");
+  const redirectTo = (redirectedFrom && redirectedFrom !== "/") ? redirectedFrom : "/dashboard";
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Missing Supabase environment variables in auth callback");

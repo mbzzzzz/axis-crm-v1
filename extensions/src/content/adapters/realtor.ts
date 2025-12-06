@@ -17,7 +17,12 @@ async function fillRealtorForm(payload: AutofillPayload) {
     setInputValue('input[name="sqft"]', property.sizeSqft ?? "");
 
     if (property.images?.length) {
-      await uploadImages('input[type="file"][name="photos"]', property.images);
+      const uploadResult = await uploadImages('input[type="file"][name="photos"]', property.images, 'realtor');
+      if (uploadResult.success) {
+        console.log(`AXIS Autofill: Successfully uploaded ${uploadResult.uploadedCount} images to Realtor`);
+      } else if (uploadResult.errors.length > 0) {
+        console.warn(`AXIS Autofill: Image upload issues: ${uploadResult.errors.join(', ')}`);
+      }
     }
     
     console.log("AXIS Autofill: Realtor form fill completed successfully");

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Building2, BarChart3, FileText, Mail } from "lucide-react";
@@ -10,9 +11,18 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { TrustedBrands } from "@/components/landing/TrustedBrands";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FeaturesCarousel } from "@/components/landing/FeaturesCarousel";
+import { useSession } from "@/lib/auth-client";
 
 export default function Home() {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isPending && session?.user) {
+      router.replace("/dashboard");
+    }
+  }, [session, isPending, router]);
 
   return (
     <>

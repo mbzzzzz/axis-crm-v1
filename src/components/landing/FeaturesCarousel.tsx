@@ -118,7 +118,7 @@ export function FeaturesCarousel() {
           </div>
 
           {/* Carousel */}
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-[1100px] mx-auto">
             <Carousel
               opts={{
                 align: "start",
@@ -130,65 +130,63 @@ export function FeaturesCarousel() {
                 {features.map((feature) => {
                   const Icon = feature.icon;
                   return (
-                    <CarouselItem key={feature.id} className="pl-2 md:pl-4 basis-full md:basis-1/2 lg:basis-1/3">
+                    <CarouselItem key={feature.id} className="pl-2 md:pl-4 basis-full">
                       <div 
                         onClick={() => setSelectedFeature(feature)}
-                        className="group relative h-full rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-white/40 hover:bg-white/10 hover:shadow-2xl cursor-pointer"
+                        className="group relative h-auto min-h-[350px] md:h-[400px] rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-white/40 hover:bg-white/10 hover:shadow-2xl hover:scale-[1.02] cursor-pointer flex flex-col lg:flex-row"
                       >
                         {/* Gradient Overlay */}
                         <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
                         
-                        {/* Content */}
-                        <div className="relative p-6 sm:p-8 h-full flex flex-col">
-                          {/* Icon */}
-                          <div className={`mb-4 sm:mb-6 inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg`}>
-                            <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
-                          </div>
-
-                          {/* Title */}
-                          <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-                            {feature.title}
-                          </h3>
-
-                          {/* Description */}
-                          <p className="text-sm sm:text-base text-white/70 font-medium leading-relaxed flex-grow mb-4 sm:mb-6">
-                            {feature.description}
-                          </p>
-
-                          {/* Screenshot Preview */}
-                          <div className="relative w-full h-48 sm:h-56 rounded-lg overflow-hidden border border-white/10 bg-black/20 group-hover:border-white/20 transition-all duration-300">
-                            <div className="absolute inset-0">
-                              {/* Try to load screenshot, fallback to placeholder */}
-                              <div className="relative w-full h-full">
-                                <Image
-                                  src={feature.image}
-                                  alt={`${feature.title} screenshot`}
-                                  fill
-                                  className="object-cover object-top"
-                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                  onError={(e) => {
-                                    // Fallback to placeholder on error
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const placeholder = target.nextElementSibling as HTMLElement;
-                                    if (placeholder) placeholder.style.display = 'flex';
-                                  }}
-                                />
-                                {/* Placeholder - shown if image fails to load */}
-                                <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-                                  <div className="text-white/30 text-xs text-center p-4">
-                                    <Icon className="w-16 h-16 mx-auto mb-3 opacity-30" />
-                                    <p className="font-medium">Screenshot Preview</p>
-                                    <p className="text-[10px] mt-1 opacity-50">Add screenshot to /public/screenshots/</p>
-                                  </div>
-                                </div>
+                        {/* Left Side - Large Image (full width on mobile/tablet, 45% on desktop) */}
+                        <div className="relative w-full lg:w-[45%] lg:min-w-[400px] xl:min-w-[450px] h-[250px] sm:h-[300px] lg:h-full bg-gradient-to-br from-black via-black to-gray-900 flex items-center justify-center overflow-hidden border-b lg:border-b-0 lg:border-r border-white/10 after:content-[''] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-white/10 after:hidden lg:after:block">
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={feature.image}
+                              alt={`${feature.title} screenshot`}
+                              fill
+                              className="object-contain object-center"
+                              sizes="(max-width: 768px) 100vw, 45vw"
+                              priority
+                              quality={100}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const placeholder = target.nextElementSibling as HTMLElement;
+                                if (placeholder) placeholder.style.display = 'flex';
+                              }}
+                            />
+                            {/* Placeholder - shown if image fails to load */}
+                            <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+                              <div className="text-white/30 text-center p-8">
+                                <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />
+                                <p className="font-medium text-lg">Screenshot Preview</p>
+                                <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{feature.id}.png</p>
                               </div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Right Side - Content Section (full width on mobile/tablet, 55% on desktop) */}
+                        <div className="relative w-full lg:w-[55%] flex flex-col p-6 sm:p-8 lg:p-10">
+                          {/* Icon - Top Left */}
+                          <div className={`mb-4 sm:mb-6 inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl bg-gradient-to-br ${feature.gradient} shadow-lg flex-shrink-0`}>
+                            <Icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
+                          </div>
+
+                          {/* Title - Large and Bold (responsive sizes) */}
+                          <h3 className="text-2xl sm:text-3xl lg:text-[32px] font-bold sm:font-black text-white mb-4 sm:mb-5 leading-tight">
+                            {feature.title}
+                          </h3>
+
+                          {/* Description - Readable Size (responsive) */}
+                          <p className="text-base sm:text-lg lg:text-[18px] text-white/80 sm:text-white/70 font-medium leading-relaxed flex-grow line-clamp-3 sm:line-clamp-4 lg:line-clamp-5">
+                            {feature.description}
+                          </p>
 
                           {/* Click hint */}
-                          <div className="mt-4 text-center">
-                            <p className="text-xs text-white/50 group-hover:text-white/70 transition-colors">
+                          <div className="mt-6 sm:mt-8">
+                            <p className="text-sm sm:text-base text-white/50 group-hover:text-white/70 transition-colors">
                               Click to view details →
                             </p>
                           </div>

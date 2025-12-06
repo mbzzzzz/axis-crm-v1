@@ -18,6 +18,8 @@ export type AxisPropertyRecord = {
   sizeSqft?: number | null;
   amenities?: string[] | null;
   images?: string[] | null;
+  imagesBase64?: string[] | null; // Compressed thumbnails for offline/local files
+  imageStorageKey?: string | null; // Key for separate storage if needed
 };
 
 export type ExtensionTheme = {

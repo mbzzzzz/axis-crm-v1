@@ -27,9 +27,16 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   } catch (fetchError) {
     clearTimeout(timeoutId);
     if (fetchError instanceof Error && fetchError.name === "AbortError") {
-      const timeoutError = new Error("Request timed out");
+      const timeoutError = new Error("Request timed out after 30 seconds. Please check your internet connection and try again.");
       (timeoutError as any).status = 408;
       throw timeoutError;
+    }
+    // Handle network errors (CORS, connection refused, etc.)
+    if (fetchError instanceof TypeError && fetchError.message.includes("fetch")) {
+      const networkError = new Error("Network error: Unable to connect to AXIS CRM.\n\nPlease:\n1. Check your internet connection\n2. Verify the AXIS CRM URL in extension settings\n3. Make sure the dashboard is accessible in your browser\n4. Try opening the dashboard in a new tab first");
+      (networkError as any).status = 0;
+      (networkError as any).isNetworkError = true;
+      throw networkError;
     }
     throw fetchError;
   }
@@ -190,9 +197,16 @@ async function axisPost<T>(baseUrl: string, path: string, body: any): Promise<T>
   } catch (fetchError) {
     clearTimeout(timeoutId);
     if (fetchError instanceof Error && fetchError.name === "AbortError") {
-      const timeoutError = new Error("Request timed out");
+      const timeoutError = new Error("Request timed out after 30 seconds. Please check your internet connection and try again.");
       (timeoutError as any).status = 408;
       throw timeoutError;
+    }
+    // Handle network errors (CORS, connection refused, etc.)
+    if (fetchError instanceof TypeError && fetchError.message.includes("fetch")) {
+      const networkError = new Error("Network error: Unable to connect to AXIS CRM.\n\nPlease:\n1. Check your internet connection\n2. Verify the AXIS CRM URL in extension settings\n3. Make sure the dashboard is accessible in your browser\n4. Try opening the dashboard in a new tab first");
+      (networkError as any).status = 0;
+      (networkError as any).isNetworkError = true;
+      throw networkError;
     }
     throw fetchError;
   }

@@ -103,9 +103,9 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
     } else if (errorMessage.includes("Not signed in") || (error instanceof Error && (error as any).status === 401)) {
       errorCode = "NOT_SIGNED_IN";
       userMessage = "Not signed in. Please log into AXIS CRM dashboard as an agent (not tenant portal), then try syncing again.";
-    } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+    } else if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError") || errorMessage.includes("Network error:") || (error as any).isNetworkError) {
       errorCode = "NETWORK_ERROR";
-      userMessage = "Network error. Check your internet connection and AXIS CRM URL. Make sure the URL points to the main dashboard, not the tenant portal.";
+      userMessage = errorMessage.includes("Network error:") ? errorMessage : "Network error. Check your internet connection and AXIS CRM URL. Make sure the URL points to the main dashboard, not the tenant portal.";
     } else if (errorMessage.includes("tenant portal") || errorMessage.includes("tenant-portal")) {
       errorCode = "TENANT_PORTAL_ERROR";
       userMessage = "The extension only works with the agent dashboard, not the tenant portal. Please use the main dashboard URL.";

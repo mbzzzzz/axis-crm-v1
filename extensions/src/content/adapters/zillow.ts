@@ -38,7 +38,12 @@ async function fillZillowForm(payload: AutofillPayload) {
 
     const photoSection = await waitForSelector('input[type="file"][accept*="image"]');
     if (photoSection && property.images?.length) {
-      await uploadImages('input[type="file"][accept*="image"]', property.images);
+      const uploadResult = await uploadImages('input[type="file"][accept*="image"]', property.images, 'zillow');
+      if (uploadResult.success) {
+        console.log(`AXIS Autofill: Successfully uploaded ${uploadResult.uploadedCount} images to Zillow`);
+      } else if (uploadResult.errors.length > 0) {
+        console.warn(`AXIS Autofill: Image upload issues: ${uploadResult.errors.join(', ')}`);
+      }
     }
     
     console.log("AXIS Autofill: Zillow form fill completed successfully");

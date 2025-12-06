@@ -48,13 +48,26 @@ export default function App() {
         const errorCode = response.code;
         const errorMsg = response.error || "Sync failed. Please try again.";
         
-        if (errorCode === "NOT_SIGNED_IN") {
-          alert(
+        if (errorCode === "NOT_SIGNED_IN" || errorCode === "HTML_RESPONSE") {
+          const shouldOpenDashboard = confirm(
             "Not signed in to AXIS CRM.\n\n" +
-            "1. Click 'Open AXIS' to log in\n" +
-            "2. Make sure you're logged in on the dashboard\n" +
-            "3. Then click 'Sync from AXIS' again"
+            "Would you like to open the dashboard to log in?\n\n" +
+            "After logging in:\n" +
+            "1. Make sure you're on the main dashboard (not tenant portal)\n" +
+            "2. Return to this extension\n" +
+            "3. Click 'Sync from AXIS' again"
           );
+          if (shouldOpenDashboard) {
+            openDashboard();
+          }
+        } else if (errorCode === "NETWORK_ERROR") {
+          const shouldOpenDashboard = confirm(
+            `${errorMsg}\n\n` +
+            "Would you like to open the dashboard to verify it's accessible?"
+          );
+          if (shouldOpenDashboard) {
+            openDashboard();
+          }
         } else {
           alert(`Sync failed: ${errorMsg}`);
         }
@@ -62,7 +75,7 @@ export default function App() {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Sync failed. Please try again.";
       console.error("Sync error:", error);
-      alert(`Sync failed: ${errorMsg}`);
+      alert(`Sync failed: ${errorMsg}\n\nTry:\n1. Opening the dashboard in a new tab\n2. Making sure you're logged in\n3. Syncing again`);
     } finally {
       await refreshState();
     }

@@ -1,5 +1,8 @@
 import type { AutofillAdapter, AutofillPayload } from "./types";
 import { setInputValue, setSelectValue, uploadImages, waitForSelector } from "./utils";
+import { findFieldByType } from "./field-detection";
+import { highlightField } from "./field-highlight";
+import { handleMultiStepUpload } from "./image-upload-patterns";
 
 function clickButtonByText(text: string, partial = false): boolean {
   const buttons = Array.from(document.querySelectorAll("button"));
@@ -46,12 +49,36 @@ async function fillZameenForm(payload: AutofillPayload) {
 
   await new Promise((resolve) => setTimeout(resolve, 300));
 
-  setInputValue('input[placeholder*="title" i], input[placeholder*="Title" i]', property.title);
+  // Fill Title using universal field detection
+  const titleField = findFieldByType('propertyTitle', true);
+  if (titleField && property.title) {
+    if (titleField instanceof HTMLInputElement || titleField instanceof HTMLTextAreaElement) {
+      titleField.focus();
+      titleField.value = property.title;
+      titleField.dispatchEvent(new Event("input", { bubbles: true }));
+      titleField.dispatchEvent(new Event("change", { bubbles: true }));
+      highlightField(titleField);
+    }
+  } else {
+    setInputValue('input[placeholder*="title" i], input[placeholder*="Title" i]', property.title);
+  }
 
-  setInputValue(
-    'textarea[placeholder*="description" i], textarea[placeholder*="Describe" i]',
-    property.description ?? ""
-  );
+  // Fill Description using universal field detection
+  const descField = findFieldByType('description', true);
+  if (descField && property.description) {
+    if (descField instanceof HTMLTextAreaElement || descField instanceof HTMLInputElement) {
+      descField.focus();
+      descField.value = property.description;
+      descField.dispatchEvent(new Event("input", { bubbles: true }));
+      descField.dispatchEvent(new Event("change", { bubbles: true }));
+      highlightField(descField);
+    }
+  } else {
+    setInputValue(
+      'textarea[placeholder*="description" i], textarea[placeholder*="Describe" i]',
+      property.description ?? ""
+    );
+  }
 
   const cityInput = await waitForSelector('input[placeholder*="City" i], input[placeholder*="Select City" i]');
   if (cityInput) {
@@ -115,14 +142,50 @@ async function fillZameenForm(payload: AutofillPayload) {
     }
   }
 
+    // Enhanced image upload with multi-step support
     if (property.images?.length) {
+      console.log(`AXIS Autofill: Starting image upload for ${property.images.length} images`);
+      
+      // Try to find upload button
       const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
-        btn.textContent?.toLowerCase().includes("upload image")
+        btn.textContent?.toLowerCase().includes("upload image") ||
+        btn.textContent?.toLowerCase().includes("add photo") ||
+        btn.textContent?.toLowerCase().includes("add image")
       );
+      
       if (uploadBtn) {
         (uploadBtn as HTMLButtonElement).click();
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await uploadImages('input[type="file"]', property.images);
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      // Try direct upload first
+      const uploadResult = await uploadImages('input[type="file"]', property.images, 'zameen');
+      
+      // If direct upload failed or only partial success, try multi-step
+      if (!uploadResult.success || uploadResult.uploadedCount < property.images.length) {
+        console.log("AXIS Autofill: Attempting multi-step upload for remaining images");
+        
+        // Convert URLs to Files for multi-step upload
+        const remainingUrls = property.images.slice(uploadResult.uploadedCount);
+        if (remainingUrls.length > 0) {
+          // Fetch remaining images
+          const files: File[] = [];
+          for (const url of remainingUrls) {
+            try {
+              const response = await fetch(url, { mode: 'cors' });
+              const blob = await response.blob();
+              const fileName = url.split("/").pop()?.split("?")[0] || `axis-image-${Date.now()}.jpg`;
+              files.push(new File([blob], fileName, { type: blob.type || "image/jpeg" }));
+            } catch (error) {
+              console.warn(`AXIS Autofill: Failed to fetch image for multi-step: ${url}`, error);
+            }
+          }
+
+          if (files.length > 0) {
+            const multiStepResult = await handleMultiStepUpload(files, 5, 10);
+            console.log(`AXIS Autofill: Multi-step upload completed: ${multiStepResult.uploadedCount} images`);
+          }
+        }
       }
     }
     

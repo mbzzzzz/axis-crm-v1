@@ -37,6 +37,16 @@ export function setInputValue(selector: string, value: string | number | undefin
   element.focus();
 }
 
+import { findFileInputsInShadowDOM } from './shadow-dom-utils';
+import { validateImages, getPlatformRequirements } from './image-validation';
+import {
+  detectUploadPattern,
+  uploadToDirectInput,
+  uploadViaHiddenInput,
+  uploadToDragDropZone,
+  handleMultiStepUpload,
+} from './image-upload-patterns';
+
 export function setSelectValue(selector: string, value: string | undefined | null) {
   const element = document.querySelector<HTMLSelectElement>(selector);
   if (!element || !value) return;
@@ -45,64 +55,144 @@ export function setSelectValue(selector: string, value: string | undefined | nul
   element.dispatchEvent(new Event("change", { bubbles: true }));
 }
 
-export async function uploadImages(selector: string, urls: string[]) {
+export async function uploadImages(
+  selector: string,
+  urls: string[],
+  platform?: string
+): Promise<{ success: boolean; uploadedCount: number; errors: string[] }> {
   if (!urls.length) {
     console.log("AXIS Autofill: No images to upload");
-    return;
+    return { success: false, uploadedCount: 0, errors: ['No images provided'] };
   }
-  
-  const input = document.querySelector<HTMLInputElement>(selector);
+
+  // Find file input (check Shadow DOM if not found in regular DOM)
+  let input = document.querySelector<HTMLInputElement>(selector);
+  if (!input) {
+    const shadowInputs = findFileInputsInShadowDOM();
+    input = shadowInputs[0] || null;
+  }
+
   if (!input) {
     console.warn(`AXIS Autofill: Image input not found for selector: ${selector}`);
-    return;
+    return { success: false, uploadedCount: 0, errors: ['File input not found'] };
   }
 
   console.log(`AXIS Autofill: Found image input, uploading ${urls.length} images`);
-  
+
   const dataTransfer = new DataTransfer();
-  const FETCH_TIMEOUT = 15000; // Increased from 10s
-  
+  const FETCH_TIMEOUT = 15000;
+  const errors: string[] = [];
   let successCount = 0;
   let failCount = 0;
-  
-  for (const url of urls.slice(0, input.multiple ? urls.length : 1)) {
+  const files: File[] = [];
+
+  // Fetch and convert URLs to Files
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
     try {
-      console.log(`AXIS Autofill: Fetching image: ${url}`);
-      
+      console.log(`AXIS Autofill: Fetching image ${i + 1}/${urls.length}: ${url}`);
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-      
-      const response = await fetch(url, { 
+
+      const response = await fetch(url, {
         signal: controller.signal,
-        mode: 'cors' // Add CORS mode
+        mode: 'cors',
       });
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      
+
       const blob = await response.blob();
-      const fileName = url.split("/").pop()?.split("?")[0] || `axis-image-${Date.now()}.jpg`;
+      const fileName = url.split("/").pop()?.split("?")[0] || `axis-image-${Date.now()}-${i}.jpg`;
       const file = new File([blob], fileName, { type: blob.type || "image/jpeg" });
-      
-      dataTransfer.items.add(file);
+      files.push(file);
       successCount++;
-      console.log(`AXIS Autofill: Image ${successCount} uploaded successfully`);
+      console.log(`AXIS Autofill: Image ${i + 1} fetched successfully`);
     } catch (error) {
       failCount++;
-      console.warn(`AXIS Autofill: Failed to upload image (${failCount}/${urls.length}):`, error);
+      const errorMsg = `Failed to fetch image ${i + 1}: ${error instanceof Error ? error.message : String(error)}`;
+      errors.push(errorMsg);
+      console.warn(`AXIS Autofill: ${errorMsg}`);
     }
   }
 
-  if (successCount > 0) {
-    input.files = dataTransfer.files;
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    console.log(`AXIS Autofill: Successfully uploaded ${successCount}/${urls.length} images`);
-  } else {
-    console.error("AXIS Autofill: Failed to upload any images");
+  if (files.length === 0) {
+    return { success: false, uploadedCount: 0, errors };
   }
+
+  // Validate images if platform is specified
+  if (platform) {
+    console.log(`AXIS Autofill: Validating ${files.length} images for platform: ${platform}`);
+    const validation = await validateImages(files, platform);
+    
+    if (!validation.valid) {
+      validation.errors.forEach(err => {
+        errors.push(`Image ${err.imageIndex + 1}: ${err.message}`);
+      });
+    }
+
+    if (validation.validFiles.length === 0) {
+      return { success: false, uploadedCount: 0, errors };
+    }
+
+    // Use only valid files
+    files.splice(0, files.length, ...validation.validFiles);
+    console.log(`AXIS Autofill: ${validation.validFiles.length} valid images after validation`);
+  }
+
+  // Try different upload patterns
+  const uploadPattern = detectUploadPattern();
+  console.log(`AXIS Autofill: Detected upload pattern: ${uploadPattern}`);
+
+  let uploadSuccess = false;
+  let uploadedCount = 0;
+
+  try {
+    switch (uploadPattern) {
+      case 'direct':
+        uploadSuccess = uploadToDirectInput(input, files);
+        uploadedCount = uploadSuccess ? files.length : 0;
+        break;
+
+      case 'hidden':
+        uploadSuccess = await uploadViaHiddenInput(files);
+        uploadedCount = uploadSuccess ? files.length : 0;
+        break;
+
+      case 'drag-drop':
+        uploadSuccess = uploadToDragDropZone(files);
+        uploadedCount = uploadSuccess ? files.length : 0;
+        break;
+
+      case 'multi-step':
+        const result = await handleMultiStepUpload(files);
+        uploadSuccess = result.success;
+        uploadedCount = result.uploadedCount;
+        break;
+    }
+  } catch (error) {
+    const errorMsg = `Upload failed: ${error instanceof Error ? error.message : String(error)}`;
+    errors.push(errorMsg);
+    console.error(`AXIS Autofill: ${errorMsg}`);
+  }
+
+  if (uploadSuccess && uploadedCount > 0) {
+    console.log(`AXIS Autofill: Successfully uploaded ${uploadedCount}/${files.length} images`);
+  } else {
+    console.error(`AXIS Autofill: Failed to upload images (pattern: ${uploadPattern})`);
+    if (errors.length === 0) {
+      errors.push(`Upload failed using ${uploadPattern} pattern`);
+    }
+  }
+
+  return {
+    success: uploadSuccess && uploadedCount > 0,
+    uploadedCount,
+    errors,
+  };
 }
 
 export function waitForSelector(selector: string, timeout = 8000): Promise<Element | null> {

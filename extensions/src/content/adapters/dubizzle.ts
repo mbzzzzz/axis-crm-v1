@@ -87,10 +87,15 @@ async function fillDubizzleForm(payload: AutofillPayload) {
       }
     }
 
-    // Upload Images
+    // Upload Images with Dubizzle-specific validation
     await new Promise((resolve) => setTimeout(resolve, 500));
     if (property.images?.length) {
-      await uploadImages('input[type="file"]', property.images);
+      const uploadResult = await uploadImages('input[type="file"]', property.images, 'dubizzle');
+      if (uploadResult.success) {
+        console.log(`AXIS Autofill: Successfully uploaded ${uploadResult.uploadedCount} images to Dubizzle`);
+      } else if (uploadResult.errors.length > 0) {
+        console.warn(`AXIS Autofill: Image upload issues: ${uploadResult.errors.join(', ')}`);
+      }
     }
     
     console.log("AXIS Autofill: Dubizzle form fill completed successfully");
