@@ -337,6 +337,10 @@ browser.runtime.onMessage.addListener((message: RuntimeMessage): Promise<Runtime
       })();
     case "LOGOUT":
       return (async () => {
+        // Open the logout route to clear server-side session/cookies
+        const baseUrl = (state?.settings.apiBaseUrl || "https://axis-crm-v1.vercel.app").replace(/\/$/, "");
+        await browser.tabs.create({ url: `${baseUrl}/logout`, active: false });
+
         // Clear all storage
         await browser.storage.local.clear();
         // Reset state

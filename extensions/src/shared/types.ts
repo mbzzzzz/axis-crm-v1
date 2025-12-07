@@ -49,7 +49,8 @@ export type RuntimeMessage =
   | { type: "SET_SELECTED_PROPERTY"; payload: number | null }
   | { type: "GET_SELECTED_PROPERTY" }
   | { type: "AUTOFILL_ACTIVE_TAB"; site?: ListingSiteKey }
-  | { type: "UPDATE_SETTINGS"; payload: Partial<ExtensionSettings> };
+  | { type: "UPDATE_SETTINGS"; payload: Partial<ExtensionSettings> }
+  | { type: "LOGOUT" };
 
 export type RuntimeMessageResponse =
   | { ok: true; type: "STATE"; state: ExtensionState }
