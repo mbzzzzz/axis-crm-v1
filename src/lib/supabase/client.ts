@@ -18,13 +18,9 @@ export function getSupabaseBrowserClient() {
   ensureEnv();
 
   if (!browserClient) {
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-      cookieOptions: {
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-      },
-    });
+    // createBrowserClient from @supabase/ssr automatically handles cookie persistence
+    // It uses localStorage and cookies to persist sessions
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
 
   return browserClient;

@@ -18,8 +18,15 @@ export default function Home() {
   const { data: session, isPending } = useSession();
 
   // Redirect authenticated users to dashboard
+  // Only redirect if we have a confirmed session (not during OAuth callback)
   useEffect(() => {
+    // Don't redirect if we're in the middle of an OAuth callback
+    if (typeof window !== 'undefined' && window.location.pathname === '/auth/callback') {
+      return;
+    }
+    
     if (!isPending && session?.user) {
+      // Use replace to avoid adding to history
       router.replace("/dashboard");
     }
   }, [session, isPending, router]);

@@ -70,21 +70,6 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Refresh session if it exists to keep it alive and update cookie expiration
-  // This prevents auto-logout by refreshing the session on every request
-  if (session) {
-    // Call getUser() to refresh the session and update cookies
-    // This ensures the session stays alive and cookies persist
-    const { data: { user }, error } = await supabase.auth.getUser();
-    
-    // Only sign out if there's an actual error (not just missing user)
-    // Missing user might be temporary, so we don't want to sign out immediately
-    if (error && error.message.includes('JWT')) {
-      // JWT expired or invalid - clear the session
-      await supabase.auth.signOut();
-    }
-  }
-
   const pathname = request.nextUrl.pathname;
 
   // Allow public routes
