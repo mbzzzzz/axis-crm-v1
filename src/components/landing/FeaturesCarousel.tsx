@@ -218,8 +218,8 @@ export function FeaturesCarousel() {
       {/* Feature Detail Modal - Full Screen Image Preview */}
       <Dialog open={!!selectedFeature} onOpenChange={(open) => !open && setSelectedFeature(null)}>
         <DialogContent 
-          className="!max-w-[100vw] !w-[100vw] !max-h-[100vh] !h-[100vh] !overflow-hidden !bg-black !p-0 !border-0 !rounded-none !m-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !transform-none"
-          showCloseButton={true}
+          className="!max-w-[100vw] !w-[100vw] !max-h-[100vh] !h-[100vh] !overflow-hidden !bg-black !p-0 !border-0 !rounded-none !m-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !transform-none !gap-0"
+          showCloseButton={false}
         >
           {selectedFeature && (
             <div className="relative w-full h-full bg-black">
@@ -227,7 +227,7 @@ export function FeaturesCarousel() {
                 src={selectedFeature.image}
                 alt={`${selectedFeature.title} screenshot`}
                 fill
-                className="object-contain object-center"
+                className="object-cover object-center"
                 sizes="100vw"
                 priority
                 quality={100}
@@ -239,6 +239,27 @@ export function FeaturesCarousel() {
                   if (placeholder) placeholder.style.display = 'flex';
                 }}
               />
+              {/* Custom close button - visible on black background */}
+              <button
+                onClick={() => setSelectedFeature(null)}
+                className="absolute top-4 right-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white border border-white/20 hover:border-white/40 transition-all duration-200 backdrop-blur-sm"
+                aria-label="Close preview"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-5 h-5"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
               {/* Placeholder - shown if image fails to load */}
               <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
                 <div className="text-white/30 text-center p-8">

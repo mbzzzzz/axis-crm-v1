@@ -33,6 +33,17 @@ export async function getAuthenticatedUser() {
     },
   });
 
+  // First try to get session (this works better with cookies from extensions)
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // If we have a session, return the user from it
+  if (session?.user) {
+    return session.user;
+  }
+
+  // Fallback to getUser() if no session (for edge cases)
   const {
     data: { user },
   } = await supabase.auth.getUser();
