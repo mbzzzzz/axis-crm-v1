@@ -5,9 +5,6 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Building2, Users, FileText, Wrench, TrendingUp, DollarSign, FileSignature, BarChart3 } from "lucide-react";
 import Image from "next/image";
@@ -218,70 +215,41 @@ export function FeaturesCarousel() {
         </div>
       </section>
 
-      {/* Feature Detail Modal - Large Feature Preview */}
+      {/* Feature Detail Modal - Large Image Preview Only */}
       <Dialog open={!!selectedFeature} onOpenChange={(open) => !open && setSelectedFeature(null)}>
-        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] overflow-hidden bg-black/98 backdrop-blur-xl border-white/20 text-white p-0 flex flex-col md:flex-row gap-0">
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] overflow-hidden bg-black/98 backdrop-blur-xl border-white/20 p-0">
           {selectedFeature && (
-            <>
-              {/* Image Section - Left Side (65% width) - No scrolling, always visible */}
-              <div className="relative w-full md:w-[65%] h-[45vh] md:h-full bg-gradient-to-br from-black via-black to-gray-900 flex items-center justify-center p-6 md:p-12 overflow-hidden">
-                <div className="relative w-full h-full">
-                  <Image
-                    src={selectedFeature.image}
-                    alt={`${selectedFeature.title} screenshot`}
-                    fill
-                    className="object-contain object-center"
-                    sizes="65vw"
-                    priority
-                    quality={100}
-                    onError={(e) => {
-                      // Fallback to placeholder on error
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const placeholder = target.nextElementSibling as HTMLElement;
-                      if (placeholder) placeholder.style.display = 'flex';
-                    }}
-                  />
-                  {/* Placeholder - shown if image fails to load */}
-                  <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-                    <div className="text-white/30 text-center p-8">
-                      {(() => {
-                        const Icon = selectedFeature.icon;
-                        return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
-                      })()}
-                      <p className="font-medium text-lg">Screenshot Preview</p>
-                      <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
-                    </div>
+            <div className="relative w-full h-full bg-gradient-to-br from-black via-black to-gray-900 flex items-center justify-center p-4 md:p-8">
+              <div className="relative w-full h-full">
+                <Image
+                  src={selectedFeature.image}
+                  alt={`${selectedFeature.title} screenshot`}
+                  fill
+                  className="object-contain object-center"
+                  sizes="98vw"
+                  priority
+                  quality={100}
+                  onError={(e) => {
+                    // Fallback to placeholder on error
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const placeholder = target.nextElementSibling as HTMLElement;
+                    if (placeholder) placeholder.style.display = 'flex';
+                  }}
+                />
+                {/* Placeholder - shown if image fails to load */}
+                <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+                  <div className="text-white/30 text-center p-8">
+                    {(() => {
+                      const Icon = selectedFeature.icon;
+                      return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
+                    })()}
+                    <p className="font-medium text-lg">Screenshot Preview</p>
+                    <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
                   </div>
                 </div>
               </div>
-              
-              {/* Content Section - Right Side (35% width) - Only content scrolls if needed */}
-              <div className="w-full md:w-[35%] h-[55vh] md:h-full flex flex-col bg-black/95 border-t md:border-t-0 md:border-l border-white/10 overflow-hidden">
-                <div className="flex flex-col h-full">
-                  <DialogHeader className="space-y-4 mb-4 p-6 md:p-8 pb-4 flex-shrink-0 border-b border-white/10">
-                    <div className="flex items-start gap-4">
-                      <div className={`inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-xl bg-gradient-to-br ${selectedFeature.gradient} shadow-lg flex-shrink-0`}>
-                        {(() => {
-                          const Icon = selectedFeature.icon;
-                          return <Icon className="w-8 h-8 md:w-10 md:h-10 text-white" />;
-                        })()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <DialogTitle className="text-2xl md:text-3xl lg:text-4xl font-black text-white leading-tight">
-                          {selectedFeature.title}
-                        </DialogTitle>
-                      </div>
-                    </div>
-                  </DialogHeader>
-                  <div className="flex-1 overflow-y-auto px-6 md:px-8 pb-6 md:pb-8">
-                    <DialogDescription className="text-sm md:text-base lg:text-lg text-white/80 leading-relaxed">
-                      {selectedFeature.detailedDescription}
-                    </DialogDescription>
-                  </div>
-                </div>
-              </div>
-            </>
+            </div>
           )}
         </DialogContent>
       </Dialog>

@@ -67,9 +67,14 @@ type SendEmailParams = {
   fromName?: string;
   replyTo?: string;
   refreshToken?: string | null;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 };
 
-export async function sendGmailEmail({ to, subject, html, fromName, replyTo, refreshToken }: SendEmailParams) {
+export async function sendGmailEmail({ to, subject, html, fromName, replyTo, refreshToken, attachments }: SendEmailParams) {
   const { oAuth2Client, sender } = getGmailClient(refreshToken);
 
   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
@@ -91,16 +96,57 @@ export async function sendGmailEmail({ to, subject, html, fromName, replyTo, ref
   const fromHeader = fromName ? `"${fromName}" <${finalSender}>` : finalSender;
   const replyToHeader = replyTo ? `Reply-To: ${replyTo}` : "";
 
-  const messageParts = [
-    `From: ${fromHeader}`,
-    `To: ${to}`,
-    replyToHeader, // Add Reply-To if present
-    `Subject: ${subject}`,
-    "MIME-Version: 1.0",
-    'Content-Type: text/html; charset="UTF-8"',
-    "",
-    html,
-  ].filter(Boolean); // Remove empty lines (like empty replyTo)
+  // Build MIME message with attachments if provided
+  let messageParts: string[] = [];
+  
+  if (attachments && attachments.length > 0) {
+    // Multipart message with attachments
+    const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    
+    messageParts = [
+      `From: ${fromHeader}`,
+      `To: ${to}`,
+      replyToHeader,
+      `Subject: ${subject}`,
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      "Content-Type: text/html; charset=UTF-8",
+      "Content-Transfer-Encoding: 7bit",
+      "",
+      html,
+    ].filter(Boolean);
+
+    // Add attachments
+    for (const attachment of attachments) {
+      const contentType = attachment.contentType || "application/pdf";
+      const base64Content = attachment.content.toString("base64");
+      
+      messageParts.push(
+        `--${boundary}`,
+        `Content-Type: ${contentType}; name="${attachment.filename}"`,
+        "Content-Disposition: attachment; filename=\"" + attachment.filename + "\"",
+        "Content-Transfer-Encoding: base64",
+        "",
+        base64Content
+      );
+    }
+
+    messageParts.push(`--${boundary}--`);
+  } else {
+    // Simple HTML message without attachments
+    messageParts = [
+      `From: ${fromHeader}`,
+      `To: ${to}`,
+      replyToHeader,
+      `Subject: ${subject}`,
+      "MIME-Version: 1.0",
+      'Content-Type: text/html; charset="UTF-8"',
+      "",
+      html,
+    ].filter(Boolean);
+  }
 
   const message = messageParts.join("\r\n");
   const encodedMessage = Buffer.from(message)

@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
             <p style="margin: 0; font-size: 18px;">Total Due: <strong>${invoiceData.totalAmount} ${propertyData.currency || 'USD'}</strong></p>
             <p style="margin: 5px 0 0; color: #666;">Due Date: ${invoiceData.dueDate}</p>
           </div>
-          <p>You can view details and download a PDF copy from your tenant portal.</p>
+          <p>Please find the invoice PDF attached to this email.</p>
           <p>If you have any questions, please reply to this email.</p>
           <br/>
           <p>Best regards,<br/>
@@ -142,6 +142,13 @@ export async function POST(request: NextRequest) {
           ${invoiceData.companyName || 'Axis CRM'}</p>
         </div>
       `,
+      attachments: [
+        {
+          filename: `invoice-${invoiceData.invoiceNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
+        },
+      ],
     });
 
     // Update invoice status to 'sent'
@@ -151,11 +158,6 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date()
       })
       .where(eq(invoices.id, parseInt(invoiceId)));
-
-    // In a real implementation, you would:
-    // 1. Use an email service (Resend, SendGrid, etc.)
-    // 2. Send email with PDF attachment
-    // 3. Handle errors appropriately
 
     return NextResponse.json({
       success: true,

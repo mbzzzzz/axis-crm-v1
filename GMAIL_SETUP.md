@@ -40,8 +40,10 @@ This guide explains how to configure the Gmail API integration for Axis CRM to a
 2.  Click **Create Credentials > OAuth client ID**.
 3.  Application type: **Web application**.
 4.  Name: `Axis CRM Web Client`.
-5.  **Authorized redirect URIs**:
-    *   Add: `https://developers.google.com/oauthplayground` (We will use this to generate the refresh token easily).
+5.  **Authorized redirect URIs** (IMPORTANT - Add both):
+    *   For Production: `https://axis-crm-v1.vercel.app/api/integrations/google/callback`
+    *   For Local Development: `http://localhost:3000/api/integrations/google/callback`
+    *   (Optional) For testing: `https://developers.google.com/oauthplayground` (if you want to use OAuth Playground to generate refresh token)
 6.  Click **Create**.
 7.  Copy the **Client ID** and **Client Secret**.
 
@@ -65,13 +67,25 @@ To send emails without logging in every time, we need a "Refresh Token".
 
 Add the following variables to your project's `.env.local` file (or Vercel environment variables):
 
+**For Production (Vercel):**
 ```env
 GOOGLE_CLIENT_ID=your_pasted_client_id
 GOOGLE_CLIENT_SECRET=your_pasted_client_secret
-GOOGLE_REDIRECT_URI=https://developers.google.com/oauthplayground
+GOOGLE_REDIRECT_URI=https://axis-crm-v1.vercel.app/api/integrations/google/callback
 GMAIL_REFRESH_TOKEN=your_pasted_refresh_token
 GMAIL_SENDER_EMAIL=your_email@gmail.com
 ```
+
+**For Local Development:**
+```env
+GOOGLE_CLIENT_ID=your_pasted_client_id
+GOOGLE_CLIENT_SECRET=your_pasted_client_secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/integrations/google/callback
+GMAIL_REFRESH_TOKEN=your_pasted_refresh_token
+GMAIL_SENDER_EMAIL=your_email@gmail.com
+```
+
+**Note:** The `GMAIL_REFRESH_TOKEN` and `GMAIL_SENDER_EMAIL` are optional if you're using per-user OAuth tokens (stored in user preferences). The system will use the user's connected Gmail account if available.
 
 ## Verification
 
