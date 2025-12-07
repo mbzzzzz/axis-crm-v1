@@ -215,38 +215,39 @@ export function FeaturesCarousel() {
         </div>
       </section>
 
-      {/* Feature Detail Modal - Large Image Preview Only */}
+      {/* Feature Detail Modal - Full Screen Image Preview */}
       <Dialog open={!!selectedFeature} onOpenChange={(open) => !open && setSelectedFeature(null)}>
-        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[98vh] h-[98vh] overflow-hidden bg-black/98 backdrop-blur-xl border-white/20 p-0">
+        <DialogContent 
+          className="!max-w-[100vw] !w-[100vw] !max-h-[100vh] !h-[100vh] !overflow-hidden !bg-black !p-0 !border-0 !rounded-none !m-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !transform-none"
+          showCloseButton={true}
+        >
           {selectedFeature && (
-            <div className="relative w-full h-full bg-gradient-to-br from-black via-black to-gray-900 flex items-center justify-center p-4 md:p-8">
-              <div className="relative w-full h-full">
-                <Image
-                  src={selectedFeature.image}
-                  alt={`${selectedFeature.title} screenshot`}
-                  fill
-                  className="object-contain object-center"
-                  sizes="98vw"
-                  priority
-                  quality={100}
-                  onError={(e) => {
-                    // Fallback to placeholder on error
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const placeholder = target.nextElementSibling as HTMLElement;
-                    if (placeholder) placeholder.style.display = 'flex';
-                  }}
-                />
-                {/* Placeholder - shown if image fails to load */}
-                <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-                  <div className="text-white/30 text-center p-8">
-                    {(() => {
-                      const Icon = selectedFeature.icon;
-                      return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
-                    })()}
-                    <p className="font-medium text-lg">Screenshot Preview</p>
-                    <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
-                  </div>
+            <div className="relative w-full h-full bg-black">
+              <Image
+                src={selectedFeature.image}
+                alt={`${selectedFeature.title} screenshot`}
+                fill
+                className="object-contain object-center"
+                sizes="100vw"
+                priority
+                quality={100}
+                onError={(e) => {
+                  // Fallback to placeholder on error
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const placeholder = target.nextElementSibling as HTMLElement;
+                  if (placeholder) placeholder.style.display = 'flex';
+                }}
+              />
+              {/* Placeholder - shown if image fails to load */}
+              <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+                <div className="text-white/30 text-center p-8">
+                  {(() => {
+                    const Icon = selectedFeature.icon;
+                    return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
+                  })()}
+                  <p className="font-medium text-lg">Screenshot Preview</p>
+                  <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
                 </div>
               </div>
             </div>
