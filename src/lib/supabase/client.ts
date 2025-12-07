@@ -18,7 +18,13 @@ export function getSupabaseBrowserClient() {
   ensureEnv();
 
   if (!browserClient) {
-    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+      cookieOptions: {
+        maxAge: 60 * 60 * 24 * 30, // 30 days
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    });
   }
 
   return browserClient;

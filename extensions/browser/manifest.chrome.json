@@ -27,18 +27,32 @@
     "page": "src/options/index.html",
     "open_in_tab": true
   },
-  "permissions": ["storage", "tabs", "activeTab", "scripting"],
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
   "host_permissions": [
     "https://*.axiscrm.com/*",
     "https://*.axiscrm.app/*",
     "https://axis-crm.vercel.app/*",
     "https://axis-crm-v1.vercel.app/*",
+    "https://*.vercel.app/*",
     "https://*.zillow.com/*",
     "https://zillow.com/*",
     "https://*.zameen.com/*",
     "https://zameen.com/*",
     "https://*.realtor.com/*",
-    "https://realtor.com/*"
+    "https://realtor.com/*",
+    "https://*.bayut.com/*",
+    "https://*.bayut.ae/*",
+    "https://*.propertyfinder.ae/*",
+    "https://*.propertyfinder.com/*",
+    "https://*.dubizzle.com/*",
+    "https://*.dubizzle.ae/*",
+    "https://*.propsearch.ae/*",
+    "https://*.propsearch.com/*"
   ],
   "content_scripts": [
     {
@@ -49,17 +63,30 @@
         "https://zameen.com/*",
         "https://profolio.zameen.com/*",
         "https://*.realtor.com/*",
-        "https://realtor.com/*"
+        "https://realtor.com/*",
+        "https://*.bayut.com/*",
+        "https://*.bayut.ae/*",
+        "https://*.propertyfinder.ae/*",
+        "https://*.propertyfinder.com/*",
+        "https://*.dubizzle.com/*",
+        "https://*.dubizzle.ae/*",
+        "https://*.propsearch.ae/*",
+        "https://*.propsearch.com/*"
       ],
-      "js": ["content/content.js"],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_end"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
-      "matches": ["<all_urls>"]
+      "resources": [
+        "assets/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
-

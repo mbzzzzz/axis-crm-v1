@@ -18,6 +18,7 @@ import type {
   SyncStatus,
 } from "@axis/shared/types";
 import { fetchProperties, fetchTheme } from "@axis/shared/api-client";
+import { SUPPORTED_SITES } from "../site-config";
 
 let state: ExtensionState | null = null;
 
@@ -58,7 +59,7 @@ async function persistState(partial: Partial<ExtensionState>) {
 async function syncFromAxis(): Promise<RuntimeMessageResponse> {
   const current = await ensureState();
   await setStatus("loading");
-  
+
   // Validate URL - prevent tenant portal URLs
   const baseUrl = (current.settings.apiBaseUrl || "").trim();
   if (!baseUrl) {
@@ -66,7 +67,7 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
     await setStatus("error", error);
     return { ok: false, type: "ERROR" as const, error, code: "NO_URL" };
   }
-  
+
   // Check if URL contains tenant portal path
   const urlLower = baseUrl.toLowerCase();
   if (urlLower.includes("/tenant-portal") || urlLower.includes("tenant-portal")) {
@@ -74,7 +75,7 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
     await setStatus("error", error);
     return { ok: false, type: "ERROR" as const, error, code: "TENANT_PORTAL_URL" };
   }
-  
+
   try {
     const [theme, properties] = await Promise.all([
       fetchTheme(baseUrl).catch((err) => {
@@ -88,7 +89,7 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
       await saveTheme(theme);
     }
     await saveProperties(properties);
-    
+
     await persistState({
       theme: theme || current.theme,
       properties,
@@ -101,17 +102,17 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await setStatus("error", errorMessage);
-    
+
     let userMessage = errorMessage;
     let errorCode: string | undefined;
-    
+
     // Check for HTML response errors (tenant portal or login redirect)
     if ((error as any).isHtml || errorMessage.includes("HTML instead of JSON") || errorMessage.includes("<!DOCTYPE")) {
       errorCode = "HTML_RESPONSE";
       // Only show tenant portal message if URL actually contains tenant-portal
       const baseUrl = current.settings.apiBaseUrl || "";
       const isActuallyTenantPortal = baseUrl.toLowerCase().includes("/tenant-portal") || errorMessage.toLowerCase().includes("tenant-portal") && errorMessage.toLowerCase().includes("you're trying");
-      
+
       if (isActuallyTenantPortal) {
         userMessage = "You're trying to access the tenant portal. The extension only works with the agent dashboard.\n\nPlease:\n1. Make sure your AXIS CRM URL in settings points to the main dashboard (not /tenant-portal)\n2. Log into the main dashboard as an agent\n3. Try syncing again";
       } else {
@@ -127,7 +128,7 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
       errorCode = "TENANT_PORTAL_ERROR";
       userMessage = "The extension only works with the agent dashboard, not the tenant portal. Please use the main dashboard URL.";
     }
-    
+
     return { ok: false, type: "ERROR" as const, error: userMessage, code: errorCode };
   }
 }
@@ -162,20 +163,24 @@ async function autofillActiveTab(): Promise<RuntimeMessageResponse> {
     return { ok: false, type: "ERROR" as const, error: "Unable to find active tab" };
   }
 
-  if (!tab.url || (!tab.url.includes("zillow.com") && !tab.url.includes("zameen.com") && !tab.url.includes("realtor.com"))) {
+  const isSupported = SUPPORTED_SITES.some(site =>
+    site.hostPatterns.some(pattern => pattern.test(new URL(tab.url!).hostname))
+  );
+
+  if (!tab.url || !isSupported) {
     return {
       ok: false,
       type: "ERROR" as const,
-      error: "Unsupported site. Please navigate to Zillow, Zameen, or Realtor listing page.",
+      error: "Unsupported site. Please navigate to a supported property listing page.",
     };
   }
 
   try {
     await ensureContentScript(tab.id);
-    
+
     // Give the content script a moment to fully initialize after injection
     await new Promise((resolve) => setTimeout(resolve, 300));
-    
+
     try {
       const response = await browser.tabs.sendMessage(tab.id, {
         type: "AXIS_AUTOFILL",
@@ -193,9 +198,9 @@ async function autofillActiveTab(): Promise<RuntimeMessageResponse> {
         };
       }
     } catch (msgError: any) {
-      if (msgError?.message?.includes("Receiving end does not exist") || 
-          msgError?.message?.includes("Could not establish connection") ||
-          msgError?.message?.includes("Extension context invalidated")) {
+      if (msgError?.message?.includes("Receiving end does not exist") ||
+        msgError?.message?.includes("Could not establish connection") ||
+        msgError?.message?.includes("Extension context invalidated")) {
         return {
           ok: false,
           type: "ERROR" as const,
@@ -215,8 +220,8 @@ async function autofillActiveTab(): Promise<RuntimeMessageResponse> {
     return {
       ok: false,
       type: "ERROR" as const,
-      error: errorMsg.includes("injection failed") 
-        ? errorMsg 
+      error: errorMsg.includes("injection failed")
+        ? errorMsg
         : `Failed to communicate with the current page: ${errorMsg}. Try refreshing the page.`,
     };
   }
@@ -280,7 +285,7 @@ async function waitForContentScriptReady(tabId: number, maxRetries = 25): Promis
       // Progressive backoff - wait longer between retries
       const waitTime = Math.min(300 + (i * 100), 1000);
       await new Promise((resolve) => setTimeout(resolve, waitTime));
-      
+
       if (i === maxRetries - 1) {
         throw new Error("Content script did not respond. Please refresh the page and try again.");
       }
@@ -329,6 +334,16 @@ browser.runtime.onMessage.addListener((message: RuntimeMessage): Promise<Runtime
         await saveSettings(merged);
         await persistState({ settings: merged });
         return { ok: true, type: "MESSAGE" as const, message: "Settings updated" };
+      })();
+    case "LOGOUT":
+      return (async () => {
+        // Clear all storage
+        await browser.storage.local.clear();
+        // Reset state
+        state = null;
+        // Re-bootstrap (will result in empty/default state)
+        await bootstrapState();
+        return { ok: true, type: "MESSAGE" as const, message: "Logged out successfully" };
       })();
     default:
       return Promise.resolve({ ok: false, type: "ERROR" as const, error: "Unknown message" });

@@ -47,7 +47,7 @@ export default function App() {
       if (!response.ok) {
         const errorCode = response.code;
         const errorMsg = response.error || "Sync failed. Please try again.";
-        
+
         if (errorCode === "NOT_SIGNED_IN" || errorCode === "HTML_RESPONSE") {
           const shouldOpenDashboard = confirm(
             "Not signed in to AXIS CRM.\n\n" +
@@ -162,7 +162,7 @@ export default function App() {
         }
       } catch (msgError: any) {
         console.error("Direct message failed, trying fallback:", msgError);
-        
+
         // Fallback to background script method if direct message fails
         try {
           const response = await sendRuntimeMessage({ type: "AUTOFILL_ACTIVE_TAB" });
@@ -205,6 +205,18 @@ export default function App() {
     browser.runtime.openOptionsPage();
   }
 
+  async function handleLogout() {
+    if (confirm("Are you sure you want to logout? This will clear all synced data from the extension.")) {
+      try {
+        await sendRuntimeMessage({ type: "LOGOUT" } as any);
+        await refreshState();
+      } catch (error) {
+        console.error("Logout error:", error);
+        alert("Failed to logout");
+      }
+    }
+  }
+
   async function handleExtractLead() {
     setIsExtractingLead(true);
     try {
@@ -225,7 +237,7 @@ export default function App() {
 
         if (response?.success && response?.lead) {
           const lead = response.lead as ExtractedLead;
-          
+
           // Show confirmation dialog with lead details
           const confirmMessage = `Extracted Lead:\n\n` +
             `Name: ${lead.name}\n` +
@@ -261,13 +273,13 @@ export default function App() {
           alert(response?.error || "No lead information found on this page.");
         }
       } catch (msgError: any) {
-        if (msgError.message?.includes("Receiving end does not exist") || 
-            msgError.message?.includes("Could not establish connection")) {
+        if (msgError.message?.includes("Receiving end does not exist") ||
+          msgError.message?.includes("Could not establish connection")) {
           alert(
-              "Content script not loaded.\n\n" +
-              "1. Refresh the current page (F5)\n" +
-              "2. Make sure you're on a supported property listing page\n" +
-              "3. Try extracting lead again"
+            "Content script not loaded.\n\n" +
+            "1. Refresh the current page (F5)\n" +
+            "2. Make sure you're on a supported property listing page\n" +
+            "3. Try extracting lead again"
           );
         } else {
           alert(`Lead extraction failed: ${msgError.message || "Unknown error"}`);
@@ -304,6 +316,9 @@ export default function App() {
           </button>
           <button className="button secondary" onClick={openOptions}>
             Options
+          </button>
+          <button className="button secondary" onClick={handleLogout} style={{ color: "#ef4444", borderColor: "#ef4444" }}>
+            Logout
           </button>
         </div>
         {state.error && (
@@ -381,7 +396,7 @@ export default function App() {
           </button>
         </div>
         <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 12 }}>
-          Works on Zillow, Zameen, Realtor, Bayut, Property Finder, Dubizzle, and Propsearch. 
+          Works on Zillow, Zameen, Realtor, Bayut, Property Finder, Dubizzle, and Propsearch.
           We upload photos, pricing, amenities, and your description so every listing looks on-brand.
         </p>
         <p style={{ color: "var(--axis-muted)", margin: 0, fontSize: 11 }}>
