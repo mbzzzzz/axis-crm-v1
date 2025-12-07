@@ -158,6 +158,10 @@ export const userPreferences = pgTable('user_preferences', {
   defaultInvoiceLogoWidth: integer('default_invoice_logo_width').default(40),
   heardAbout: text('heard_about'),
   onboardingCompletedAt: timestamp('onboarding_completed_at'),
+  // Integrations
+  gmailRefreshToken: text('gmail_refresh_token'),
+  gmailConnectedAt: timestamp('gmail_connected_at'),
+  gmailEmail: text('gmail_email'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

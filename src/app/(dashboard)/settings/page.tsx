@@ -66,6 +66,22 @@ export default function SettingsPage() {
   const [lateFeePolicies, setLateFeePolicies] = useState<any[]>([]);
   const [isLateFeeDialogOpen, setIsLateFeeDialogOpen] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
+  const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null as string | null });
+
+  const handleConnectGmail = async () => {
+    try {
+      const response = await fetch("/api/integrations/google/auth-url");
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Failed to start Google connection");
+      }
+    } catch (error) {
+      console.error("Connect error:", error);
+      toast.error("Failed to connect to Google");
+    }
+  };
 
   const updateFormData = (field: keyof SettingsFormState, value: string) => {
     hasUserEditedRef.current = true;
@@ -89,11 +105,11 @@ export default function SettingsPage() {
           fetch("/api/preferences"),
           fetch("/api/late-fee-policies"),
         ]);
-        
+
         let properties: any[] = [];
         let tenants: any[] = [];
         let preferences: any = { agentName: "", agentAgency: "" };
-        
+
         if (propertiesResult.status === "fulfilled" && propertiesResult.value.ok) {
           try {
             properties = await propertiesResult.value.json();
@@ -103,17 +119,17 @@ export default function SettingsPage() {
         } else if (propertiesResult.status === "rejected") {
           console.error("Failed to fetch properties:", propertiesResult.reason);
         }
-        
+
         if (tenantsResult.status === "fulfilled" && tenantsResult.value.ok) {
           try {
             tenants = await tenantsResult.value.json();
           } catch (e) {
             console.error("Failed to parse tenants JSON:", e);
           }
-        } else         if (tenantsResult.status === "rejected") {
+        } else if (tenantsResult.status === "rejected") {
           console.error("Failed to fetch tenants:", tenantsResult.reason);
         }
-        
+
         if (policiesResult.status === "fulfilled" && policiesResult.value.ok) {
           try {
             const policies = await policiesResult.value.json();
@@ -122,7 +138,7 @@ export default function SettingsPage() {
             console.error("Failed to parse policies JSON:", e);
           }
         }
-        
+
         if (preferencesResult.status === "fulfilled" && preferencesResult.value.ok) {
           try {
             preferences = await preferencesResult.value.json();
@@ -132,13 +148,20 @@ export default function SettingsPage() {
         } else if (preferencesResult.status === "rejected") {
           console.error("Failed to fetch preferences:", preferencesResult.reason);
         }
-        
+
         setStats({
           totalProperties: Array.isArray(properties) ? properties.length : 0,
           totalTenants: Array.isArray(tenants) ? tenants.length : 0,
           averageRating: 4.8,
         });
-        
+
+        if (preferences) {
+          setGmailStatus({
+            connected: !!preferences.gmailConnected,
+            email: preferences.gmailEmail || null
+          });
+        }
+
         if (session?.user) {
           const currentUserId = session.user.id;
           const isNewUser = initializedUserRef.current !== currentUserId;
@@ -232,7 +255,7 @@ export default function SettingsPage() {
       } else {
         const error = await response.json();
         const errorMessage = error.error || error.details || "Failed to save agent information";
-        
+
         // Show more helpful error messages
         if (error.code === "COLUMN_NOT_FOUND") {
           toast.error("Database migration required. Please contact support or run the migration: drizzle/0008_add_agent_fields_to_preferences.sql");
@@ -243,11 +266,11 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Failed to save agent info:", error);
-      const isNetworkError = 
-        error instanceof TypeError && 
+      const isNetworkError =
+        error instanceof TypeError &&
         (error.message.includes("fetch") || error.message.includes("network"));
       toast.error(
-        isNetworkError 
+        isNetworkError
           ? "Network error. Please check your connection and try again."
           : "An error occurred. Please try again."
       );
@@ -382,8 +405,8 @@ export default function SettingsPage() {
                 disabled={isSavingAgent}
               />
             </div>
-            <Button 
-              onClick={handleSaveAgentInfo} 
+            <Button
+              onClick={handleSaveAgentInfo}
               className="w-full"
               disabled={isSavingAgent}
             >
@@ -439,6 +462,38 @@ export default function SettingsPage() {
             <Button className="w-full" onClick={handleSavePlan} disabled={isSavingPlan}>
               {isSavingPlan ? "Saving..." : "Update Plan"}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Gmail Integration */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Gmail Integration</CardTitle>
+            <CardDescription>Connect your Gmail to send invoices directly from your email address.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Status</span>
+                <span className={`text-sm ${gmailStatus.connected ? "text-green-500" : "text-muted-foreground"}`}>
+                  {gmailStatus.connected ? "Connected" : "Not Connected"}
+                </span>
+                {gmailStatus.email && (
+                  <span className="text-xs text-muted-foreground">{gmailStatus.email}</span>
+                )}
+              </div>
+              <Button
+                variant={gmailStatus.connected ? "outline" : "default"}
+                onClick={handleConnectGmail}
+              >
+                {gmailStatus.connected ? "Reconnect Gmail" : "Connect Gmail"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {gmailStatus.connected
+                ? "Your invoices will be sent using your connected Gmail account."
+                : "Connect your account to have invoices appear as sent explicitly by you."}
+            </p>
           </CardContent>
         </Card>
 
@@ -577,52 +632,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Theme Customization */}
-      <Card className="themed-panel border-0 shadow-none">
-        <CardHeader>
-          <CardTitle>Dashboard Theme</CardTitle>
-          <CardDescription>
-            Choose a glow palette for your analytics cards. Your selection is saved to your account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {CARD_THEME_OPTIONS.map((option) => {
-              const isActive = option.key === themeKey;
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => setTheme(option.key)}
-                  disabled={isSaving || isActive}
-                  className={`relative flex flex-col items-start justify-between rounded-2xl border p-5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-                    isActive ? "ring-2 ring-offset-2 ring-offset-background ring-white/60" : "border-transparent"
-                  }`}
-                  style={{
-                    background: option.surface,
-                    borderColor: isActive ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.1)",
-                    color: option.text,
-                    boxShadow: isActive ? `0 12px 35px rgba(${option.glowRgb}, 0.25)` : `0 8px 24px rgba(0,0,0,0.2)`,
-                    opacity: isSaving && !isActive ? 0.6 : 1,
-                  }}
-                >
-                  <span className="text-sm uppercase tracking-wide opacity-80">{option.name}</span>
-                  <span className="mt-3 text-xs opacity-70">{option.description}</span>
-                  {isActive && (
-                    <span className="mt-4 rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
-                      Active theme
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Colors update across your dashboard analytics, charts, and insight cards.
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Key Stats */}
       <div className="space-y-4">

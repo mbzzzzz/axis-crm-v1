@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import browser from "webextension-polyfill";
 import { sendRuntimeMessage } from "@axis/shared/messaging";
-import type { ExtensionState } from "@axis/shared/types";
+import type { ExtensionState, ExtensionSettings } from "@axis/shared/types";
 import { PropertyCard } from "./components/PropertyCard";
 import { SyncButton } from "./components/SyncButton";
 import { createThemeCSS } from "@axis/shared/theme";
@@ -13,11 +13,21 @@ export default function App() {
   const [isAutofilling, setIsAutofilling] = useState(false);
   const [isExtractingLead, setIsExtractingLead] = useState(false);
 
+  // Settings/Options View State
+  const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+  const [localSettings, setLocalSettings] = useState<ExtensionSettings>({
+    apiBaseUrl: "https://axis-crm-v1.vercel.app"
+  });
+
   async function refreshState() {
     try {
       const response = await sendRuntimeMessage({ type: "GET_STATE" });
       if (response.ok && response.type === "STATE") {
         setState(response.state);
+        // Sync local settings with global state
+        if (response.state.settings) {
+          setLocalSettings(response.state.settings);
+        }
       } else if (response.type === "ERROR") {
         console.error("Failed to get state:", response.error);
       }
@@ -31,6 +41,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Keep local settings in sync when state updates (unless user is editing? 
+    // actually safer to only sync on mount or deliberate refresh, but for now this is fine)
+    if (state?.settings) {
+      setLocalSettings(state.settings);
+    }
+  }, [state?.settings]);
+
+  useEffect(() => {
     const styleId = "axis-theme-style";
     let style = document.getElementById(styleId) as HTMLStyleElement | null;
     if (!style) {
@@ -40,6 +58,21 @@ export default function App() {
     }
     style.textContent = createThemeCSS(state?.theme ?? null);
   }, [state?.theme]);
+
+  async function saveSettings() {
+    try {
+      await sendRuntimeMessage({
+        type: "UPDATE_SETTINGS",
+        payload: localSettings
+      });
+      alert("Settings saved successfully!");
+      setIsOptionsOpen(false);
+      await refreshState();
+    } catch (error) {
+      console.error("Failed to save settings:", error);
+      alert(`Failed to save settings: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }
 
   async function handleSync() {
     try {
@@ -202,11 +235,11 @@ export default function App() {
   }
 
   function openOptions() {
-    browser.runtime.openOptionsPage();
+    setIsOptionsOpen(true);
   }
 
   async function handleLogout() {
-    if (confirm("Are you sure you want to logout? This will clear all synced data from the extension.")) {
+    if (confirm("Are you sure you want to logout? This will clear all synced data and sign you out of the dashboard.")) {
       try {
         await sendRuntimeMessage({ type: "LOGOUT" } as any);
         await refreshState();
@@ -296,6 +329,39 @@ export default function App() {
     return (
       <div className="app-shell">
         <p>Loading extension state...</p>
+      </div>
+    );
+  }
+
+  if (isOptionsOpen) {
+    return (
+      <div className="p-4 space-y-4">
+        <h2 className="text-lg font-semibold">Settings</h2>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">AXIS CRM URL</label>
+          <input
+            type="url"
+            value={localSettings.apiBaseUrl}
+            onChange={(e) => setLocalSettings({ ...localSettings, apiBaseUrl: e.target.value })}
+            className="w-full px-3 py-2 border rounded-md"
+            placeholder="https://your-crm-url.com"
+          />
+          <p className="text-xs text-gray-500">
+            Current: {state.settings.apiBaseUrl}
+            <br />
+            Default: https://axis-crm-v1.vercel.app
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <button className="button secondary" onClick={() => setIsOptionsOpen(false)}>
+            Cancel
+          </button>
+          <button className="button primary" onClick={saveSettings}>
+            Save
+          </button>
+        </div>
       </div>
     );
   }
@@ -406,4 +472,3 @@ export default function App() {
     </div>
   );
 }
-

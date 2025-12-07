@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { invoices, properties, tenants } from '@/db/schema-postgres';
+import { invoices, properties, tenants, userPreferences } from '@/db/schema-postgres';
 import { eq, and } from 'drizzle-orm';
 import { getAuthenticatedUser } from '@/lib/api-auth';
 import { getInvoicePDFBlob } from '@/lib/pdf-generator';
@@ -66,6 +66,14 @@ export async function POST(request: NextRequest) {
 
     const propertyData = property[0] || {};
 
+    // Fetch user preferences to get Gmail token
+    const preferences = await db.select({ gmailRefreshToken: userPreferences.gmailRefreshToken })
+      .from(userPreferences)
+      .where(eq(userPreferences.userId, user.id))
+      .limit(1);
+
+    const userRefreshToken = preferences[0]?.gmailRefreshToken;
+
     // Prepare PDF data
     const pdfData = {
       invoiceNumber: invoiceData.invoiceNumber,
@@ -115,19 +123,30 @@ export async function POST(request: NextRequest) {
     await sendGmailEmail({
       to: invoiceData.clientEmail,
       subject: `Invoice ${invoiceData.invoiceNumber} from ${invoiceData.companyName || 'Axis CRM'}`,
+      fromName: invoiceData.agentName || invoiceData.companyName || 'Axis CRM',
+      replyTo: invoiceData.agentEmail || user.email,
+      refreshToken: userRefreshToken,
       html: `
-        <p>Hello ${invoiceData.clientName},</p>
-        <p>Please find invoice <strong>${invoiceData.invoiceNumber}</strong> for ${propertyData.address || 'your property'}.</p>
-        <p>Total due: <strong>${invoiceData.totalAmount} ${propertyData.currency || 'USD'}</strong> by ${invoiceData.dueDate}.</p>
-        <p>You can download a PDF copy from your Axis CRM portal.</p>
-        <p>You can reply to this email if you have any questions.</p>
-        <p>Thank you,<br/>${invoiceData.agentName || 'Axis CRM'}</p>
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Hello ${invoiceData.clientName},</h2>
+          <p>Please find attached invoice <strong>${invoiceData.invoiceNumber}</strong> for ${propertyData.address || 'your property'}.</p>
+          <div style="background: #f4f4f4; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 18px;">Total Due: <strong>${invoiceData.totalAmount} ${propertyData.currency || 'USD'}</strong></p>
+            <p style="margin: 5px 0 0; color: #666;">Due Date: ${invoiceData.dueDate}</p>
+          </div>
+          <p>You can view details and download a PDF copy from your tenant portal.</p>
+          <p>If you have any questions, please reply to this email.</p>
+          <br/>
+          <p>Best regards,<br/>
+          <strong>${invoiceData.agentName || 'The Team'}</strong><br/>
+          ${invoiceData.companyName || 'Axis CRM'}</p>
+        </div>
       `,
     });
-    
+
     // Update invoice status to 'sent'
     await db.update(invoices)
-      .set({ 
+      .set({
         paymentStatus: 'sent',
         updatedAt: new Date()
       })
@@ -153,4 +172,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

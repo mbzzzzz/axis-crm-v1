@@ -31,6 +31,8 @@ export async function GET() {
         defaultInvoiceLogoWidth: userPreferences.defaultInvoiceLogoWidth,
         heardAbout: userPreferences.heardAbout,
         onboardingCompletedAt: userPreferences.onboardingCompletedAt,
+        gmailRefreshToken: userPreferences.gmailRefreshToken,
+        gmailEmail: userPreferences.gmailEmail,
       })
       .from(userPreferences)
       .where(eq(userPreferences.userId, user.id))
@@ -52,6 +54,8 @@ export async function GET() {
       defaultInvoiceLogoWidth: prefs?.defaultInvoiceLogoWidth ?? 40,
       heardAbout: prefs?.heardAbout || null,
       onboardingCompleted: Boolean(prefs?.onboardingCompletedAt),
+      gmailConnected: Boolean(prefs?.gmailRefreshToken),
+      gmailEmail: prefs?.gmailEmail || null,
     });
   } catch (error) {
     console.error("GET /api/preferences error:", error);
@@ -296,7 +300,7 @@ export async function PUT(request: NextRequest) {
       } else if (onboardingCompleted === false) {
         updateData.onboardingCompletedAt = null;
       }
-      
+
       // If only agent fields are being updated (no theme), ensure we still update
       // This allows users to update agent info independently
       // Ensure we have at least one field to update besides updatedAt
@@ -394,7 +398,7 @@ export async function PUT(request: NextRequest) {
           console.error("Database columns 'agent_name' or 'agent_agency' do not exist. Please run the migration:", dbError);
           const isProduction = process.env.NODE_ENV === "production";
           return NextResponse.json(
-            { 
+            {
               error: "Database columns not found. Please run the migration: drizzle/0008_add_agent_fields_to_preferences.sql",
               code: "COLUMN_NOT_FOUND",
               ...(isProduction ? {} : { details: dbError.message })
@@ -405,7 +409,7 @@ export async function PUT(request: NextRequest) {
         console.error("Database table 'user_preferences' does not exist. Please run the migration:", dbError);
         const isProduction = process.env.NODE_ENV === "production";
         return NextResponse.json(
-          { 
+          {
             error: "Database table not found. Please run the migration: drizzle/0003_add_user_preferences.sql",
             code: "TABLE_NOT_FOUND",
             ...(isProduction ? {} : { details: dbError.message })
