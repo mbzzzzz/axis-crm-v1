@@ -52,15 +52,9 @@ A comprehensive CRM system for real estate agents and property managers, built w
    # Groq API (for AI-powered property description generation via Composio MCP)
    GROQ_API_KEY=your_groq_api_key
 
-   # WhatsApp Integration (WAHA - WhatsApp HTTP API)
-   WHATSAPP_API_URL=http://localhost:3000/api
-   WHATSAPP_API_KEY=your_waha_api_key  # Optional, if WAHA requires API key authentication
-   WHATSAPP_SESSION=default  # Optional, defaults to "default" session name
    ```
    - Get your Groq API key from [https://console.groq.com](https://console.groq.com)
-   - For WhatsApp integration, set up WAHA service (see [WAHA Documentation](https://waha.devlike.pro/))
-   - Run WAHA: `docker run -it -p 3000:3000 devlikeapro/waha` (local) or deploy on Railway (see [WHATSAPP-SETUP.md](./WHATSAPP-SETUP.md))
-   - **For Vercel production:** See [VERCEL-WHATSAPP-ENV.md](./VERCEL-WHATSAPP-ENV.md) for step-by-step instructions to add environment variables
+   - For WhatsApp integration, see [WHATSAPP-SETUP.md](./WHATSAPP-SETUP.md) - Users connect their own WhatsApp Business accounts
 
 4. **Run the development server:**
    ```bash
@@ -73,7 +67,7 @@ A comprehensive CRM system for real estate agents and property managers, built w
 - [Migration Guide](./MIGRATION-GUIDE.md) - Historical better-auth to Clerk notes (Supabase Auth now default)
 - [MCP Setup Guide](./MCP-SETUP.md) - Composio MCP server configuration
 - [Vercel Deployment Guide](./VERCEL-DEPLOYMENT.md) - Environment variables and deployment instructions
-- [WhatsApp Integration Guide](./WHATSAPP-SETUP.md) - **FREE** WhatsApp setup using WAHA (step-by-step)
+- [WhatsApp Integration Guide](./WHATSAPP-SETUP.md) - WhatsApp Cloud API setup (official Meta API)
 
 ## 🔧 MCP Server Configuration
 

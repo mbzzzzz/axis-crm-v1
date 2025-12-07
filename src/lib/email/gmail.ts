@@ -20,7 +20,6 @@ export function generateAuthUrl() {
     access_type: "offline",
     scope: [
       "https://www.googleapis.com/auth/gmail.send",
-      "https://www.googleapis.com/auth/userinfo.email",
     ],
     prompt: "consent", // Force refresh token generation
   });

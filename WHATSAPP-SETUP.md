@@ -1,236 +1,139 @@
-# WhatsApp WAHA Integration - Complete Setup Guide
+# WhatsApp Cloud API Setup Guide
 
-This guide covers everything you need to set up WhatsApp integration using WAHA (WhatsApp HTTP API) - both local development and production deployment.
+This guide explains how to set up WhatsApp Cloud API integration for sending invoices via WhatsApp.
 
-## Prerequisites (All Free)
+## Overview
 
-- Docker Desktop (free) - [Download here](https://www.docker.com/products/docker-desktop/)
-- Node.js and npm (already installed for your Next.js project)
-- A WhatsApp account (free)
+WhatsApp Cloud API is Meta's official API for sending messages through WhatsApp Business. Each user connects their own WhatsApp Business account, allowing them to send invoices directly to tenants.
 
-## Step 1: Install Docker Desktop
+## Prerequisites
 
-1. Download Docker Desktop from: https://www.docker.com/products/docker-desktop/
-2. Install and start Docker Desktop
-3. Verify installation by opening terminal and running:
-   ```bash
-   docker --version
-   ```
-   You should see Docker version information.
+1. A **Meta Business Account** (free)
+2. A **WhatsApp Business Account** (free)
+3. A verified phone number for your business
+4. Access to **Meta for Developers** (developers.facebook.com)
 
-## Step 2: Run WAHA Service (Free & Local)
+## Step 1: Create Meta Business Account
 
-Open your terminal and run this single command:
+1. Go to [business.facebook.com](https://business.facebook.com)
+2. Click **Create Account** or sign in
+3. Follow the setup wizard to create your business account
+4. Verify your business information
 
-```bash
-docker run -it --rm -p 3000:3000 --name waha devlikeapro/waha
-```
+## Step 2: Set Up WhatsApp Business Account
 
-**What this does:**
-- Downloads and runs WAHA (WhatsApp HTTP API) in a Docker container
-- Exposes the API on port 3000
-- `--rm` flag automatically removes the container when stopped (saves space)
-- `--name waha` gives it a friendly name
+1. In Meta Business Suite, go to **WhatsApp Accounts**
+2. Click **Add** → **Add Phone Number**
+3. Enter your business phone number
+4. Verify the phone number via SMS or call
+5. Complete the business verification process
 
-**Expected output:**
-```
-WAHA is starting...
-API available at http://localhost:3000/api
-Dashboard available at http://localhost:3000
-```
+## Step 3: Create Meta App
 
-**Keep this terminal window open** - WAHA needs to keep running.
+1. Go to [developers.facebook.com](https://developers.facebook.com)
+2. Click **My Apps** → **Create App**
+3. Select **Business** as the app type
+4. Fill in app details:
+   - **App Name**: Axis CRM (or your preferred name)
+   - **App Contact Email**: Your email
+5. Click **Create App**
 
-## Step 3: Access WAHA Dashboard
+## Step 4: Add WhatsApp Product
 
-1. Open your browser and go to: **http://localhost:3000**
-2. You should see the WAHA dashboard
-3. This confirms WAHA is running correctly
+1. In your app dashboard, find **WhatsApp** in the products list
+2. Click **Set Up** on WhatsApp
+3. You'll be redirected to WhatsApp configuration
 
-## Step 4: Configure Your Next.js App
+## Step 5: Get Your Credentials
 
-### For Local Development:
-1. Open your `.env.local` file in the project root
-2. Add these environment variables:
+1. In the WhatsApp setup page, you'll see:
+   - **Phone Number ID**: A long numeric ID (e.g., `123456789012345`)
+   - **Temporary Access Token**: A token that expires in 24 hours
+   - **Business Account ID**: Your business account ID (optional)
 
-```env
-# WhatsApp Integration (WAHA) - Local
-WHATSAPP_API_URL=http://localhost:3000/api
-WHATSAPP_SESSION=default
-WHATSAPP_API_KEY=acc25055b75b4c938c565e694a201f38
-```
+2. **Important**: The temporary token expires quickly. To get a permanent token:
+   - Go to **WhatsApp** → **API Setup**
+   - Under **Access Tokens**, click **Generate Token**
+   - Select your system user or create a new one
+   - Copy the generated token (this is your permanent access token)
 
-3. Save the file
-4. **Restart your Next.js development server** if it's running:
-   ```bash
-   # Stop the server (Ctrl+C) and restart:
-   npm run dev
-   ```
+## Step 6: Connect in Axis CRM
 
-### For Production (Railway + Vercel):
-Your production environment is already configured:
-- **Railway WAHA URL:** `https://waha-production-0727.up.railway.app/api`
-- **API Key:** `acc25055b75b4c938c565e694a201f38`
-- **Vercel Environment Variables:** Already set (Production, Preview, Development)
+1. Log in to Axis CRM
+2. Go to **Settings** → **WhatsApp Integration**
+3. Enter your credentials:
+   - **Phone Number ID**: From Step 5
+   - **Access Token**: Your permanent access token from Step 5
+   - **Business Account ID**: (Optional) Your business account ID
+   - **Phone Number**: (Optional) Your WhatsApp Business phone number
+4. Click **Connect**
 
-**Note:** Environment variables are already configured in Vercel. No action needed!
+## Step 7: Test the Integration
 
-## Step 5: Connect Your WhatsApp Account
-
-1. In your Next.js app, navigate to: **Settings → Configure WhatsApp**
-   - Or go directly to: `http://localhost:3000/settings/whatsapp`
-
-2. You should see the connection status page
-
-3. The status will show **"Scan QR Code"** - this means WAHA is ready
-
-4. Click the QR code area or wait for it to load automatically
-
-5. **On your phone:**
-   - Open WhatsApp
-   - Go to **Settings** → **Linked Devices** (or **Devices** on some versions)
-   - Tap **"Link a Device"** or **"+"** button
-   - Point your phone camera at the QR code on your screen
-   - Wait for connection confirmation
-
-6. Once connected, the status will change to **"Connected"** (green badge)
-
-## Step 6: Test the Integration
-
-### Test 1: Check Connection Status
-- Go to Settings → Configure WhatsApp
-- Status should show "Connected" with a green badge
-- QR code should be hidden
-
-### Test 2: Send an Invoice via WhatsApp
 1. Go to **Invoices** page
-2. Find an invoice that has a phone number (in `clientPhone` field)
-3. Click the **WhatsApp icon** (MessageSquare) button next to the invoice
-4. You should see a success toast notification
-5. Check the recipient's WhatsApp - they should receive the invoice PDF
-
-### Test 3: Send from Tenants Page
-1. Go to **Tenants** page
-2. Find a tenant with a phone number
+2. Find an invoice with a phone number
 3. Click the **WhatsApp icon** button
-4. Invoice will be generated and sent automatically
-
-## Troubleshooting
-
-### Problem: Docker command fails
-**Solution:**
-- Make sure Docker Desktop is running (check system tray)
-- Try: `docker ps` to verify Docker is working
-- Restart Docker Desktop if needed
-
-### Problem: Port 3000 already in use
-**Solution:**
-- Stop your Next.js dev server temporarily
-- Or use a different port for WAHA:
-  ```bash
-  docker run -it --rm -p 3001:3000 --name waha devlikeapro/waha
-  ```
-- Then update `.env.local`: `WHATSAPP_API_URL=http://localhost:3001/api`
-
-### Problem: QR code not showing
-**Solution:**
-- Check browser console for errors
-- Verify WAHA is running: visit http://localhost:3000
-- Check that `WHATSAPP_API_URL` in `.env.local` is correct
-- Restart Next.js dev server after changing `.env.local`
-
-### Problem: "Failed to connect to WAHA service"
-**Solution:**
-- Make sure WAHA Docker container is running
-- Check: `docker ps` should show the `waha` container
-- Verify the URL in `.env.local` matches your WAHA port
-- Try accessing http://localhost:3000/api/sessions directly in browser
-
-### Problem: WhatsApp connection keeps disconnecting
-**Solution:**
-- Keep the Docker container running (don't close the terminal)
-- Don't close WhatsApp on your phone
-- If disconnected, just scan the QR code again
-
-### Problem: "Phone number is missing"
-**Solution:**
-- Make sure the invoice or tenant has a phone number in the database
-- Check the invoice/tenant edit form to add phone numbers
-- Phone number format: Can be any format (e.g., +1 555-123-4567) - the system will format it automatically
-
-## Running WAHA in Background (Optional)
-
-If you want to run WAHA in the background without keeping a terminal open:
-
-### On Windows (PowerShell):
-```powershell
-Start-Process docker -ArgumentList "run -it --rm -p 3000:3000 --name waha devlikeapro/waha"
-```
-
-### On Mac/Linux:
-```bash
-docker run -d --rm -p 3000:3000 --name waha devlikeapro/waha
-```
-
-To stop it later:
-```bash
-docker stop waha
-```
-
-## Production Deployment (Already Configured)
-
-### Railway Deployment (Current Setup)
-Your WAHA service is already deployed on Railway:
-- **URL:** https://waha-production-0727.up.railway.app
-- **API URL:** https://waha-production-0727.up.railway.app/api
-- **Dashboard:** https://waha-production-0727.up.railway.app
-- **Username:** `admin`
-- **Password:** `833187f430e3464ead17032f10e62406`
-
-### Vercel Environment Variables (Already Set)
-All WhatsApp environment variables are configured in your Vercel project:
-- `WHATSAPP_API_URL` = `https://waha-production-0727.up.railway.app/api`
-- `WHATSAPP_API_KEY` = `acc25055b75b4c938c565e694a201f38`
-- `WHATSAPP_SESSION` = `default`
-
-**All set for Production, Preview, and Development environments!**
-
-### For Local Development
-If you want to run WAHA locally instead:
-- Install Docker Desktop
-- Run: `docker run -it --rm -p 3000:3000 --name waha devlikeapro/waha`
-- Use: `WHATSAPP_API_URL=http://localhost:3000/api` in `.env.local`
+4. The invoice should be sent via WhatsApp with the PDF attached
 
 ## Important Notes
 
-1. **WAHA must stay running** - If you stop the Docker container, WhatsApp will disconnect
-2. **One WhatsApp account per WAHA instance** - Each WAHA instance can only connect to one WhatsApp account
-3. **Free and Open Source** - WAHA is completely free, no API costs
-4. **Local = Private** - Running locally means your data stays on your machine
-5. **No WhatsApp Business API needed** - WAHA works with regular WhatsApp accounts
+### Free Tier Limits
 
-## Quick Start Checklist
+WhatsApp Cloud API has a free tier that includes:
+- **1,000 conversations per month** (free)
+- Additional conversations are charged per message
 
-- [ ] Docker Desktop installed and running
-- [ ] WAHA container running: `docker run -it --rm -p 3000:3000 --name waha devlikeapro/waha`
-- [ ] WAHA dashboard accessible: http://localhost:3000
-- [ ] `.env.local` updated with `WHATSAPP_API_URL=http://localhost:3000/api`
-- [ ] Next.js dev server restarted
-- [ ] Navigated to Settings → Configure WhatsApp
-- [ ] Scanned QR code with WhatsApp mobile app
-- [ ] Status shows "Connected"
-- [ ] Tested sending an invoice via WhatsApp
+### Phone Number Requirements
+
+- Must be a real, verified phone number
+- Cannot be a landline (must support SMS)
+- Must be able to receive verification codes
+
+### Message Templates
+
+For the first message to a new contact, you must use a message template (pre-approved by Meta). However, once a user replies, you can send free-form messages for 24 hours.
+
+### Security
+
+- **Never share your access token** publicly
+- Store credentials securely
+- Rotate tokens if compromised
+- Use environment variables for production
+
+## Troubleshooting
+
+### "Invalid Access Token"
+- Check if your token has expired
+- Generate a new permanent token in Meta for Developers
+- Ensure you're using the correct Phone Number ID
+
+### "Phone number not registered"
+- Verify your phone number in Meta Business Suite
+- Ensure WhatsApp Business is properly set up
+- Check that the phone number is verified
+
+### "Rate limit exceeded"
+- You've exceeded the free tier limit
+- Wait for the limit to reset or upgrade your plan
+- Check your usage in Meta Business Suite
+
+### "Failed to send message"
+- Verify the recipient's phone number is in E.164 format
+- Ensure the recipient has WhatsApp installed
+- Check that your WhatsApp Business account is active
 
 ## Support
 
-If you encounter issues:
-1. Check WAHA logs in the Docker terminal
-2. Check browser console for errors
-3. Verify all environment variables are set correctly
-4. Ensure Docker container is running: `docker ps`
-5. Check WAHA documentation: https://waha.devlike.pro/
+- [WhatsApp Cloud API Documentation](https://developers.facebook.com/docs/whatsapp/cloud-api)
+- [Meta for Developers Support](https://developers.facebook.com/support)
+- [WhatsApp Business Help Center](https://www.whatsapp.com/business)
 
----
+## Alternative: WhatsApp Business API Providers
 
-**All steps above are 100% free** - No payment required, no API keys to purchase, no subscriptions needed.
+If you prefer not to set up WhatsApp Cloud API directly, you can use third-party providers:
+- **Twilio WhatsApp API** - Easy setup, paid service
+- **360dialog** - WhatsApp Business API provider
+- **MessageBird** - Communication platform with WhatsApp support
+
+These providers handle the Meta setup for you but charge per message.
 

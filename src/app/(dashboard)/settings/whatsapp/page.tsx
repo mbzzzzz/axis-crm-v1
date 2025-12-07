@@ -1,214 +1,121 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, CheckCircle2, AlertCircle, QrCode, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle2, AlertCircle, MessageSquare, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-type SessionStatus = "CONNECTED" | "SCAN_QR_CODE" | "WORKING" | "STOPPED" | "STARTING" | "UNKNOWN";
-
-interface SessionInfo {
-  status: SessionStatus;
-  name: string;
+interface WhatsAppStatus {
+  connected: boolean;
+  status: 'connected' | 'not_connected';
+  phoneNumber?: string;
+  connectedAt?: string;
 }
 
 export default function WhatsAppSettingsPage() {
-  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("UNKNOWN");
+  const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [isFetchingQr, setIsFetchingQr] = useState(false);
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const qrPollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showConnectForm, setShowConnectForm] = useState(false);
+  
+  // Form fields
+  const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [businessAccountId, setBusinessAccountId] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
-  const checkSessionStatus = async () => {
+  const fetchStatus = async () => {
     try {
-      const response = await fetch("/api/whatsapp/status");
-      
-      if (!response.ok) {
-        // Try to get detailed error from response
-        let errorMessage = `Failed to check status: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-            if (errorData.details) {
-              errorMessage += ` - ${errorData.details}`;
-            }
-          }
-        } catch {
-          // If JSON parsing fails, use the default message
-        }
-        throw new Error(errorMessage);
-      }
-
+      const response = await fetch("/api/whatsapp/connect");
+      if (!response.ok) throw new Error("Failed to fetch status");
       const data = await response.json();
-      const status = (data.status || "UNKNOWN").toUpperCase() as SessionStatus;
-      
-      setSessionStatus(status);
-      setLastChecked(new Date());
-      setError(null);
-
-      // If status is SCAN_QR_CODE, fetch QR code
-      if (status === "SCAN_QR_CODE" && !qrCodeUrl && !isFetchingQr) {
-        fetchQrCode();
-      } else if ((status === "CONNECTED" || status === "WORKING") && qrCodeUrl) {
-        // Clear QR code when connected
-        setQrCodeUrl(null);
-      }
-    } catch (err) {
-      console.error("Error checking session status:", err);
-      setError(err instanceof Error ? err.message : "Failed to check WhatsApp connection status");
-      setSessionStatus("UNKNOWN");
+      setStatus(data);
+    } catch (error) {
+      console.error("Error fetching WhatsApp status:", error);
+      setStatus({ connected: false, status: 'not_connected' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchQrCode = async () => {
-    if (isFetchingQr) return;
-    
-    setIsFetchingQr(true);
+  useEffect(() => {
+    fetchStatus();
+  }, []);
+
+  const handleConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsConnecting(true);
+
     try {
-      const response = await fetch("/api/whatsapp/qr");
-      
+      const response = await fetch("/api/whatsapp/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumberId,
+          accessToken,
+          businessAccountId: businessAccountId || undefined,
+          phoneNumber: phoneNumber || undefined,
+        }),
+      });
+
       if (!response.ok) {
-        // Try to get detailed error from response
-        let errorMessage = `Failed to fetch QR code: ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-            if (errorData.details) {
-              errorMessage += ` - ${errorData.details}`;
-            }
-          }
-        } catch {
-          // If JSON parsing fails, use the default message
-        }
-        throw new Error(errorMessage);
+        const error = await response.json();
+        throw new Error(error.error || "Failed to connect");
       }
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setQrCodeUrl(url);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching QR code:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch QR code");
+      toast.success("WhatsApp connected successfully!");
+      setShowConnectForm(false);
+      setPhoneNumberId("");
+      setAccessToken("");
+      setBusinessAccountId("");
+      setPhoneNumber("");
+      await fetchStatus();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to connect WhatsApp");
     } finally {
-      setIsFetchingQr(false);
+      setIsConnecting(false);
     }
   };
 
-  // Initial status check
-  useEffect(() => {
-    checkSessionStatus();
-  }, []);
+  const handleDisconnect = async () => {
+    if (!confirm("Are you sure you want to disconnect WhatsApp?")) return;
 
-  // Poll for status every 3 seconds
-  useEffect(() => {
-    pollingIntervalRef.current = setInterval(() => {
-      checkSessionStatus();
-    }, 3000);
+    try {
+      const response = await fetch("/api/whatsapp/connect", {
+        method: "DELETE",
+      });
 
-    return () => {
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
-    };
-  }, []);
+      if (!response.ok) throw new Error("Failed to disconnect");
 
-  // Poll for QR code when status is SCAN_QR_CODE
-  useEffect(() => {
-    if (sessionStatus === "SCAN_QR_CODE") {
-      // Fetch QR code immediately
-      if (!qrCodeUrl && !isFetchingQr) {
-        fetchQrCode();
-      }
-
-      // Poll for QR code updates every 5 seconds
-      qrPollingIntervalRef.current = setInterval(() => {
-        if (!isFetchingQr) {
-          fetchQrCode();
-        }
-      }, 5000);
-    } else {
-      // Clear QR polling when not in SCAN_QR_CODE state
-      if (qrPollingIntervalRef.current) {
-        clearInterval(qrPollingIntervalRef.current);
-        qrPollingIntervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (qrPollingIntervalRef.current) {
-        clearInterval(qrPollingIntervalRef.current);
-      }
-    };
-  }, [sessionStatus]);
-
-  // Cleanup QR code URL on unmount
-  useEffect(() => {
-    return () => {
-      if (qrCodeUrl) {
-        URL.revokeObjectURL(qrCodeUrl);
-      }
-    };
-  }, [qrCodeUrl]);
-
-  const getStatusBadge = () => {
-    switch (sessionStatus) {
-      case "CONNECTED":
-      case "WORKING":
-        return (
-          <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
-            Connected
-          </Badge>
-        );
-      case "SCAN_QR_CODE":
-        return (
-          <Badge variant="default" className="bg-yellow-500 hover:bg-yellow-600">
-            <QrCode className="mr-1 h-3 w-3" />
-            Scan QR Code
-          </Badge>
-        );
-      case "STOPPED":
-        return (
-          <Badge variant="destructive">
-            <AlertCircle className="mr-1 h-3 w-3" />
-            Disconnected
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="secondary">
-            <AlertCircle className="mr-1 h-3 w-3" />
-            Unknown
-          </Badge>
-        );
+      toast.success("WhatsApp disconnected successfully");
+      await fetchStatus();
+    } catch (error) {
+      toast.error("Failed to disconnect WhatsApp");
     }
   };
 
-  const handleManualRefresh = () => {
-    setIsLoading(true);
-    checkSessionStatus();
-    if (sessionStatus === "SCAN_QR_CODE") {
-      fetchQrCode();
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">WhatsApp Integration</h1>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">WhatsApp Integration</h1>
         <p className="text-muted-foreground">
-          Connect your WhatsApp account to send invoices and messages directly to tenants
+          Connect your WhatsApp Business account to send invoices and messages directly to tenants
         </p>
       </div>
 
@@ -218,108 +125,145 @@ export default function WhatsAppSettingsPage() {
             <div>
               <CardTitle>Connection Status</CardTitle>
               <CardDescription>
-                Current WhatsApp session status
-                {lastChecked && (
-                  <span className="ml-2 text-xs">
-                    (Last checked: {lastChecked.toLocaleTimeString()})
-                  </span>
-                )}
+                {status?.connected
+                  ? `Connected to ${status.phoneNumber || "WhatsApp"}`
+                  : "Not connected"}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              {getStatusBadge()}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleManualRefresh}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            {status?.connected ? (
+              <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Connected
+              </Badge>
+            ) : (
+              <Badge variant="secondary">
+                <AlertCircle className="mr-1 h-3 w-3" />
+                Not Connected
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isLoading && sessionStatus === "UNKNOWN" ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-4 w-48" />
-            </div>
-          ) : error ? (
-            <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-              <p className="text-sm text-destructive">{error}</p>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Make sure the WAHA service is running and accessible at the configured URL.
-              </p>
+          {status?.connected ? (
+            <div className="space-y-4">
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  Your WhatsApp is connected and ready to send messages.
+                  {status.phoneNumber && (
+                    <span className="block mt-1">Phone: {status.phoneNumber}</span>
+                  )}
+                </AlertDescription>
+              </Alert>
+              <Button variant="destructive" onClick={handleDisconnect}>
+                Disconnect WhatsApp
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium">Status: {sessionStatus}</p>
-                {sessionStatus === "CONNECTED" || sessionStatus === "WORKING" ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your WhatsApp is connected and ready to send messages.
-                  </p>
-                ) : sessionStatus === "SCAN_QR_CODE" ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Please scan the QR code below with your WhatsApp mobile app to connect.
-                  </p>
-                ) : sessionStatus === "STOPPED" ? (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Your WhatsApp session is disconnected. Please restart the WAHA service or create a new session.
-                  </p>
-                ) : null}
-              </div>
-
-              {sessionStatus === "SCAN_QR_CODE" && (
-                <div className="space-y-4 rounded-lg border bg-muted/50 p-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">QR Code</h3>
-                    {isFetchingQr && (
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
+              {!showConnectForm ? (
+                <>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Connect your WhatsApp Business account to start sending invoices via WhatsApp.
+                    </AlertDescription>
+                  </Alert>
+                  <Button onClick={() => setShowConnectForm(true)}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Connect WhatsApp
+                  </Button>
+                  <div className="text-sm text-muted-foreground space-y-2">
+                    <p>
+                      <strong>Need help setting up?</strong> See the{" "}
+                      <a
+                        href="/docs/whatsapp-setup"
+                        target="_blank"
+                        className="text-primary hover:underline inline-flex items-center gap-1"
+                      >
+                        setup guide
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </p>
                   </div>
-                  
-                  {qrCodeUrl ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="rounded-lg border-2 border-primary bg-white p-4">
-                        <img
-                          src={qrCodeUrl}
-                          alt="WhatsApp QR Code"
-                          className="h-64 w-64"
-                        />
-                      </div>
-                      <div className="text-center text-sm text-muted-foreground">
-                        <p className="font-medium">Scan this QR code with WhatsApp</p>
-                        <ol className="mt-2 list-decimal list-inside space-y-1 text-left">
-                          <li>Open WhatsApp on your phone</li>
-                          <li>Go to Settings → Linked Devices</li>
-                          <li>Tap "Link a Device"</li>
-                          <li>Point your phone at this QR code</li>
-                        </ol>
-                      </div>
-                    </div>
-                  ) : isFetchingQr ? (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Loading QR code...</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-4 py-8">
-                      <AlertCircle className="h-8 w-8 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">
-                        QR code not available. Click refresh to try again.
-                      </p>
-                      <Button variant="outline" size="sm" onClick={fetchQrCode}>
-                        Refresh QR Code
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                </>
+              ) : (
+                <form onSubmit={handleConnect} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumberId">Phone Number ID *</Label>
+                    <Input
+                      id="phoneNumberId"
+                      value={phoneNumberId}
+                      onChange={(e) => setPhoneNumberId(e.target.value)}
+                      placeholder="e.g., 123456789012345"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Found in Meta for Developers → WhatsApp → API Setup
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="accessToken">Access Token *</Label>
+                    <Input
+                      id="accessToken"
+                      type="password"
+                      value={accessToken}
+                      onChange={(e) => setAccessToken(e.target.value)}
+                      placeholder="Your WhatsApp access token"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Generate in Meta for Developers → WhatsApp → API Setup
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="businessAccountId">Business Account ID (Optional)</Label>
+                    <Input
+                      id="businessAccountId"
+                      value={businessAccountId}
+                      onChange={(e) => setBusinessAccountId(e.target.value)}
+                      placeholder="e.g., 123456789012345"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Phone Number (Optional)</Label>
+                    <Input
+                      id="phoneNumber"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="e.g., +1234567890"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isConnecting}>
+                      {isConnecting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        "Connect"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowConnectForm(false);
+                        setPhoneNumberId("");
+                        setAccessToken("");
+                        setBusinessAccountId("");
+                        setPhoneNumber("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
               )}
             </div>
           )}
@@ -333,24 +277,24 @@ export default function WhatsAppSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2 text-sm">
-            <h4 className="font-semibold">1. Connect Your WhatsApp</h4>
+            <h4 className="font-semibold">1. Set Up WhatsApp Business API</h4>
             <p className="text-muted-foreground">
-              Scan the QR code above with your WhatsApp mobile app to link your account. This allows
-              the system to send messages on your behalf.
+              Create a Meta Business account and set up WhatsApp Business API in Meta for Developers.
+              You'll need a verified business phone number.
             </p>
           </div>
           <div className="space-y-2 text-sm">
-            <h4 className="font-semibold">2. Send Invoices</h4>
+            <h4 className="font-semibold">2. Connect Your Account</h4>
+            <p className="text-muted-foreground">
+              Enter your Phone Number ID and Access Token from Meta for Developers to connect your
+              WhatsApp Business account.
+            </p>
+          </div>
+          <div className="space-y-2 text-sm">
+            <h4 className="font-semibold">3. Send Invoices</h4>
             <p className="text-muted-foreground">
               Once connected, you can send invoices directly to tenants via WhatsApp. The system will
               automatically format the message and attach the PDF invoice.
-            </p>
-          </div>
-          <div className="space-y-2 text-sm">
-            <h4 className="font-semibold">3. Privacy & Security</h4>
-            <p className="text-muted-foreground">
-              Your WhatsApp connection is secure and only used to send messages you authorize. The
-              QR code is only displayed when needed for initial setup.
             </p>
           </div>
         </CardContent>
@@ -358,4 +302,3 @@ export default function WhatsAppSettingsPage() {
     </div>
   );
 }
-

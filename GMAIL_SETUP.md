@@ -30,6 +30,7 @@ This guide explains how to configure the Gmail API integration for Axis CRM to a
 4.  Click **Save and Continue**.
 5.  **Scopes**: Click **Add or Remove Scopes**.
     *   Search for `gmail.send` and select it (`https://www.googleapis.com/auth/gmail.send`).
+    *   **Note:** You only need the `gmail.send` scope for sending invoices via email.
     *   Click **Update**.
 6.  **Test Users**: Add the email address you plan to send emails *from* (e.g., yourself).
 7.  Click **Save and Continue**.
@@ -40,10 +41,13 @@ This guide explains how to configure the Gmail API integration for Axis CRM to a
 2.  Click **Create Credentials > OAuth client ID**.
 3.  Application type: **Web application**.
 4.  Name: `Axis CRM Web Client`.
-5.  **Authorized redirect URIs** (IMPORTANT - Add both):
-    *   For Production: `https://axis-crm-v1.vercel.app/api/integrations/google/callback`
+5.  **Authorized redirect URIs** (IMPORTANT - Add ALL of these):
+    *   For Production (Main domain): `https://axis-crm-v1.vercel.app/api/integrations/google/callback`
+    *   For Production (Project-specific): `https://axis-crm-v1.mustafabutt1s-projects.vercel.app/api/integrations/google/callback`
     *   For Local Development: `http://localhost:3000/api/integrations/google/callback`
     *   (Optional) For testing: `https://developers.google.com/oauthplayground` (if you want to use OAuth Playground to generate refresh token)
+    
+    **⚠️ CRITICAL:** The redirect URI must match EXACTLY (including http/https, domain, and path). Add all production URLs to avoid errors.
 6.  Click **Create**.
 7.  Copy the **Client ID** and **Client Secret**.
 
@@ -71,10 +75,16 @@ Add the following variables to your project's `.env.local` file (or Vercel envir
 ```env
 GOOGLE_CLIENT_ID=your_pasted_client_id
 GOOGLE_CLIENT_SECRET=your_pasted_client_secret
+# Use your actual Vercel deployment URL (check in Vercel dashboard)
+# Common formats:
+# - https://axis-crm-v1.vercel.app/api/integrations/google/callback
+# - https://axis-crm-v1.mustafabutt1s-projects.vercel.app/api/integrations/google/callback
 GOOGLE_REDIRECT_URI=https://axis-crm-v1.vercel.app/api/integrations/google/callback
 GMAIL_REFRESH_TOKEN=your_pasted_refresh_token
 GMAIL_SENDER_EMAIL=your_email@gmail.com
 ```
+
+**⚠️ IMPORTANT:** Make sure the `GOOGLE_REDIRECT_URI` in your Vercel environment variables matches EXACTLY one of the URLs you added to Google Cloud Console. Check your Vercel dashboard → Settings → Environment Variables to see the actual deployment URL.
 
 **For Local Development:**
 ```env

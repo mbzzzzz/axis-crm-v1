@@ -162,6 +162,12 @@ export const userPreferences = pgTable('user_preferences', {
   gmailRefreshToken: text('gmail_refresh_token'),
   gmailConnectedAt: timestamp('gmail_connected_at'),
   gmailEmail: text('gmail_email'),
+  // WhatsApp Cloud API
+  whatsappPhoneNumberId: text('whatsapp_phone_number_id'),
+  whatsappAccessToken: text('whatsapp_access_token'),
+  whatsappBusinessAccountId: text('whatsapp_business_account_id'),
+  whatsappConnectedAt: timestamp('whatsapp_connected_at'),
+  whatsappPhoneNumber: text('whatsapp_phone_number'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
