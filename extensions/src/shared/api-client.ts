@@ -1,5 +1,6 @@
 import { getCardTheme } from "@/lib/card-themes";
 import type { AxisPropertyRecord, ExtensionTheme } from "./types";
+import { getCookieHeader } from "./cookie-helper";
 
 const DEFAULT_HEADERS = {
   "Content-Type": "application/json",
@@ -15,11 +16,20 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
+  const url = toAbsoluteUrl(baseUrl, path);
+  
+  // Get cookies explicitly for extension context
+  const cookieHeader = await getCookieHeader(url);
+  const headers = {
+    ...DEFAULT_HEADERS,
+    ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+  };
+
   let response: Response;
   try {
-    response = await fetch(toAbsoluteUrl(baseUrl, path), {
+    response = await fetch(url, {
       method: "GET",
-      headers: DEFAULT_HEADERS,
+      headers,
       credentials: "include",
       signal: controller.signal,
     });
@@ -184,11 +194,20 @@ async function axisPost<T>(baseUrl: string, path: string, body: any): Promise<T>
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
+  const url = toAbsoluteUrl(baseUrl, path);
+  
+  // Get cookies explicitly for extension context
+  const cookieHeader = await getCookieHeader(url);
+  const headers = {
+    ...DEFAULT_HEADERS,
+    ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+  };
+
   let response: Response;
   try {
-    response = await fetch(toAbsoluteUrl(baseUrl, path), {
+    response = await fetch(url, {
       method: "POST",
-      headers: DEFAULT_HEADERS,
+      headers,
       credentials: "include",
       signal: controller.signal,
       body: JSON.stringify(body),
