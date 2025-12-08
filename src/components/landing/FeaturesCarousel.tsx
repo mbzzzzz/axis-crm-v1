@@ -215,60 +215,67 @@ export function FeaturesCarousel() {
         </div>
       </section>
 
-      {/* Feature Detail Modal - Full Screen Image Preview */}
+      {/* Feature Detail Modal - 65% Size with Glassmorphic Frame */}
       <Dialog open={!!selectedFeature} onOpenChange={(open) => !open && setSelectedFeature(null)}>
         <DialogContent 
-          className="!max-w-[100vw] !w-[100vw] !max-h-[100vh] !h-[100vh] !overflow-hidden !bg-black !p-0 !border-0 !rounded-none !m-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !transform-none !gap-0"
+          className="!max-w-[90vw] !w-[90vw] !max-h-[90vh] !h-[90vh] !overflow-hidden !bg-transparent !p-0 !border-0 !rounded-none !m-0 !gap-0 !shadow-none"
           showCloseButton={false}
         >
           {selectedFeature && (
-            <div className="relative w-full h-full bg-black">
-              <Image
-                src={selectedFeature.image}
-                alt={`${selectedFeature.title} screenshot`}
-                fill
-                className="object-cover object-center"
-                sizes="100vw"
-                priority
-                quality={100}
-                onError={(e) => {
-                  // Fallback to placeholder on error
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const placeholder = target.nextElementSibling as HTMLElement;
-                  if (placeholder) placeholder.style.display = 'flex';
-                }}
-              />
-              {/* Custom close button - visible on black background */}
-              <button
-                onClick={() => setSelectedFeature(null)}
-                className="absolute top-4 right-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white border border-white/20 hover:border-white/40 transition-all duration-200 backdrop-blur-sm"
-                aria-label="Close preview"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-5 h-5"
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+              {/* Glassmorphic Frame */}
+              <div className="relative w-[65%] h-[65%] bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl overflow-hidden shadow-2xl">
+                {/* Close button - top left corner of frame */}
+                <button
+                  onClick={() => setSelectedFeature(null)}
+                  className="absolute top-3 left-3 z-50 flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white border border-white/30 hover:border-white/50 transition-all duration-200 backdrop-blur-sm"
+                  aria-label="Close preview"
                 >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-              {/* Placeholder - shown if image fails to load */}
-              <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-                <div className="text-white/30 text-center p-8">
-                  {(() => {
-                    const Icon = selectedFeature.icon;
-                    return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
-                  })()}
-                  <p className="font-medium text-lg">Screenshot Preview</p>
-                  <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+                
+                {/* Image Container */}
+                <div className="relative w-full h-full">
+                  <Image
+                    src={selectedFeature.image}
+                    alt={`${selectedFeature.title} screenshot`}
+                    fill
+                    className="object-contain object-center"
+                    sizes="65vw"
+                    priority
+                    quality={100}
+                    onError={(e) => {
+                      // Fallback to placeholder on error
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const placeholder = target.nextElementSibling as HTMLElement;
+                      if (placeholder) placeholder.style.display = 'flex';
+                    }}
+                  />
+                  {/* Placeholder - shown if image fails to load */}
+                  <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-900/80 via-gray-800/80 to-black/80 backdrop-blur-sm">
+                    <div className="text-white/30 text-center p-8">
+                      {(() => {
+                        const Icon = selectedFeature.icon;
+                        return <Icon className="w-24 h-24 mx-auto mb-4 opacity-30" />;
+                      })()}
+                      <p className="font-medium text-lg">Screenshot Preview</p>
+                      <p className="text-sm mt-2 opacity-50">Add screenshot to /public/screenshots/{selectedFeature.id}.png</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

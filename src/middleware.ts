@@ -50,13 +50,12 @@ export async function middleware(request: NextRequest) {
       setAll: (cookies) => {
         cookies.forEach((cookie) => {
           // Ensure cookies are set with proper persistence options
+          // Match auth callback configuration exactly for consistency
           response.cookies.set(cookie.name, cookie.value, {
             ...cookie.options,
-            // Set secure cookie options for persistence
             httpOnly: cookie.options?.httpOnly ?? true,
             sameSite: cookie.options?.sameSite ?? 'lax',
             secure: cookie.options?.secure ?? process.env.NODE_ENV === 'production',
-            // Ensure maxAge is set for session persistence (30 days)
             maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
             path: cookie.options?.path ?? '/',
           });

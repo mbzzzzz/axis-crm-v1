@@ -12,6 +12,8 @@ import { Github, Loader2, Mail, Shield, User, Building2, Home } from "lucide-rea
 import Link from "next/link";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { formatAuthError } from "@/lib/auth-errors";
 
 const providers = [
   { id: "google", label: "Continue with Google", icon: Mail },
@@ -28,6 +30,7 @@ function LoginForm() {
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Check if role is specified in URL
   useEffect(() => {
@@ -126,6 +129,14 @@ function LoginForm() {
       } else {
         // Agent authentication (Supabase)
         const supabase = getSupabaseBrowserClient();
+        
+        // Store remember me preference
+        if (rememberMe) {
+          localStorage.setItem("remember_me", "true");
+        } else {
+          localStorage.removeItem("remember_me");
+        }
+        
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -140,7 +151,8 @@ function LoginForm() {
       }
     } catch (error: any) {
       console.error("Email sign-in error:", error);
-      toast.error(error.message || "Failed to sign in. Please check your credentials.");
+      const errorMessage = formatAuthError(error);
+      toast.error(errorMessage);
     } finally {
       setIsEmailLoading(false);
     }
@@ -261,6 +273,22 @@ function LoginForm() {
                 required
               />
             </div>
+            {selectedRole === "agent" && (
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  className="border-white/20"
+                />
+                <Label
+                  htmlFor="remember-me"
+                  className="text-sm text-white/80 cursor-pointer"
+                >
+                  Remember me for 90 days
+                </Label>
+              </div>
+            )}
             <Button
               type="submit"
               className="w-full bg-white text-black hover:bg-white/90"

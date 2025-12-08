@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth-client";
 import { Toaster } from "@/components/ui/sonner";
+import { SessionTimeoutWarning } from "@/components/session-timeout-warning";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -24,7 +25,7 @@ import { CardThemeProvider } from "@/components/card-theme-provider";
 import { NotificationsDropdown } from "@/components/notifications-dropdown";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, isPending } = useSession();
+  const { data: session, isPending, session: rawSession, extendSession } = useSession();
   const router = useRouter();
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);

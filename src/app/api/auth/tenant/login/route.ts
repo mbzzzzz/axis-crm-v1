@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateTenant } from '@/lib/tenant-auth';
+import { authRateLimit } from '@/lib/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = authRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
   try {
     const body = await request.json();
     const { email, password } = body;
