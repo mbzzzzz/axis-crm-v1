@@ -23,16 +23,39 @@ export default function Home() {
     // Don't redirect if we're in the middle of an OAuth callback or other auth flows
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
+      const searchParams = new URLSearchParams(window.location.search);
+      
       // Skip redirect during auth flows
-      if (pathname === '/auth/callback' || pathname === '/login' || pathname === '/register') {
+      if (pathname === '/auth/callback' || 
+          pathname === '/login' || 
+          pathname === '/register' ||
+          searchParams.has('code') || // OAuth callback in progress
+          searchParams.has('error')) { // Auth error
+        return;
+      }
+      
+      // If we're already on dashboard or another protected route, don't redirect
+      if (pathname.startsWith('/dashboard') || 
+          pathname.startsWith('/properties') ||
+          pathname.startsWith('/tenants') ||
+          pathname.startsWith('/invoices') ||
+          pathname.startsWith('/maintenance') ||
+          pathname.startsWith('/leads') ||
+          pathname.startsWith('/financials') ||
+          pathname.startsWith('/settings')) {
         return;
       }
     }
     
     // Only redirect if session is confirmed and not pending
+    // Add a small delay to ensure cookies are fully set after OAuth callback
     if (!isPending && session?.user) {
-      // Use replace to avoid adding to history
-      router.replace("/dashboard");
+      // Use a small timeout to ensure cookies are available
+      const timeoutId = setTimeout(() => {
+        router.replace("/dashboard");
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [session, isPending, router]);
 

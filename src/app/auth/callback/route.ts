@@ -29,9 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    // Create a response that will be used for redirect
-    // We'll create the actual redirect after session exchange
-    let redirectResponse: NextResponse | null = null;
+    // Create redirect response FIRST - this ensures we have a response object
+    // to attach cookies to during the session exchange
+    const redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
     
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -41,28 +41,22 @@ export async function GET(request: NextRequest) {
             value: cookie.value,
           })),
         setAll: (cookies) => {
-          // Create redirect response on first cookie set
-          if (!redirectResponse) {
-            redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
-          }
-          
+          // Set all cookies on the redirect response
           cookies.forEach((cookie) => {
-            // Ensure cookies are set with proper persistence options for session
-            if (redirectResponse) {
-              redirectResponse.cookies.set(cookie.name, cookie.value, {
-                ...cookie.options,
-                httpOnly: cookie.options?.httpOnly ?? true,
-                sameSite: cookie.options?.sameSite ?? 'lax',
-                secure: cookie.options?.secure ?? (process.env.NODE_ENV === 'production'),
-                maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
-                path: cookie.options?.path ?? '/',
-              });
-            }
+            redirectResponse.cookies.set(cookie.name, cookie.value, {
+              ...cookie.options,
+              httpOnly: cookie.options?.httpOnly ?? true,
+              sameSite: cookie.options?.sameSite ?? 'lax',
+              secure: cookie.options?.secure ?? (process.env.NODE_ENV === 'production'),
+              maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
+              path: cookie.options?.path ?? '/',
+            });
           });
         },
       },
     });
 
+    // Exchange code for session - this will call setAll to set cookies
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (error) {
@@ -77,12 +71,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));
     }
 
-    // Return the redirect response with cookies set
-    // If for some reason redirectResponse wasn't created, create it now
-    if (!redirectResponse) {
-      redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
-    }
+    // Log successful auth for debugging
+    console.log("Auth callback successful - redirecting to:", redirectTo);
+    console.log("Session user ID:", session.user.id);
     
+    // Return redirect response with cookies already set
     return redirectResponse;
   }
 

@@ -64,20 +64,9 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Get session - Supabase SSR automatically handles cookie persistence
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  // Log session errors for debugging (but don't fail the request)
-  if (sessionError) {
-    console.error("Middleware session error:", sessionError);
-  }
-
   const pathname = request.nextUrl.pathname;
 
-  // Allow public routes
+  // Allow public routes (check before session to avoid unnecessary work)
   if (isPublicRoute(pathname)) {
     return response;
   }
@@ -91,6 +80,30 @@ export async function middleware(request: NextRequest) {
   // Middleware can't access localStorage, so we let it through and check client-side
   if (isTenantRoute(pathname)) {
     return response;
+  }
+
+  // Get session - Supabase SSR automatically handles cookie persistence
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  // Log session errors for debugging (but don't fail the request)
+  if (sessionError) {
+    console.error(`Middleware session error for ${pathname}:`, sessionError);
+  }
+
+  // Debug logging for auth flow
+  if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+    const authCookies = request.cookies.getAll().filter(c => 
+      c.name.includes('auth') || c.name.includes('supabase')
+    );
+    if (authCookies.length > 0 && !session) {
+      console.log(`Middleware: Found ${authCookies.length} auth cookies but no session for ${pathname}`);
+      console.log(`Cookie names:`, authCookies.map(c => c.name).join(', '));
+    } else if (session) {
+      console.log(`Middleware: Session found for ${pathname}, user: ${session.user.id}`);
+    }
   }
 
   // For agent routes, require Supabase session
