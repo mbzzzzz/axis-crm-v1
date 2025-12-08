@@ -29,7 +29,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const response = NextResponse.redirect(new URL(redirectTo, request.url));
+    // Create a response that will be used for redirect
+    // We'll create the actual redirect after session exchange
+    let redirectResponse: NextResponse | null = null;
     
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -39,17 +41,23 @@ export async function GET(request: NextRequest) {
             value: cookie.value,
           })),
         setAll: (cookies) => {
+          // Create redirect response on first cookie set
+          if (!redirectResponse) {
+            redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
+          }
+          
           cookies.forEach((cookie) => {
             // Ensure cookies are set with proper persistence options for session
-            // Don't override domain - let browser handle it for proper cookie sharing
-            response.cookies.set(cookie.name, cookie.value, {
-              ...cookie.options,
-              httpOnly: cookie.options?.httpOnly ?? true,
-              sameSite: cookie.options?.sameSite ?? 'lax',
-              secure: cookie.options?.secure ?? (process.env.NODE_ENV === 'production'),
-              maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
-              path: cookie.options?.path ?? '/',
-            });
+            if (redirectResponse) {
+              redirectResponse.cookies.set(cookie.name, cookie.value, {
+                ...cookie.options,
+                httpOnly: cookie.options?.httpOnly ?? true,
+                sameSite: cookie.options?.sameSite ?? 'lax',
+                secure: cookie.options?.secure ?? (process.env.NODE_ENV === 'production'),
+                maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
+                path: cookie.options?.path ?? '/',
+              });
+            }
           });
         },
       },
@@ -69,7 +77,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=auth_failed", request.url));
     }
 
-    return response;
+    // Return the redirect response with cookies set
+    // If for some reason redirectResponse wasn't created, create it now
+    if (!redirectResponse) {
+      redirectResponse = NextResponse.redirect(new URL(redirectTo, request.url));
+    }
+    
+    return redirectResponse;
   }
 
   // If no code, redirect to login

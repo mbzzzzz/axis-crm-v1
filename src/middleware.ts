@@ -67,7 +67,13 @@ export async function middleware(request: NextRequest) {
   // Get session - Supabase SSR automatically handles cookie persistence
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
+
+  // Log session errors for debugging (but don't fail the request)
+  if (sessionError) {
+    console.error("Middleware session error:", sessionError);
+  }
 
   const pathname = request.nextUrl.pathname;
 

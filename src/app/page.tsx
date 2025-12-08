@@ -18,13 +18,18 @@ export default function Home() {
   const { data: session, isPending } = useSession();
 
   // Redirect authenticated users to dashboard
-  // Only redirect if we have a confirmed session (not during OAuth callback)
+  // Only redirect if we have a confirmed session (not during OAuth callback or redirect)
   useEffect(() => {
-    // Don't redirect if we're in the middle of an OAuth callback
-    if (typeof window !== 'undefined' && window.location.pathname === '/auth/callback') {
-      return;
+    // Don't redirect if we're in the middle of an OAuth callback or other auth flows
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      // Skip redirect during auth flows
+      if (pathname === '/auth/callback' || pathname === '/login' || pathname === '/register') {
+        return;
+      }
     }
     
+    // Only redirect if session is confirmed and not pending
     if (!isPending && session?.user) {
       // Use replace to avoid adding to history
       router.replace("/dashboard");
