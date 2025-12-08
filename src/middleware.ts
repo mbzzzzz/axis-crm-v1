@@ -49,16 +49,9 @@ export async function middleware(request: NextRequest) {
         })),
       setAll: (cookies) => {
         cookies.forEach((cookie) => {
-          // Ensure cookies are set with proper persistence options
-          // Match auth callback configuration exactly for consistency
-          response.cookies.set(cookie.name, cookie.value, {
-            ...cookie.options,
-            httpOnly: cookie.options?.httpOnly ?? true,
-            sameSite: cookie.options?.sameSite ?? 'lax',
-            secure: cookie.options?.secure ?? process.env.NODE_ENV === 'production',
-            maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
-            path: cookie.options?.path ?? '/',
-          });
+          // Use Supabase's options exactly as provided - don't override
+          // This ensures consistency with how Supabase manages sessions
+          response.cookies.set(cookie.name, cookie.value, cookie.options || {});
         });
       },
     },

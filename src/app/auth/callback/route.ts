@@ -42,15 +42,9 @@ export async function GET(request: NextRequest) {
           })),
         setAll: (cookies) => {
           // Set all cookies on the redirect response
+          // Use Supabase's options exactly as provided - don't override
           cookies.forEach((cookie) => {
-            redirectResponse.cookies.set(cookie.name, cookie.value, {
-              ...cookie.options,
-              httpOnly: cookie.options?.httpOnly ?? true,
-              sameSite: cookie.options?.sameSite ?? 'lax',
-              secure: cookie.options?.secure ?? (process.env.NODE_ENV === 'production'),
-              maxAge: cookie.options?.maxAge ?? 60 * 60 * 24 * 30,
-              path: cookie.options?.path ?? '/',
-            });
+            redirectResponse.cookies.set(cookie.name, cookie.value, cookie.options || {});
           });
         },
       },
