@@ -57,11 +57,11 @@ export default function PublicPropertyDetailPage() {
           setProperty(data.property);
           setAgentInfo(data.agentInfo || {});
         } else {
-          router.push("/properties");
+          router.push("/listings");
         }
       } catch (error) {
         console.error("Error fetching property:", error);
-        router.push("/properties");
+        router.push("/listings");
       } finally {
         setIsLoading(false);
       }
@@ -114,7 +114,7 @@ export default function PublicPropertyDetailPage() {
         <Card>
           <CardContent className="p-12 text-center">
             <p className="text-lg mb-4">Property not found</p>
-            <Link href="/properties">
+            <Link href="/listings">
               <Button>Browse Properties</Button>
             </Link>
           </CardContent>
@@ -158,7 +158,7 @@ export default function PublicPropertyDetailPage() {
     <div className="min-h-screen bg-background">
       <div className="border-b bg-muted/30">
         <div className="container mx-auto px-4 py-4">
-          <Link href="/properties">
+          <Link href="/listings">
             <Button variant="ghost">
               <ArrowLeft className="mr-2 size-4" />
               Back to Properties

@@ -83,7 +83,7 @@ export default function PublicPropertiesPage() {
       if (state) params.set("state", state);
 
       // Update URL without navigation
-      const newUrl = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
+      const newUrl = `/listings${params.toString() ? `?${params.toString()}` : ""}`;
       window.history.pushState({}, "", newUrl);
 
       const response = await fetch(`/api/public/properties?${params.toString()}`);
@@ -116,7 +116,7 @@ export default function PublicPropertiesPage() {
     setMinBathrooms("");
     setCity("");
     setState("");
-    router.push("/properties");
+    router.push("/listings");
   };
 
   return (

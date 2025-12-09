@@ -60,7 +60,7 @@ export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
 
   return (
     <Card className="overflow-hidden transition-shadow hover:shadow-lg group">
-      <Link href={`/properties/${property.id}`}>
+      <Link href={`/listings/${property.id}`}>
         <div
           className="h-48 cursor-pointer bg-cover bg-center transition-transform group-hover:scale-105"
           style={{
@@ -72,7 +72,7 @@ export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <Link href={`/properties/${property.id}`}>
+              <Link href={`/listings/${property.id}`}>
                 <h3 className="font-semibold text-lg line-clamp-1 hover:text-primary transition-colors">
                   {property.title || property.address}
                 </h3>
@@ -124,7 +124,7 @@ export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
           </div>
 
           <div className="pt-2">
-            <Link href={`/properties/${property.id}`}>
+            <Link href={`/listings/${property.id}`}>
               <Button className="w-full" variant="default">
                 View Details
               </Button>

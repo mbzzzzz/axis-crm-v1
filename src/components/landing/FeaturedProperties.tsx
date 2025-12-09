@@ -97,7 +97,7 @@ export function FeaturedProperties() {
         </div>
 
         <div className="text-center">
-          <Link href="/properties">
+          <Link href="/listings">
             <Button size="lg" variant="outline">
               Browse All Properties
               <ArrowRight className="ml-2 size-4" />
