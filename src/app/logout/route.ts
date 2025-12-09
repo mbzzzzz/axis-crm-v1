@@ -16,18 +16,32 @@ export async function GET(request: NextRequest) {
                 })),
             setAll: (cookies) => {
                 cookies.forEach((cookie) => {
-                    response.cookies.set(cookie.name, cookie.value, {
+                    // Clear all Supabase auth cookies
+                    response.cookies.set(cookie.name, "", {
                         ...cookie.options,
-                        // Ensure cookies are cleared by setting extensive past expiration
                         maxAge: 0,
                         expires: new Date(0),
+                        path: "/",
                     });
                 });
             },
         },
     });
 
+    // Sign out from Supabase
     await supabase.auth.signOut();
+    
+    // Also clear any Supabase-related cookies manually
+    const allCookies = request.cookies.getAll();
+    allCookies.forEach((cookie) => {
+        if (cookie.name.includes("supabase") || cookie.name.includes("auth") || cookie.name.startsWith("sb-")) {
+            response.cookies.set(cookie.name, "", {
+                maxAge: 0,
+                expires: new Date(0),
+                path: "/",
+            });
+        }
+    });
 
     return response;
 }

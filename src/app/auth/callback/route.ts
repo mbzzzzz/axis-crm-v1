@@ -7,6 +7,14 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const error = requestUrl.searchParams.get("error");
+  
+  // Handle OAuth errors
+  if (error) {
+    console.error("OAuth error in callback:", error);
+    return NextResponse.redirect(new URL("/login?error=oauth_failed", request.url));
+  }
+  
   // Always redirect to dashboard after successful Google auth (never to landing page)
   // Only use redirectedFrom if it's a valid dashboard route (not landing page or "/")
   const redirectedFrom = requestUrl.searchParams.get("redirectedFrom");
@@ -68,6 +76,9 @@ export async function GET(request: NextRequest) {
     // Log successful auth for debugging
     console.log("Auth callback successful - redirecting to:", redirectTo);
     console.log("Session user ID:", session.user.id);
+    
+    // Set a flag in the response headers to prevent landing page redirect
+    redirectResponse.headers.set('X-Auth-Callback', 'true');
     
     // Return redirect response with cookies already set
     return redirectResponse;

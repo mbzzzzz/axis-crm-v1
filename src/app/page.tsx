@@ -25,7 +25,7 @@ export default function Home() {
       const pathname = window.location.pathname;
       const searchParams = new URLSearchParams(window.location.search);
       
-      // Skip redirect during auth flows
+      // Skip redirect during auth flows - IMPORTANT: Don't redirect from landing page during OAuth
       if (pathname === '/auth/callback' || 
           pathname === '/login' || 
           pathname === '/register' ||
@@ -44,6 +44,19 @@ export default function Home() {
           pathname.startsWith('/financials') ||
           pathname.startsWith('/settings')) {
         return;
+      }
+      
+      // IMPORTANT: Don't redirect from landing page if we just came from OAuth callback
+      // Check if there's a recent OAuth callback (within last 5 seconds)
+      const oauthCallbackTime = sessionStorage.getItem('oauth_callback_time');
+      if (oauthCallbackTime) {
+        const timeSinceCallback = Date.now() - parseInt(oauthCallbackTime, 10);
+        if (timeSinceCallback < 5000) {
+          // Recent OAuth callback - don't redirect, let the callback handle it
+          sessionStorage.removeItem('oauth_callback_time');
+          return;
+        }
+        sessionStorage.removeItem('oauth_callback_time');
       }
     }
     

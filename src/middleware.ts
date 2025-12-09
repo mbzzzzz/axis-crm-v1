@@ -84,6 +84,21 @@ export async function middleware(request: NextRequest) {
   // Log session errors for debugging (but don't fail the request)
   if (sessionError) {
     console.error(`Middleware session error for ${pathname}:`, sessionError);
+    
+    // If session error indicates expired/invalid token, try to refresh
+    if (sessionError.message.includes("JWT") || sessionError.message.includes("expired")) {
+      // Try to refresh the session
+      try {
+        const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+        if (refreshedSession) {
+          // Session refreshed, continue with refreshed session
+          return response;
+        }
+      } catch (refreshError) {
+        // Refresh failed, will redirect to login below
+        console.error("Session refresh failed:", refreshError);
+      }
+    }
   }
 
   // Debug logging for auth flow

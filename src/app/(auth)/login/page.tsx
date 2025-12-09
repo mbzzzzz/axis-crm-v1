@@ -71,21 +71,34 @@ function LoginForm() {
     try {
       setLoadingProvider(provider);
       const supabase = getSupabaseBrowserClient();
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback?redirectedFrom=/dashboard`
-          : undefined;
+      
+      // Clear any existing session before OAuth (prevents account switching issues)
+      await supabase.auth.signOut();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Get the current origin (works for both local and production)
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      
+      // Set redirect URL to callback with dashboard as final destination
+      // This URL must be added to Supabase Dashboard > Authentication > URL Configuration > Redirect URLs
+      const redirectTo = `${origin}/auth/callback?redirectedFrom=/dashboard`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider as "google" | "github",
         options: {
           redirectTo,
+          queryParams: {
+            // Ensure we get redirected back to dashboard
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) {
         throw error;
       }
+      // OAuth will redirect, so we don't need to do anything else here
     } catch (error) {
       console.error("OAuth sign-in error:", error);
       setLoadingProvider(null);
@@ -130,6 +143,12 @@ function LoginForm() {
         // Agent authentication (Supabase)
         const supabase = getSupabaseBrowserClient();
         
+        // Clear any existing session before signing in (prevents account switching issues)
+        await supabase.auth.signOut();
+        
+        // Small delay to ensure sign out completes
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Store remember me preference
         if (rememberMe) {
           localStorage.setItem("remember_me", "true");
@@ -146,8 +165,16 @@ function LoginForm() {
           throw error;
         }
 
+        // Verify session was created
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("Session not created after sign in");
+        }
+
         toast.success("Signed in successfully!");
-        router.push("/dashboard");
+        
+        // Force page reload to ensure clean state
+        window.location.href = "/dashboard";
       }
     } catch (error: any) {
       console.error("Email sign-in error:", error);
