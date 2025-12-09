@@ -108,26 +108,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="sticky top-0 z-10 flex h-14 sm:h-16 shrink-0 items-center gap-2 sm:gap-4 border-b bg-background px-2 sm:px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-4 sm:h-6 hidden sm:block" />
-            <div className="flex flex-1 items-center gap-2 sm:gap-4 min-w-0">
+          <header className="sticky top-0 z-10 flex h-12 sm:h-14 md:h-16 shrink-0 items-center gap-1.5 sm:gap-2 md:gap-4 border-b bg-background px-2 sm:px-3 md:px-4">
+            <SidebarTrigger className="-ml-1 h-8 w-8 sm:h-9 sm:w-9" />
+            <Separator orientation="vertical" className="h-3 sm:h-4 md:h-6 hidden sm:block" />
+            <div className="flex flex-1 items-center gap-1.5 sm:gap-2 md:gap-4 min-w-0">
               <div className="relative flex-1 max-w-md min-w-0">
-                <Search className="absolute left-2 sm:left-3 top-1/2 size-3 sm:size-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-2 sm:left-2.5 md:left-3 top-1/2 size-3 sm:size-3.5 md:size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Search"
-                  className="pl-7 sm:pl-9 text-sm sm:text-base h-9 sm:h-10"
+                  className="pl-7 sm:pl-8 md:pl-9 text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10"
                   aria-label="Search"
                 />
               </div>
-              <div className="flex items-center gap-1 sm:gap-2 md:gap-4 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2 lg:gap-4 shrink-0">
                 <NotificationsDropdown />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 rounded-full hover:opacity-80">
-                      <Avatar className="size-8">
+                    <button className="flex items-center gap-1.5 sm:gap-2 rounded-full hover:opacity-80">
+                      <Avatar className="size-7 sm:size-8">
                         <AvatarImage src={session?.user?.image || ""} alt={session?.user?.name || ""} />
-                        <AvatarFallback>{userInitials}</AvatarFallback>
+                        <AvatarFallback className="text-xs sm:text-sm">{userInitials}</AvatarFallback>
                       </Avatar>
                     </button>
                   </DropdownMenuTrigger>

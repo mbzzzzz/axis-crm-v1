@@ -330,49 +330,52 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and preferences</p>
+    <div className="flex flex-1 flex-col gap-4 sm:gap-6">
+      <div className="space-y-1 sm:space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">Manage your account and preferences</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         {/* Account Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-            <CardDescription>Update your personal information</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">Account Information</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Update your personal information</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="name" className="text-sm">Name</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => updateFormData("name", e.target.value)}
                 placeholder="Enter your name"
+                className="h-9 sm:h-10 text-sm sm:text-base"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="company">Company Name</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="company" className="text-sm">Company Name</Label>
               <Input
                 id="company"
                 value={formData.companyName}
                 onChange={(e) => updateFormData("companyName", e.target.value)}
                 placeholder="Enter company name"
+                className="h-9 sm:h-10 text-sm sm:text-base"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => updateFormData("email", e.target.value)}
                 placeholder="Enter your email"
+                className="h-9 sm:h-10 text-sm sm:text-base"
               />
             </div>
-            <Button onClick={handleSave} className="w-full">
+            <Button onClick={handleSave} className="w-full h-9 sm:h-10 text-sm sm:text-base">
               Save Changes
             </Button>
           </CardContent>
@@ -380,39 +383,41 @@ export default function SettingsPage() {
 
         {/* Agent Information */}
         <Card>
-          <CardHeader>
-            <CardTitle>Agent Information</CardTitle>
-            <CardDescription>Set default agent details for invoices. You can update these anytime.</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">Agent Information</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Set default agent details for invoices. You can update these anytime.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="agentName">Agent Name</Label>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="agentName" className="text-sm">Agent Name</Label>
               <Input
                 id="agentName"
                 value={formData.agentName}
                 onChange={(e) => updateFormData("agentName", e.target.value)}
                 placeholder="Enter agent name"
                 disabled={isSavingAgent}
+                className="h-9 sm:h-10 text-sm sm:text-base"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="agentAgency">Organization / Agency</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="agentAgency" className="text-sm">Organization / Agency</Label>
               <Input
                 id="agentAgency"
                 value={formData.agentAgency}
                 onChange={(e) => updateFormData("agentAgency", e.target.value)}
                 placeholder="Enter organization name"
                 disabled={isSavingAgent}
+                className="h-9 sm:h-10 text-sm sm:text-base"
               />
             </div>
             <Button
               onClick={handleSaveAgentInfo}
-              className="w-full"
+              className="w-full h-9 sm:h-10 text-sm sm:text-base"
               disabled={isSavingAgent}
             >
               {isSavingAgent ? "Saving..." : "Save Agent Information"}
             </Button>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               This information will be used as defaults when creating new invoices. You can override it per invoice if needed. Click 'Save Agent Information' to persist your changes.
             </p>
           </CardContent>
@@ -420,35 +425,35 @@ export default function SettingsPage() {
 
         {/* Subscription Plan */}
         <Card>
-          <CardHeader>
-            <CardTitle>Subscription Plan</CardTitle>
-            <CardDescription>Manage your subscription</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">Subscription Plan</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Manage your subscription</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="planKey">Current Plan</Label>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="planKey" className="text-sm">Current Plan</Label>
               <Select
                 value={formData.planKey}
                 onValueChange={(value) => updateFormData("planKey", value as PlanKey)}
               >
-                <SelectTrigger id="planKey">
+                <SelectTrigger id="planKey" className="h-9 sm:h-10 text-sm sm:text-base">
                   <SelectValue placeholder="Select your plan" />
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(PLAN_DEFINITIONS).map((plan) => (
-                    <SelectItem key={plan.key} value={plan.key}>
+                    <SelectItem key={plan.key} value={plan.key} className="text-sm">
                       {plan.label} — {plan.description}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {PLAN_DEFINITIONS[formData.planKey].description}
               </p>
             </div>
-            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3 sm:p-4">
               <p className="text-xs uppercase tracking-wide text-slate-400 mb-2">Monthly allowances</p>
-              <dl className="grid gap-2 text-sm">
+              <dl className="grid gap-1.5 sm:gap-2 text-xs sm:text-sm">
                 {["autoGenerations", "propertyPosts", "leads", "monthlyInvoices"].map((feature) => (
                   <div key={feature} className="flex items-center justify-between">
                     <dt className="text-slate-300">{FEATURE_LABELS[feature as UsageFeature]}</dt>
@@ -459,7 +464,7 @@ export default function SettingsPage() {
                 ))}
               </dl>
             </div>
-            <Button className="w-full" onClick={handleSavePlan} disabled={isSavingPlan}>
+            <Button className="w-full h-9 sm:h-10 text-sm sm:text-base" onClick={handleSavePlan} disabled={isSavingPlan}>
               {isSavingPlan ? "Saving..." : "Update Plan"}
             </Button>
           </CardContent>
@@ -467,29 +472,30 @@ export default function SettingsPage() {
 
         {/* Gmail Integration */}
         <Card>
-          <CardHeader>
-            <CardTitle>Gmail Integration</CardTitle>
-            <CardDescription>Connect your Gmail to send invoices directly from your email address.</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">Gmail Integration</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Connect your Gmail to send invoices directly from your email address.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">Status</span>
-                <span className={`text-sm ${gmailStatus.connected ? "text-green-500" : "text-muted-foreground"}`}>
+                <span className="text-xs sm:text-sm font-medium">Status</span>
+                <span className={`text-xs sm:text-sm ${gmailStatus.connected ? "text-green-500" : "text-muted-foreground"}`}>
                   {gmailStatus.connected ? "Connected" : "Not Connected"}
                 </span>
                 {gmailStatus.email && (
-                  <span className="text-xs text-muted-foreground">{gmailStatus.email}</span>
+                  <span className="text-xs text-muted-foreground break-all">{gmailStatus.email}</span>
                 )}
               </div>
               <Button
                 variant={gmailStatus.connected ? "outline" : "default"}
                 onClick={handleConnectGmail}
+                className="w-full sm:w-auto h-9 sm:h-10 text-sm sm:text-base"
               >
                 {gmailStatus.connected ? "Reconnect Gmail" : "Connect Gmail"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {gmailStatus.connected
                 ? "Your invoices will be sent using your connected Gmail account."
                 : "Connect your account to have invoices appear as sent explicitly by you."}
@@ -499,15 +505,15 @@ export default function SettingsPage() {
 
         {/* WhatsApp Integration */}
         <Card>
-          <CardHeader>
-            <CardTitle>WhatsApp Integration</CardTitle>
-            <CardDescription>Connect WhatsApp to send invoices and messages</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">WhatsApp Integration</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Connect WhatsApp to send invoices and messages</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
+          <CardContent className="space-y-3 sm:space-y-4">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Link your WhatsApp account to send invoices and notifications directly to tenants via WhatsApp.
             </p>
-            <Button asChild variant="outline" className="w-full">
+            <Button asChild variant="outline" className="w-full h-9 sm:h-10 text-sm sm:text-base">
               <Link href="/settings/whatsapp">
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Configure WhatsApp
@@ -518,16 +524,16 @@ export default function SettingsPage() {
 
         {/* Late Fee Policies */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 sm:pb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div>
-                <CardTitle>Late Fee Policies</CardTitle>
-                <CardDescription>Configure late fee rules for overdue invoices</CardDescription>
+                <CardTitle className="text-lg sm:text-xl">Late Fee Policies</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Configure late fee rules for overdue invoices</CardDescription>
               </div>
               <Dialog open={isLateFeeDialogOpen} onOpenChange={setIsLateFeeDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" onClick={() => setSelectedPolicy(null)}>
-                    <Plus className="mr-2 size-4" />
+                  <Button size="sm" onClick={() => setSelectedPolicy(null)} className="w-full sm:w-auto h-8 sm:h-9 text-xs sm:text-sm">
+                    <Plus className="mr-2 size-3 sm:size-4" />
                     Add Policy
                   </Button>
                 </DialogTrigger>
@@ -557,26 +563,26 @@ export default function SettingsPage() {
               </Dialog>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 sm:space-y-4">
             {lateFeePolicies.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
+              <p className="text-xs sm:text-sm text-muted-foreground text-center py-3 sm:py-4">
                 No late fee policies configured. Create one to automatically apply late fees to overdue invoices.
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 sm:space-y-3">
                 {lateFeePolicies.map((policy) => (
                   <div
                     key={policy.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 p-3 border rounded-lg"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{policy.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-sm sm:text-base break-words">{policy.name}</span>
                         {policy.isDefault === 1 && (
                           <Badge variant="default" className="text-xs">Default</Badge>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">
+                      <div className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                         {policy.type === "flat" ? (
                           <>${policy.amount?.toFixed(2)} flat fee</>
                         ) : (
@@ -590,7 +596,7 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -598,8 +604,9 @@ export default function SettingsPage() {
                           setSelectedPolicy(policy);
                           setIsLateFeeDialogOpen(true);
                         }}
+                        className="flex-1 sm:flex-initial h-8 sm:h-9"
                       >
-                        <Edit className="size-4" />
+                        <Edit className="size-3 sm:size-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -634,10 +641,10 @@ export default function SettingsPage() {
       </div>
 
       {/* Key Stats */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Key Stats</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Key Stats</h2>
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i}>
                 <CardHeader>

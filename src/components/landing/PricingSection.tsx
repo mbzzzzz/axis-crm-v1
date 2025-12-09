@@ -110,6 +110,16 @@ export function PricingSection() {
                       : "border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm"
                   }`}
                   style={{ color: "white" }}
+                  onClick={() => {
+                    // Redirect to checkout with plan selection
+                    const planMap: Record<string, string> = {
+                      Professional: "professional",
+                      Business: "business",
+                      Enterprise: "enterprise",
+                    };
+                    const planKey = planMap[plan.name] || "professional";
+                    window.location.href = `/checkout?plan=${planKey}`;
+                  }}
                 >
                   {plan.buttonText}
                 </Button>

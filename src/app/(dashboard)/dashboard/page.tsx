@@ -247,20 +247,20 @@ export default function DashboardPage() {
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Key Metrics</h2>
         <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
           <Card className="themed-panel border-0 shadow-none">
-            <CardHeader>
-              <CardTitle>Rental Income Trend</CardTitle>
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold">
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">Rental Income Trend</CardTitle>
+              <div className="flex flex-col sm:flex-row items-start sm:items-baseline gap-1 sm:gap-2">
+                <div className="text-2xl sm:text-3xl font-bold">
                   ${(stats?.totalRentalIncome || 0).toLocaleString()}
                 </div>
-                <div className="text-sm" style={{ color: theme.muted }}>
+                <div className="text-xs sm:text-sm" style={{ color: theme.muted }}>
                   Last 12 Months +{stats?.rentalIncomeTrend || 0}%
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-[200px] w-full" />
+                <Skeleton className="h-[150px] sm:h-[200px] w-full" />
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={rentalIncomeData}>
@@ -280,18 +280,18 @@ export default function DashboardPage() {
           </Card>
 
           <Card className="themed-panel border-0 shadow-none">
-            <CardHeader>
-              <CardTitle>Property Occupancy</CardTitle>
-              <div className="flex items-baseline gap-2">
-                <div className="text-3xl font-bold">{stats?.propertyOccupancy || 0}%</div>
-                <div className="text-sm" style={{ color: theme.muted }}>
+            <CardHeader className="pb-3 sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">Property Occupancy</CardTitle>
+              <div className="flex flex-col sm:flex-row items-start sm:items-baseline gap-1 sm:gap-2">
+                <div className="text-2xl sm:text-3xl font-bold">{stats?.propertyOccupancy || 0}%</div>
+                <div className="text-xs sm:text-sm" style={{ color: theme.muted }}>
                   Current -2%
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-[200px] w-full" />
+                <Skeleton className="h-[150px] sm:h-[200px] w-full" />
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={occupancyData}>
@@ -313,12 +313,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent Tenant Activities */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold tracking-tight">Recent Tenant Activities</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">Recent Tenant Activities</h2>
         <Card>
-          <CardHeader>
-            <CardTitle>All Tenants</CardTitle>
-            <CardDescription>Recent lease activities</CardDescription>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">All Tenants</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Recent lease activities</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -328,32 +328,34 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tenant</TableHead>
-                    <TableHead>Property</TableHead>
-                    <TableHead>Lease Start</TableHead>
-                    <TableHead>Lease End</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tenantActivities.map((activity, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{activity.tenant}</TableCell>
-                      <TableCell>{activity.property}</TableCell>
-                      <TableCell>{new Date(activity.leaseStart).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(activity.leaseEnd).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-gray-100 text-gray-700">
-                          {activity.status}
-                        </Badge>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs sm:text-sm">Tenant</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Property</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Lease Start</TableHead>
+                      <TableHead className="text-xs sm:text-sm hidden md:table-cell">Lease End</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {tenantActivities.map((activity, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium text-xs sm:text-sm">{activity.tenant}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{activity.property}</TableCell>
+                        <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{new Date(activity.leaseStart).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-xs sm:text-sm hidden md:table-cell">{new Date(activity.leaseEnd).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-gray-100 text-gray-700 text-xs">
+                            {activity.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

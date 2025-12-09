@@ -168,6 +168,12 @@ export const userPreferences = pgTable('user_preferences', {
   whatsappBusinessAccountId: text('whatsapp_business_account_id'),
   whatsappConnectedAt: timestamp('whatsapp_connected_at'),
   whatsappPhoneNumber: text('whatsapp_phone_number'),
+  // Paddle Subscription
+  paddleSubscriptionId: text('paddle_subscription_id'),
+  paddleCustomerId: text('paddle_customer_id'),
+  paddlePriceId: text('paddle_price_id'),
+  subscriptionStatus: text('subscription_status').default('inactive'), // 'active', 'inactive', 'canceled', 'past_due'
+  subscriptionUpdatedAt: timestamp('subscription_updated_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

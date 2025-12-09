@@ -166,27 +166,27 @@ function LoginForm() {
           <ShaderAnimation />
         </div>
 
-        <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
-          <CardHeader className="space-y-4 text-center">
+        <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white mx-4">
+          <CardHeader className="space-y-3 sm:space-y-4 text-center px-4 sm:px-6 pt-4 sm:pt-6">
             <div className="mx-auto flex items-center justify-center">
               <AxisLogo variant="full" size="lg" className="text-white" />
             </div>
-            <CardDescription className="text-base text-white/80">
+            <CardDescription className="text-sm sm:text-base text-white/80">
               Choose your account type to continue
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4">
+          <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="grid gap-3 sm:gap-4">
               <Button
                 type="button"
                 onClick={() => setSelectedRole("agent")}
-                className="w-full h-auto p-6 border-white/20 bg-white/10 text-white hover:bg-white/20 flex flex-col items-start gap-3"
+                className="w-full h-auto p-4 sm:p-6 border-white/20 bg-white/10 text-white hover:bg-white/20 flex flex-col items-start gap-2 sm:gap-3"
               >
-                <div className="flex items-center gap-3 w-full">
-                  <Building2 className="size-6" />
-                  <div className="flex-1 text-left">
-                    <div className="font-semibold text-lg">Agent / Property Manager</div>
-                    <div className="text-sm text-white/70 mt-1">
+                <div className="flex items-center gap-2 sm:gap-3 w-full">
+                  <Building2 className="size-5 sm:size-6 shrink-0" />
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-semibold text-base sm:text-lg">Agent / Property Manager</div>
+                    <div className="text-xs sm:text-sm text-white/70 mt-1">
                       Manage properties, tenants, and invoices
                     </div>
                   </div>
@@ -196,13 +196,13 @@ function LoginForm() {
               <Button
                 type="button"
                 onClick={() => setSelectedRole("tenant")}
-                className="w-full h-auto p-6 border-white/20 bg-white/10 text-white hover:bg-white/20 flex flex-col items-start gap-3"
+                className="w-full h-auto p-4 sm:p-6 border-white/20 bg-white/10 text-white hover:bg-white/20 flex flex-col items-start gap-2 sm:gap-3"
               >
-                <div className="flex items-center gap-3 w-full">
-                  <Home className="size-6" />
-                  <div className="flex-1 text-left">
-                    <div className="font-semibold text-lg">Tenant</div>
-                    <div className="text-sm text-white/70 mt-1">
+                <div className="flex items-center gap-2 sm:gap-3 w-full">
+                  <Home className="size-5 sm:size-6 shrink-0" />
+                  <div className="flex-1 text-left min-w-0">
+                    <div className="font-semibold text-base sm:text-lg">Tenant</div>
+                    <div className="text-xs sm:text-sm text-white/70 mt-1">
                       View invoices, pay rent, and request maintenance
                     </div>
                   </div>
@@ -226,12 +226,12 @@ function LoginForm() {
         <ShaderAnimation />
       </div>
 
-      <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white">
-        <CardHeader className="space-y-4 text-center">
+      <Card className="relative z-10 w-full max-w-md shadow-2xl border-white/20 bg-black/40 backdrop-blur-xl text-white mx-4">
+        <CardHeader className="space-y-3 sm:space-y-4 text-center px-4 sm:px-6 pt-4 sm:pt-6">
           <div className="mx-auto flex items-center justify-center">
             <AxisLogo variant="full" size="lg" className="text-white" />
           </div>
-          <CardDescription className="text-base text-white/80">
+          <CardDescription className="text-sm sm:text-base text-white/80">
             {selectedRole === "agent" 
               ? "Sign in to manage your portfolio" 
               : "Sign in to access your tenant portal"}
@@ -240,35 +240,35 @@ function LoginForm() {
             type="button"
             variant="ghost"
             onClick={() => setSelectedRole(null)}
-            className="text-white/70 hover:text-white text-sm"
+            className="text-white/70 hover:text-white text-xs sm:text-sm h-8 sm:h-9"
           >
             ← Change account type
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleEmailSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-white/90">Email</Label>
+        <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6 pb-4 sm:pb-6">
+          <form onSubmit={handleEmailSignIn} className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="email" className="text-white/90 text-sm">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-9 sm:h-10 text-sm sm:text-base"
                 disabled={isEmailLoading || !!loadingProvider}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-white/90">Password</Label>
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="password" className="text-white/90 text-sm">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 h-9 sm:h-10 text-sm sm:text-base"
                 disabled={isEmailLoading || !!loadingProvider}
                 required
               />
@@ -291,12 +291,12 @@ function LoginForm() {
             )}
             <Button
               type="submit"
-              className="w-full bg-white text-black hover:bg-white/90"
+              className="w-full bg-white text-black hover:bg-white/90 h-10 sm:h-11 text-sm sm:text-base"
               disabled={isEmailLoading || !!loadingProvider}
             >
               {isEmailLoading ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  <Loader2 className="mr-2 size-3 sm:size-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
@@ -320,14 +320,14 @@ function LoginForm() {
                 <Button
                   key={provider.id}
                   variant="outline"
-                  className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20"
+                  className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20 h-10 sm:h-11 text-sm sm:text-base"
                   onClick={() => handleOAuthSignIn(provider.id)}
                   disabled={!!loadingProvider || isEmailLoading}
                 >
                   {loadingProvider === provider.id ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    <Loader2 className="mr-2 size-3 sm:size-4 animate-spin" />
                   ) : (
-                    <provider.icon className="mr-2 size-4" />
+                    <provider.icon className="mr-2 size-3 sm:size-4" />
                   )}
                   {provider.label}
                 </Button>
@@ -335,12 +335,12 @@ function LoginForm() {
             </>
           )}
 
-          <p className="text-xs text-center text-white/70 flex items-center justify-center gap-2">
-            <Shield className="size-4" /> Secure authentication
+          <p className="text-xs text-center text-white/70 flex items-center justify-center gap-1.5 sm:gap-2">
+            <Shield className="size-3 sm:size-4" /> Secure authentication
             {selectedRole === "agent" && " powered by Supabase"}
           </p>
 
-          <p className="text-sm text-center text-white/80">
+          <p className="text-xs sm:text-sm text-center text-white/80">
             {selectedRole === "agent" ? (
               <>
                 Need an account?{" "}

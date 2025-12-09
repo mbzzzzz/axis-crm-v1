@@ -88,9 +88,9 @@ export default function Home() {
 
       {/* Header */}
       <header className="relative z-10 border-b border-white/20 bg-black/30 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 md:px-6 lg:px-8">
           <AxisLogo variant="full" size="navbar" className="text-white" />
-          <nav className="flex items-center gap-2 sm:gap-4" aria-label="Main navigation">
+          <nav className="flex items-center gap-1.5 sm:gap-2 md:gap-4" aria-label="Main navigation">
             <Button 
               variant="ghost" 
               onClick={() => {
@@ -99,7 +99,7 @@ export default function Home() {
                   pricingSection.scrollIntoView({ behavior: "smooth" });
                 }
               }}
-              className="text-white hover:bg-white/20 hover:text-white text-sm sm:text-base hidden sm:inline-flex"
+              className="text-white hover:bg-white/20 hover:text-white text-xs sm:text-sm md:text-base hidden sm:inline-flex h-8 sm:h-9 md:h-10"
               aria-label="View pricing"
             >
               Pricing
@@ -107,14 +107,14 @@ export default function Home() {
             <Button 
               variant="ghost" 
               onClick={() => router.push("/login")} 
-              className="text-white hover:bg-white/20 hover:text-white text-sm sm:text-base"
+              className="text-white hover:bg-white/20 hover:text-white text-xs sm:text-sm md:text-base h-8 sm:h-9 md:h-10 px-2 sm:px-3"
               aria-label="Sign in to your account"
             >
               Sign in
             </Button>
             <Button 
               onClick={() => router.push("/register")} 
-              className="bg-white text-black hover:bg-white/90 text-sm sm:text-base px-3 sm:px-4"
+              className="bg-white text-black hover:bg-white/90 text-xs sm:text-sm md:text-base px-2 sm:px-3 md:px-4 h-8 sm:h-9 md:h-10"
               aria-label="Get started with Axis CRM"
             >
               Get Started
@@ -142,58 +142,58 @@ export default function Home() {
           calculate profits, generate invoices, and automate workflows.
         </p>
 
-        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto px-4">
-          <Button size="lg" onClick={() => router.push("/register")} className="text-base bg-white text-black hover:bg-white/90 font-bold">
+        <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 sm:gap-3 md:gap-4 w-full sm:w-auto px-4">
+          <Button size="lg" onClick={() => router.push("/register")} className="w-full sm:w-auto text-sm sm:text-base bg-white text-black hover:bg-white/90 font-bold h-11 sm:h-12">
             Start Free Trial
           </Button>
           <Button
             size="lg"
             variant="outline"
             onClick={() => router.push("/login")}
-            className="text-base border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm font-bold"
+            className="w-full sm:w-auto text-sm sm:text-base border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm font-bold h-11 sm:h-12"
           >
             Sign in
           </Button>
         </div>
 
         {/* Features */}
-        <section className="mt-12 sm:mt-16 md:mt-24 grid w-full max-w-5xl gap-4 sm:gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-4 px-4">
-          <article className="flex flex-col items-center gap-3 sm:gap-4 rounded-lg border border-white/20 bg-white/10 p-4 sm:p-6 shadow-lg backdrop-blur-md">
-            <div className="flex size-10 sm:size-12 items-center justify-center rounded-full bg-blue-400/80" aria-hidden="true">
-              <Building2 className="size-5 sm:size-6 text-white" />
+        <section className="mt-8 sm:mt-12 md:mt-16 lg:mt-24 grid w-full max-w-5xl gap-3 sm:gap-4 md:gap-6 lg:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 px-4">
+          <article className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 rounded-lg border border-white/20 bg-white/10 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-md">
+            <div className="flex size-8 sm:size-10 md:size-12 items-center justify-center rounded-full bg-blue-400/80" aria-hidden="true">
+              <Building2 className="size-4 sm:size-5 md:size-6 text-white" />
             </div>
-            <h3 className="font-bold text-white text-sm sm:text-base">Property Management</h3>
-            <p className="text-center text-xs sm:text-sm font-medium text-white/80">
+            <h3 className="font-bold text-white text-xs sm:text-sm md:text-base">Property Management</h3>
+            <p className="text-center text-xs sm:text-sm font-medium text-white/80 leading-relaxed">
               Manage all your listings with detailed information and financial tracking
             </p>
           </article>
 
-          <article className="flex flex-col items-center gap-3 sm:gap-4 rounded-lg border border-white/20 bg-white/10 p-4 sm:p-6 shadow-lg backdrop-blur-md">
-            <div className="flex size-10 sm:size-12 items-center justify-center rounded-full bg-purple-400/80" aria-hidden="true">
-              <BarChart3 className="size-5 sm:size-6 text-white" />
+          <article className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 rounded-lg border border-white/20 bg-white/10 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-md">
+            <div className="flex size-8 sm:size-10 md:size-12 items-center justify-center rounded-full bg-purple-400/80" aria-hidden="true">
+              <BarChart3 className="size-4 sm:size-5 md:size-6 text-white" />
             </div>
-            <h3 className="font-bold text-white text-sm sm:text-base">Financial Calculator</h3>
-            <p className="text-center text-xs sm:text-sm font-medium text-white/80">
+            <h3 className="font-bold text-white text-xs sm:text-sm md:text-base">Financial Calculator</h3>
+            <p className="text-center text-xs sm:text-sm font-medium text-white/80 leading-relaxed">
               Calculate ROI, commissions, and expenses with visual analytics
             </p>
           </article>
 
-          <article className="flex flex-col items-center gap-3 sm:gap-4 rounded-lg border border-white/20 bg-white/10 p-4 sm:p-6 shadow-lg backdrop-blur-md">
-            <div className="flex size-10 sm:size-12 items-center justify-center rounded-full bg-green-400/80" aria-hidden="true">
-              <FileText className="size-5 sm:size-6 text-white" />
+          <article className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 rounded-lg border border-white/20 bg-white/10 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-md">
+            <div className="flex size-8 sm:size-10 md:size-12 items-center justify-center rounded-full bg-green-400/80" aria-hidden="true">
+              <FileText className="size-4 sm:size-5 md:size-6 text-white" />
             </div>
-            <h3 className="font-bold text-white text-sm sm:text-base">Invoice Generation</h3>
-            <p className="text-center text-xs sm:text-sm font-medium text-white/80">
+            <h3 className="font-bold text-white text-xs sm:text-sm md:text-base">Invoice Generation</h3>
+            <p className="text-center text-xs sm:text-sm font-medium text-white/80 leading-relaxed">
               Create professional invoices with automated numbering and tracking
             </p>
           </article>
 
-          <article className="flex flex-col items-center gap-3 sm:gap-4 rounded-lg border border-white/20 bg-white/10 p-4 sm:p-6 shadow-lg backdrop-blur-md">
-            <div className="flex size-10 sm:size-12 items-center justify-center rounded-full bg-orange-400/80" aria-hidden="true">
-              <Mail className="size-5 sm:size-6 text-white" />
+          <article className="flex flex-col items-center gap-2 sm:gap-3 md:gap-4 rounded-lg border border-white/20 bg-white/10 p-3 sm:p-4 md:p-6 shadow-lg backdrop-blur-md">
+            <div className="flex size-8 sm:size-10 md:size-12 items-center justify-center rounded-full bg-orange-400/80" aria-hidden="true">
+              <Mail className="size-4 sm:size-5 md:size-6 text-white" />
             </div>
-            <h3 className="font-bold text-white text-sm sm:text-base">Email Integration</h3>
-            <p className="text-center text-xs sm:text-sm font-medium text-white/80">
+            <h3 className="font-bold text-white text-xs sm:text-sm md:text-base">Email Integration</h3>
+            <p className="text-center text-xs sm:text-sm font-medium text-white/80 leading-relaxed">
               Automated invoice sending with Gmail and Outlook integration
             </p>
           </article>
@@ -213,10 +213,10 @@ export default function Home() {
       <FAQSection />
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/20 bg-black/30 backdrop-blur-sm mt-8 sm:mt-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 text-center text-xs sm:text-sm font-medium text-white/80">
-          <p>© 2024 Axis CRM. All rights reserved.</p>
-          <nav className="mt-4 flex flex-wrap justify-center gap-4 sm:gap-6" aria-label="Footer navigation">
+      <footer className="relative z-10 border-t border-white/20 bg-black/30 backdrop-blur-sm mt-6 sm:mt-8 md:mt-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 text-center text-xs sm:text-sm font-medium text-white/80">
+          <p className="mb-3 sm:mb-4">© 2024 Axis CRM. All rights reserved.</p>
+          <nav className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm" aria-label="Footer navigation">
             <a href="/login" className="hover:text-white transition-colors">Sign In</a>
             <a href="/register" className="hover:text-white transition-colors">Get Started</a>
             <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>
