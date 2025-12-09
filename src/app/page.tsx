@@ -11,6 +11,7 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { TrustedBrands } from "@/components/landing/TrustedBrands";
 import { FAQSection } from "@/components/landing/FAQSection";
 import { FeaturesCarousel } from "@/components/landing/FeaturesCarousel";
+import { FeaturedProperties } from "@/components/landing/FeaturedProperties";
 import { useSession } from "@/lib/auth-client";
 
 export default function Home() {
@@ -106,6 +107,14 @@ export default function Home() {
           <nav className="flex items-center gap-1.5 sm:gap-2 md:gap-4" aria-label="Main navigation">
             <Button 
               variant="ghost" 
+              onClick={() => router.push("/properties")}
+              className="text-white hover:bg-white/20 hover:text-white text-xs sm:text-sm md:text-base hidden sm:inline-flex h-8 sm:h-9 md:h-10"
+              aria-label="Browse properties"
+            >
+              Find Properties
+            </Button>
+            <Button 
+              variant="ghost" 
               onClick={() => {
                 const pricingSection = document.getElementById("pricing");
                 if (pricingSection) {
@@ -158,6 +167,14 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-2.5 sm:gap-3 md:gap-4 w-full sm:w-auto px-4">
           <Button size="lg" onClick={() => router.push("/register")} className="w-full sm:w-auto text-sm sm:text-base bg-white text-black hover:bg-white/90 font-bold h-11 sm:h-12">
             Start Free Trial
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => router.push("/properties")}
+            className="w-full sm:w-auto text-sm sm:text-base border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white backdrop-blur-sm font-bold h-11 sm:h-12"
+          >
+            Browse Properties
           </Button>
           <Button
             size="lg"
@@ -219,6 +236,9 @@ export default function Home() {
       {/* Features Carousel Section */}
       <FeaturesCarousel />
 
+      {/* Featured Properties Section */}
+      <FeaturedProperties />
+
       {/* Pricing Section */}
       <PricingSection />
 
@@ -230,6 +250,7 @@ export default function Home() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 md:py-8 text-center text-xs sm:text-sm font-medium text-white/80">
           <p className="mb-3 sm:mb-4">© 2024 Axis CRM. All rights reserved.</p>
           <nav className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 text-xs sm:text-sm" aria-label="Footer navigation">
+            <a href="/properties" className="hover:text-white transition-colors">Find Properties</a>
             <a href="/login" className="hover:text-white transition-colors">Sign In</a>
             <a href="/register" className="hover:text-white transition-colors">Get Started</a>
             <a href="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</a>

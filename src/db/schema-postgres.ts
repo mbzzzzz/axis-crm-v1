@@ -25,6 +25,7 @@ export const properties = pgTable('properties', {
   estimatedValue: real('estimated_value'),
   monthlyExpenses: real('monthly_expenses'),
   commissionRate: real('commission_rate'),
+  isPublic: integer('is_public').default(0).notNull(), // 1 = public, 0 = private
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

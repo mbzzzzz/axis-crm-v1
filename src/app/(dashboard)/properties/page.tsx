@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload, List, Map } from "lucide-react";
+import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload, List, Map, Globe, GlobeLock } from "lucide-react";
 import { PropertyMapView } from "@/components/property-map-view";
 import {
   Select,
@@ -53,6 +53,7 @@ interface Property {
   estimatedValue?: number;
   monthlyExpenses?: number;
   commissionRate?: number;
+  isPublic?: number; // 1 = public, 0 = private
 }
 
 export default function PropertiesPage() {
@@ -160,6 +161,29 @@ export default function PropertiesPage() {
       }
     } catch (error) {
       toast.error("An error occurred");
+    }
+  };
+
+  const handleTogglePublic = async (id: number, currentStatus: number) => {
+    try {
+      const response = await fetch(`/api/properties/${id}/public`, {
+        method: "PATCH",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(
+          data.isPublic
+            ? "Property is now public and visible on marketplace"
+            : "Property is now private"
+        );
+        fetchProperties();
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update property status");
+      }
+    } catch (error) {
+      toast.error("An error occurred while updating property status");
     }
   };
 
@@ -343,10 +367,59 @@ export default function PropertiesPage() {
                         </span>
                       </CardDescription>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedProperty(property);
+                            setIsDetailsDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="mr-2 size-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleTogglePublic(property.id, property.isPublic || 0)}
+                          className={property.isPublic === 1 ? "text-orange-600" : "text-green-600"}
+                        >
+                          {property.isPublic === 1 ? (
+                            <>
+                              <GlobeLock className="mr-2 size-4" />
+                              Make Private
+                            </>
+                          ) : (
+                            <>
+                              <Globe className="mr-2 size-4" />
+                              Make Public
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(property.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <Badge className={`${getStatusBadgeColor(property.status)} capitalize`}>
-                    {property.status.replace(/_/g, " ")}
-                  </Badge>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge className={`${getStatusBadgeColor(property.status)} capitalize`}>
+                      {property.status.replace(/_/g, " ")}
+                    </Badge>
+                    {property.isPublic === 1 && (
+                      <Badge className="bg-blue-500 text-white flex items-center gap-1">
+                        <Globe className="size-3" />
+                        Public
+                      </Badge>
+                    )}
+                  </div>
                   <div className="text-lg font-semibold">
                     {formatCurrency(
                       property.price,

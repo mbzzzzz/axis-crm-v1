@@ -13,6 +13,8 @@ const publicRoutes = [
   "/api/webhooks",
   "/api/auth",
   "/api/auth/session-check", // Allow extension to check session status
+  "/api/public", // Public API endpoints (property listings)
+  "/properties", // Public property browse pages
   "/tenant-portal/login",
   "/tenant-portal/register",
 ];

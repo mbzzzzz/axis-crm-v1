@@ -77,7 +77,8 @@ async function resolvePlanKey(userId: string): Promise<PlanKey> {
   if (isPlanKey(planKey)) {
     return planKey;
   }
-  return "professional";
+  // Default to free tier (our competitive advantage - free property posting)
+  return "free";
 }
 
 export async function consumePlanQuota(userId: string, feature: UsageFeature) {
