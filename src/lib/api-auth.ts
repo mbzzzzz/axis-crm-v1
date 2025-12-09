@@ -59,3 +59,40 @@ export async function requireAuthenticatedUser() {
   return user;
 }
 
+/**
+ * Authenticate using extension token (for browser extensions)
+ * This bypasses cookie-based authentication
+ */
+export async function getAuthenticatedUserFromExtensionToken(token: string) {
+  if (!token || typeof token !== 'string') {
+    return null;
+  }
+
+  try {
+    const { db } = await import("@/db");
+    const { userPreferences } = await import("@/db/schema-postgres");
+    const { eq } = await import("drizzle-orm");
+
+    // Find user by extension token
+    const preferences = await db
+      .select()
+      .from(userPreferences)
+      .where(eq(userPreferences.extensionToken, token))
+      .limit(1);
+
+    if (preferences.length === 0 || !preferences[0].extensionToken) {
+      return null;
+    }
+
+    // Return user ID - we can't get full user object without Supabase session
+    // but this is enough for API authorization
+    return {
+      id: preferences[0].userId,
+      extensionToken: preferences[0].extensionToken,
+    };
+  } catch (error) {
+    console.error("Extension token authentication error:", error);
+    return null;
+  }
+}
+

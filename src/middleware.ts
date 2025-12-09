@@ -70,8 +70,8 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Allow session check endpoint - it handles its own authentication and returns JSON
-  if (pathname === "/api/auth/session-check") {
+  // Allow auth endpoints - they handle their own authentication
+  if (pathname === "/api/auth/session-check" || pathname === "/api/auth/extension-token") {
     return response;
   }
 

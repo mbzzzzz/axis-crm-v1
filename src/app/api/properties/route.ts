@@ -11,7 +11,26 @@ const VALID_PROPERTY_TYPES = ['residential', 'commercial', 'land', 'multi_family
 const VALID_STATUSES = ['available', 'under_contract', 'sold', 'rented', 'pending'];
 
 // Helper function to get current authenticated user
-async function getCurrentUser() {
+async function getCurrentUser(request: NextRequest) {
+  // Try extension token first (for browser extensions)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    // Check if it's an extension token (64 hex chars)
+    if (token.length === 64 && /^[0-9a-f]+$/i.test(token)) {
+      const { getAuthenticatedUserFromExtensionToken } = await import("@/lib/api-auth");
+      const extensionUser = await getAuthenticatedUserFromExtensionToken(token);
+      if (extensionUser) {
+        return {
+          id: extensionUser.id,
+          name: 'Extension User',
+          email: '',
+        };
+      }
+    }
+  }
+  
+  // Fall back to regular Supabase auth
   const user = await getAuthenticatedUser();
     if (!user) return null;
     return {
@@ -24,7 +43,7 @@ async function getCurrentUser() {
 export async function GET(request: NextRequest) {
     try {
         // CRITICAL: Authenticate user first
-        const user = await getCurrentUser();
+        const user = await getCurrentUser(request);
         if (!user) {
             return NextResponse.json(
                 { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },
@@ -167,7 +186,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         // CRITICAL: Authenticate user first
-        const user = await getCurrentUser();
+        const user = await getCurrentUser(request);
         if (!user) {
             return NextResponse.json(
                 { error: 'Unauthorized. Please log in.', code: 'UNAUTHORIZED' },

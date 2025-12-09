@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   THEME: "axis:theme",
   SETTINGS: "axis:settings",
   SELECTED: "axis:selected",
+  EXTENSION_TOKEN: "axis:extension_token", // API token for authentication
 } as const;
 
 export async function saveProperties(properties: AxisPropertyRecord[]) {
@@ -52,5 +53,18 @@ export async function saveSelectedProperty(propertyId: number | null) {
 export async function getSelectedProperty(): Promise<number | null> {
   const data = await browser.storage.local.get(STORAGE_KEYS.SELECTED);
   return (data[STORAGE_KEYS.SELECTED] as number | null) ?? null;
+}
+
+export async function saveExtensionToken(token: string | null) {
+  if (token) {
+    await browser.storage.local.set({ [STORAGE_KEYS.EXTENSION_TOKEN]: token });
+  } else {
+    await browser.storage.local.remove(STORAGE_KEYS.EXTENSION_TOKEN);
+  }
+}
+
+export async function getExtensionToken(): Promise<string | null> {
+  const data = await browser.storage.local.get(STORAGE_KEYS.EXTENSION_TOKEN);
+  return (data[STORAGE_KEYS.EXTENSION_TOKEN] as string | null) ?? null;
 }
 

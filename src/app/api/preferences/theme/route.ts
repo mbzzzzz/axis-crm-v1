@@ -7,9 +7,26 @@ import { CARD_THEME_OPTIONS, DEFAULT_CARD_THEME_KEY, getCardTheme } from "@/lib/
 
 const ALLOWED_THEME_KEYS = new Set(CARD_THEME_OPTIONS.map((theme) => theme.key));
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
+    // Try extension token first
+    let user = await getAuthenticatedUser();
+    
+    // If no user from cookies, try extension token
+    if (!user) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        if (token.length === 64 && /^[0-9a-f]+$/i.test(token)) {
+          const { getAuthenticatedUserFromExtensionToken } = await import("@/lib/api-auth");
+          const extensionUser = await getAuthenticatedUserFromExtensionToken(token);
+          if (extensionUser) {
+            // Create a minimal user object for extension
+            user = { id: extensionUser.id } as any;
+          }
+        }
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });
@@ -40,7 +57,24 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
+    // Try extension token first
+    let user = await getAuthenticatedUser();
+    
+    // If no user from cookies, try extension token
+    if (!user) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        if (token.length === 64 && /^[0-9a-f]+$/i.test(token)) {
+          const { getAuthenticatedUserFromExtensionToken } = await import("@/lib/api-auth");
+          const extensionUser = await getAuthenticatedUserFromExtensionToken(token);
+          if (extensionUser) {
+            // Create a minimal user object for extension
+            user = { id: extensionUser.id } as any;
+          }
+        }
+      }
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized", code: "UNAUTHORIZED" }, { status: 401 });

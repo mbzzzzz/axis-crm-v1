@@ -174,6 +174,7 @@ export const userPreferences = pgTable('user_preferences', {
   paddlePriceId: text('paddle_price_id'),
   subscriptionStatus: text('subscription_status').default('inactive'), // 'active', 'inactive', 'canceled', 'past_due'
   subscriptionUpdatedAt: timestamp('subscription_updated_at'),
+  extensionToken: text('extension_token'), // API token for browser extensions
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
