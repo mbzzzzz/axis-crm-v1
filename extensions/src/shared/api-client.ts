@@ -11,6 +11,38 @@ function toAbsoluteUrl(baseUrl: string, path: string) {
   return `${normalizedBase}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/**
+ * Check if user is authenticated before making API calls
+ * This helps provide better error messages
+ */
+export async function checkAuthentication(baseUrl: string): Promise<{ authenticated: boolean; error?: string }> {
+  try {
+    const url = toAbsoluteUrl(baseUrl, "/api/auth/session-check");
+    const cookieHeader = await getCookieHeader(url);
+    const headers = {
+      ...DEFAULT_HEADERS,
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+    };
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return { authenticated: data.authenticated === true };
+    }
+    
+    return { authenticated: false, error: "Session check failed" };
+  } catch (error) {
+    console.warn("[Extension] Session check failed:", error);
+    // Don't fail the request, just return unauthenticated
+    return { authenticated: false };
+  }
+}
+
 async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   const FETCH_TIMEOUT = 30000; // 30 seconds
   const controller = new AbortController();
@@ -19,7 +51,22 @@ async function axisFetch<T>(baseUrl: string, path: string): Promise<T> {
   const url = toAbsoluteUrl(baseUrl, path);
   
   // Get cookies explicitly for extension context
+  // Try multiple strategies to ensure we get Supabase cookies
   const cookieHeader = await getCookieHeader(url);
+  
+  // Log cookie detection for debugging
+  if (!cookieHeader || cookieHeader.length === 0) {
+    console.warn(`[Extension] No cookies found for ${url}. This might cause authentication issues.`);
+  } else {
+    const cookieCount = cookieHeader.split(';').length;
+    const hasSupabaseCookies = cookieHeader.includes('sb-') || cookieHeader.includes('supabase');
+    if (!hasSupabaseCookies) {
+      console.warn(`[Extension] Found ${cookieCount} cookies but no Supabase cookies detected. Session might not be accessible.`);
+    } else {
+      console.log(`[Extension] Found Supabase cookies for ${url}`);
+    }
+  }
+  
   const headers = {
     ...DEFAULT_HEADERS,
     ...(cookieHeader ? { Cookie: cookieHeader } : {}),

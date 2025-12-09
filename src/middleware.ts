@@ -12,6 +12,7 @@ const publicRoutes = [
   "/auth/callback",
   "/api/webhooks",
   "/api/auth",
+  "/api/auth/session-check", // Allow extension to check session status
   "/tenant-portal/login",
   "/tenant-portal/register",
 ];
@@ -66,6 +67,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow tenant API routes - they use JWT tokens, not Supabase sessions
   if (isTenantApiRoute(pathname)) {
+    return response;
+  }
+
+  // Allow session check endpoint - it handles its own authentication and returns JSON
+  if (pathname === "/api/auth/session-check") {
     return response;
   }
 

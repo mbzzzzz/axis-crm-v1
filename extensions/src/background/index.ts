@@ -77,6 +77,21 @@ async function syncFromAxis(): Promise<RuntimeMessageResponse> {
   }
 
   try {
+    // First, check if user is authenticated
+    // This provides better error messages before attempting to fetch data
+    try {
+      const { checkAuthentication } = await import("../shared/api-client");
+      const authCheck = await checkAuthentication(baseUrl);
+      if (!authCheck.authenticated) {
+        const error = "Not signed in to AXIS CRM.\n\nPlease:\n1. Open the AXIS CRM dashboard in a new tab\n2. Make sure you're logged in as an agent (not tenant portal)\n3. Keep the dashboard tab open\n4. Return to this extension and click 'Sync from AXIS' again\n\nNote: Your session must be active in the browser for the extension to access your data.";
+        await setStatus("error", error);
+        return { ok: false, type: "ERROR" as const, error, code: "NOT_SIGNED_IN" };
+      }
+    } catch (authError) {
+      // If auth check fails, continue anyway - the actual API call will provide better error
+      console.warn("[Extension] Auth check failed, continuing with sync:", authError);
+    }
+
     const [theme, properties] = await Promise.all([
       fetchTheme(baseUrl).catch((err) => {
         console.warn("Theme fetch failed:", err);
