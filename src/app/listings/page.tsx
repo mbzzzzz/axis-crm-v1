@@ -10,12 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, X, Building2, MapPin, Bed, Bath } from "lucide-react";
+import { Search, Filter, X, Building2, MapPin, Bed, Bath, ArrowLeft, Home } from "lucide-react";
 import { PublicPropertyCard } from "@/components/property/PublicPropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface Property {
   id: number;
@@ -137,6 +138,18 @@ function ListingsContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Back Button */}
+      <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="size-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </div>
+      </div>
+
       {/* Hero */}
       <section className="relative overflow-hidden border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_25%),radial-gradient(circle_at_80%_0%,rgba(56,189,248,0.25),transparent_30%)]" />
