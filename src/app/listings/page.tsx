@@ -164,12 +164,21 @@ function ListingsContent() {
             zIndex: 0,
             pointerEvents: "none",
           }}
+          onLoadedData={(e) => {
+            // Ensure video plays even if autoplay was blocked
+            const video = e.currentTarget;
+            if (video.paused) {
+              video.play().catch(() => {
+                // Autoplay was blocked, but video will play on user interaction
+              });
+            }
+          }}
         >
           <source src="/screenshots/video%20components/unicorn-1765390779031.mp4" type="video/mp4" />
         </video>
         
-        {/* Overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80 z-10" />
+        {/* Overlay to ensure text readability - reduced opacity to show video colors */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/30 via-slate-800/25 to-slate-900/30 z-10" />
         
         {/* Content */}
         <div className="container mx-auto px-4 py-16 sm:py-20 relative z-20">
@@ -177,10 +186,10 @@ function ListingsContent() {
             <div className="inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium backdrop-blur border border-white/20">
               Curated homes & investments
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-white">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
               Find your perfect property
             </h1>
-            <p className="text-lg sm:text-xl text-white/90 max-w-2xl">
+            <p className="text-lg sm:text-xl text-white/90 max-w-2xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
               Explore verified listings with rich details, smart filters, and instant contact to agents.
             </p>
           </div>
