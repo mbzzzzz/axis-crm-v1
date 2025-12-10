@@ -19,6 +19,14 @@ const publicRoutes = [
   "/tenant-portal/register",
 ];
 
+function isPublicApiPath(pathname: string) {
+  // Allow contact form endpoint for public listings: /api/properties/[id]/contact
+  if (pathname.startsWith("/api/properties/") && pathname.endsWith("/contact")) {
+    return true;
+  }
+  return false;
+}
+
 function isPublicRoute(pathname: string) {
   return publicRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
@@ -63,7 +71,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Allow public routes (check before session to avoid unnecessary work)
-  if (isPublicRoute(pathname)) {
+  if (isPublicRoute(pathname) || isPublicApiPath(pathname)) {
     return response;
   }
 
