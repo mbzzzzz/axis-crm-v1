@@ -78,8 +78,8 @@ export function ShaderAnimation() {
 
     // Handle window resize
     const onWindowResize = () => {
-      const width = container.clientWidth
-      const height = container.clientHeight
+      const width = container.clientWidth || window.innerWidth
+      const height = container.clientHeight || window.innerHeight
       renderer.setSize(width, height)
       uniforms.resolution.value.x = renderer.domElement.width
       uniforms.resolution.value.y = renderer.domElement.height

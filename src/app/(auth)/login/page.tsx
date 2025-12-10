@@ -188,7 +188,7 @@ function LoginForm() {
   // Role selection screen
   if (!selectedRole) {
     return (
-      <div className="relative flex min-h-dvh items-center justify-center px-4 overflow-hidden">
+      <div className="relative flex h-dvh items-center justify-center px-4 overflow-hidden bg-black">
         <div className="absolute inset-0">
           <ShaderAnimation />
         </div>
@@ -248,7 +248,7 @@ function LoginForm() {
 
   // Login form based on selected role
   return (
-    <div className="relative flex min-h-dvh items-center justify-center px-4 overflow-hidden">
+    <div className="relative flex h-dvh items-center justify-center px-4 overflow-hidden bg-black">
       <div className="absolute inset-0">
         <ShaderAnimation />
       </div>
@@ -397,7 +397,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="relative flex min-h-screen items-center justify-center px-4">
+      <div className="relative flex h-dvh items-center justify-center px-4 overflow-hidden bg-black">
         <div className="absolute inset-0">
           <ShaderAnimation />
         </div>
