@@ -46,6 +46,7 @@ import { DroppableColumn } from "@/components/droppable-column";
 import { EmptyState } from "@/components/empty-state";
 import { logActivity } from "@/lib/audit-log";
 import { ImportExportDialog } from "@/components/import-export-dialog";
+import { LeadPreviewDialog } from "@/components/lead-preview-dialog";
 
 interface Lead {
   id: number;
@@ -93,39 +94,58 @@ function LeadsPageContent() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [isImportExportDialogOpen, setIsImportExportDialogOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const fetchLeads = async () => {
+    try {
+      setIsLoading(true);
+      let url = "/api/leads?";
+      if (selectedStatus !== "all") {
+        url += `status=${selectedStatus}&`;
+      }
+      if (selectedSource !== "all") {
+        url += `source=${selectedSource}&`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Failed to fetch leads" }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setLeads(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch leads:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to load leads";
+      toast.error(errorMessage);
+      setLeads([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchLeads = async () => {
-      try {
-        setIsLoading(true);
-        let url = "/api/leads?";
-        if (selectedStatus !== "all") {
-          url += `status=${selectedStatus}&`;
-        }
-        if (selectedSource !== "all") {
-          url += `source=${selectedSource}&`;
-        }
-
-        const response = await fetch(url);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Failed to fetch leads" }));
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setLeads(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch leads:", error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to load leads";
-        toast.error(errorMessage);
-        setLeads([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchLeads();
   }, [selectedStatus, selectedSource]);
+
+  const handleLeadClick = (leadId: number) => {
+    setSelectedLeadId(leadId);
+    setIsPreviewOpen(true);
+  };
+
+  const handlePreviewClose = () => {
+    setIsPreviewOpen(false);
+    setSelectedLeadId(null);
+  };
+
+  const handleStatusChange = (leadId: number, newStatus: Lead["status"]) => {
+    // Update the lead in the local state
+    setLeads((prevLeads) =>
+      prevLeads.map((lead) => (lead.id === leadId ? { ...lead, status: newStatus } : lead))
+    );
+  };
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -251,7 +271,8 @@ function LeadsPageContent() {
                     columnLeads.map((lead) => (
                       <div
                         key={lead.id}
-                        className="rounded-lg border border-border bg-card p-3 space-y-2"
+                        className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer hover:bg-accent transition-colors"
+                        onClick={() => handleLeadClick(lead.id)}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div>
@@ -297,8 +318,20 @@ function LeadsPageContent() {
         }))}
         onImportSuccess={() => {
           setIsImportExportDialogOpen(false);
+          fetchLeads();
         }}
       />
+
+      {/* Lead Preview Dialog */}
+      {selectedLeadId && (
+        <LeadPreviewDialog
+          leadId={selectedLeadId}
+          open={isPreviewOpen}
+          onOpenChange={handlePreviewClose}
+          onStatusChange={handleStatusChange}
+          onRefresh={fetchLeads}
+        />
+      )}
     </div>
   );
 }

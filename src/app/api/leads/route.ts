@@ -33,9 +33,36 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
     const status = searchParams.get('status');
     const source = searchParams.get('source');
     const search = searchParams.get('search');
+
+    // If ID is provided, return single lead
+    if (id) {
+      const leadId = parseInt(id);
+      if (isNaN(leadId)) {
+        return NextResponse.json(
+          { error: 'Invalid lead ID', code: 'INVALID_ID' },
+          { status: 400 }
+        );
+      }
+
+      const lead = await db
+        .select()
+        .from(leads)
+        .where(and(eq(leads.id, leadId), eq(leads.userId, user.id)))
+        .limit(1);
+
+      if (lead.length === 0) {
+        return NextResponse.json(
+          { error: 'Lead not found', code: 'NOT_FOUND' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(lead[0], { status: 200 });
+    }
 
     // Build query conditions
     const conditions = [eq(leads.userId, user.id)];
