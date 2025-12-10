@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +34,7 @@ interface Property {
   images?: string[] | null;
 }
 
-export default function PublicPropertiesPage() {
+function ListingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
@@ -310,6 +310,20 @@ export default function PublicPropertiesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function PublicPropertiesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">
+          Loading listings...
+        </div>
+      }
+    >
+      <ListingsContent />
+    </Suspense>
   );
 }
 

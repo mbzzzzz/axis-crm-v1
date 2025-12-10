@@ -26,6 +26,12 @@ export interface RateLimitOptions {
   message?: string;
 }
 
+interface BucketOptions {
+  interval: number;
+  maxRequests: number;
+  message?: string;
+}
+
 export function rateLimit(options: RateLimitOptions) {
   const { maxRequests, windowMs, message = "Too many requests. Please try again later." } = options;
 
@@ -107,4 +113,47 @@ export const apiRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   message: "API rate limit exceeded. Please slow down.",
 });
+
+/**
+ * Simple in-memory rate limit helper for API routes that don't have access
+ * to the full NextRequest (e.g. when we already know the client identifier).
+ * Returns a NextResponse when the limit is exceeded; otherwise null.
+ */
+export function rateLimitMiddleware(
+  bucket: string,
+  { interval, maxRequests, message = "Too many requests. Please try again later." }: BucketOptions,
+  identifier: string
+): NextResponse | null {
+  const now = Date.now();
+  const key = `${bucket}:${identifier}`;
+
+  let entry = rateLimitStore[key];
+  if (!entry || entry.resetTime < now) {
+    entry = { count: 0, resetTime: now + interval };
+    rateLimitStore[key] = entry;
+  }
+
+  entry.count += 1;
+
+  if (entry.count > maxRequests) {
+    return NextResponse.json(
+      {
+        error: message,
+        code: "RATE_LIMIT_EXCEEDED",
+        retryAfter: Math.ceil((entry.resetTime - now) / 1000),
+      },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil((entry.resetTime - now) / 1000)),
+          "X-RateLimit-Limit": String(maxRequests),
+          "X-RateLimit-Remaining": String(Math.max(0, maxRequests - entry.count)),
+          "X-RateLimit-Reset": new Date(entry.resetTime).toISOString(),
+        },
+      }
+    );
+  }
+
+  return null;
+}
 
