@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PublicPropertyCard } from "@/components/property/PublicPropertyCard";
+import { FeaturedPropertyCard } from "./FeaturedPropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
@@ -23,6 +23,7 @@ interface Property {
   bedrooms?: number | null;
   bathrooms?: number | null;
   images?: string[] | null;
+  createdAt?: string;
 }
 
 export function FeaturedProperties() {
@@ -79,26 +80,41 @@ export function FeaturedProperties() {
   }
 
   return (
-    <section className="py-16 sm:py-24 bg-muted/30">
-      <div className="container mx-auto px-4">
-        <div className="mb-8 sm:mb-12 text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+    <section className="relative py-16 sm:py-24 overflow-hidden">
+      {/* Abstract Background Pattern */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-cyan-500/20 to-orange-500/20" 
+             style={{
+               backgroundImage: `repeating-linear-gradient(
+                 45deg,
+                 transparent,
+                 transparent 10px,
+                 rgba(255,255,255,0.05) 10px,
+                 rgba(255,255,255,0.05) 20px
+               )`
+             }}
+        />
+      </div>
+
+      <div className="container mx-auto px-4 relative z-10">
+        {/* Section Title */}
+        <div className="mb-12 sm:mb-16">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
             Featured Properties
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Discover our handpicked selection of premium properties available for sale and rent.
-          </p>
         </div>
 
-        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-8">
-          {properties.map((property) => (
-            <PublicPropertyCard key={property.id} property={property} />
+        {/* Property Cards Grid */}
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-12">
+          {properties.slice(0, 3).map((property) => (
+            <FeaturedPropertyCard key={property.id} property={property} />
           ))}
         </div>
 
+        {/* Browse All Button */}
         <div className="text-center">
           <Link href="/listings">
-            <Button size="lg" variant="outline">
+            <Button size="lg" variant="outline" className="bg-background/80 backdrop-blur-sm border-white/20 hover:bg-background/90">
               Browse All Properties
               <ArrowRight className="ml-2 size-4" />
             </Button>

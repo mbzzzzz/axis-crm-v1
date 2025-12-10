@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { UnicornStudioAnimation } from "@/components/landing/UnicornStudioAnimation";
 
 interface Property {
   id: number;
@@ -151,25 +152,31 @@ function ListingsContent() {
       </div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
-        <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_25%),radial-gradient(circle_at_80%_0%,rgba(56,189,248,0.25),transparent_30%)]" />
-        <div className="container mx-auto px-4 py-16 sm:py-20 relative">
+      <section className="relative overflow-hidden border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-[600px] sm:min-h-[700px]">
+        {/* Unicorn Studio Animation Background */}
+        <UnicornStudioAnimation />
+        
+        {/* Overlay to ensure text readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80 z-10" />
+        
+        {/* Content */}
+        <div className="container mx-auto px-4 py-16 sm:py-20 relative z-20">
           <div className="max-w-4xl space-y-6">
             <div className="inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-xs font-medium backdrop-blur border border-white/20">
               Curated homes & investments
             </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-white">
               Find your perfect property
             </h1>
-            <p className="text-lg sm:text-xl text-white/80 max-w-2xl">
+            <p className="text-lg sm:text-xl text-white/90 max-w-2xl">
               Explore verified listings with rich details, smart filters, and instant contact to agents.
             </p>
           </div>
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
             {highlightStats.map((item) => (
-              <div key={item.label} className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur hover:bg-white/10 transition-colors">
-                <p className="text-sm text-white/70 mb-1">{item.label}</p>
-                <p className="text-3xl font-bold">{item.value}</p>
+              <div key={item.label} className="rounded-xl border border-white/20 bg-white/10 p-5 backdrop-blur hover:bg-white/15 transition-colors">
+                <p className="text-sm text-white/80 mb-1">{item.label}</p>
+                <p className="text-3xl font-bold text-white">{item.value}</p>
               </div>
             ))}
           </div>
