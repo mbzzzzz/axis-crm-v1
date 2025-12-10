@@ -17,7 +17,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { UnicornStudioAnimation } from "@/components/landing/UnicornStudioAnimation";
 
 interface Property {
   id: number;
@@ -153,8 +152,21 @@ function ListingsContent() {
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-[600px] sm:min-h-[700px]">
-        {/* Unicorn Studio Animation Background */}
-        <UnicornStudioAnimation />
+        {/* Background Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            objectFit: "cover",
+            zIndex: 0,
+            pointerEvents: "none",
+          }}
+        >
+          <source src="/screenshots/video%20components/unicorn-1765390779031.mp4" type="video/mp4" />
+        </video>
         
         {/* Overlay to ensure text readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-slate-900/80 z-10" />
