@@ -52,6 +52,7 @@ function ListingsContent() {
   const [minBathrooms, setMinBathrooms] = useState(searchParams.get("minBathrooms") || "");
   const [city, setCity] = useState(searchParams.get("city") || "");
   const [state, setState] = useState(searchParams.get("state") || "");
+  const [area, setArea] = useState(searchParams.get("area") || "");
 
   const [showFilters, setShowFilters] = useState(false);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
@@ -66,8 +67,9 @@ function ListingsContent() {
     if (minBathrooms) count++;
     if (city) count++;
     if (state) count++;
+    if (area) count++;
     setActiveFilterCount(count);
-  }, [propertyType, status, minPrice, maxPrice, minBedrooms, minBathrooms, city, state]);
+  }, [propertyType, status, minPrice, maxPrice, minBedrooms, minBathrooms, city, state, area]);
 
   const fetchProperties = async () => {
     setIsLoading(true);
@@ -82,6 +84,7 @@ function ListingsContent() {
       if (minBathrooms) params.set("minBathrooms", minBathrooms);
       if (city) params.set("city", city);
       if (state) params.set("state", state);
+      if (area) params.set("area", area);
 
       // Update URL without navigation
       const newUrl = `/listings${params.toString() ? `?${params.toString()}` : ""}`;
@@ -119,6 +122,7 @@ function ListingsContent() {
     setMinBathrooms("");
     setCity("");
     setState("");
+    setArea("");
     router.push("/listings");
   };
 
@@ -288,6 +292,15 @@ function ListingsContent() {
                     onChange={(e) => setState(e.target.value)}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Area / Neighborhood</label>
+                  <Input
+                    placeholder="e.g., DHA, Bahria Town"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
+                  />
+                </div>
               </div>
             )}
           </CardContent>
@@ -302,7 +315,7 @@ function ListingsContent() {
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <div className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1">
               <MapPin className="size-4" />
-              {city || "All locations"}
+              {area || city || "All locations"}
             </div>
             <div className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1">
               <Bed className="size-4" />
