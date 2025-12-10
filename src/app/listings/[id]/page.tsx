@@ -39,6 +39,7 @@ interface AgentInfo {
   phone?: string;
   agency?: string;
   image?: string;
+  agentName?: string; // Legacy field for backward compatibility
 }
 
 export default function PublicPropertyDetailPage() {

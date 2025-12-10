@@ -35,7 +35,8 @@ export function AgentContactCard({ agentInfo, propertyId, propertyTitle }: Agent
       .slice(0, 2);
   };
 
-  const agentName = agentInfo.name || "Property Agent";
+  // Use name field (from Supabase) or fallback to agentName (from preferences) or default
+  const agentName = agentInfo.name || agentInfo.agentName || "Property Agent";
   const agentAgency = agentInfo.agency || "Real Estate Agency";
 
   return (
