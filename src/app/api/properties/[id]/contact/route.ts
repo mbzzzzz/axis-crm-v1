@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { properties, userPreferences } from "@/db/schema-postgres";
+import { properties, userPreferences, leads } from "@/db/schema-postgres";
 import { eq, and } from "drizzle-orm";
 import { sendEmailNotification } from "@/lib/email/notifications";
 import { createServerClient } from "@supabase/ssr";
@@ -100,7 +100,26 @@ export async function POST(
       // Still return success to user
     }
 
-    // Send email notification to agent
+    // Persist inquiry as a lead so it's never lost even if email fails
+    try {
+      await db.insert(leads).values({
+        userId: property[0].userId,
+        name,
+        phone: phone || "",
+        email,
+        budget: null,
+        preferredLocation: property[0].city,
+        source: "website",
+        status: "inquiry",
+        notes: message,
+        propertyId,
+      });
+    } catch (leadError) {
+      console.error("Failed to store lead from contact form:", leadError);
+      // continue; we still return success to the user
+    }
+
+    // Send email notification to agent (best-effort)
     if (agentEmail) {
       try {
         await sendEmailNotification({
