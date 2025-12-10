@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Bed, Bath, Square, Calendar, ArrowLeft, Share2, Phone, Mail } from "lucide-react";
+import { MapPin, Bed, Bath, Square, Calendar, ArrowLeft, Share2, Phone, Mail, Heart, Download, Printer } from "lucide-react";
 import { formatCurrency, type CurrencyCode } from "@/lib/currency-formatter";
-import { ContactForm } from "@/components/property/ContactForm";
+import { ImageGallery } from "@/components/property/ImageGallery";
+import { AgentContactCard } from "@/components/property/AgentContactCard";
 import Link from "next/link";
 
 interface Property {
@@ -37,6 +38,7 @@ interface AgentInfo {
   email?: string;
   phone?: string;
   agency?: string;
+  image?: string;
 }
 
 export default function PublicPropertyDetailPage() {
@@ -46,7 +48,7 @@ export default function PublicPropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showContactForm, setShowContactForm] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -123,10 +125,9 @@ export default function PublicPropertyDetailPage() {
     );
   }
 
-  const mainImage =
-    property.images && property.images.length > 0
-      ? property.images[0]
-      : "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800";
+  const propertyImages = property.images && property.images.length > 0
+    ? property.images
+    : ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800"];
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -156,110 +157,116 @@ export default function PublicPropertyDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-muted/30">
-        <div className="container mx-auto px-4 py-4">
-          <Link href="/listings">
-            <Button variant="ghost">
-              <ArrowLeft className="mr-2 size-4" />
-              Back to Properties
-            </Button>
-          </Link>
+      {/* Header Bar */}
+      <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <Link href="/listings">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 size-4" />
+                Back to Properties
+              </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={isFavorite ? "text-red-500" : ""}
+              >
+                <Heart className={`size-4 ${isFavorite ? "fill-current" : ""}`} />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleShare}>
+                <Share2 className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={() => window.print()}>
+                <Printer className="size-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 sm:py-8">
-        <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
-          {/* Left Column - Images */}
-          <div className="space-y-4">
-            <div className="relative aspect-video rounded-lg overflow-hidden">
-              <img
-                src={mainImage}
-                alt={property.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            {property.images && property.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
-                {property.images.slice(1, 5).map((image, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-                  >
-                    <img
-                      src={image}
-                      alt={`${property.title} - Image ${index + 2}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+      <div className="container mx-auto px-4 py-6 lg:py-8">
+        {/* Main Content */}
+        <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
+          {/* Left Column - Images & Details (2/3 width) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Image Gallery */}
+            <ImageGallery images={propertyImages} title={property.title || property.address} />
 
-          {/* Right Column - Details */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold">{property.title || property.address}</h1>
-                <Button variant="outline" size="icon" onClick={handleShare}>
-                  <Share2 className="size-4" />
-                </Button>
+            {/* Property Header */}
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className={`${getStatusColor(property.status)} text-sm px-3 py-1`}>
+                    {getStatusLabel(property.status)}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">{property.propertyType}</span>
+                </div>
+                <h1 className="text-3xl lg:text-4xl font-bold mb-2">
+                  {property.title || property.address}
+                </h1>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MapPin className="size-4 flex-shrink-0" />
+                  <span className="text-base">
+                    {property.address}, {property.city}, {property.state} {property.zipCode}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground mb-4">
-                <MapPin className="size-4" />
-                <span>
-                  {property.address}, {property.city}, {property.state} {property.zipCode}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 mb-4">
-                <Badge className={`${getStatusColor(property.status)} text-base px-3 py-1`}>
-                  {getStatusLabel(property.status)}
-                </Badge>
-                <span className="text-3xl font-bold">
+
+              {/* Price */}
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl lg:text-5xl font-bold">
                   {formatCurrency(
                     property.price,
                     (property.currency || "USD") as CurrencyCode,
                     { compact: false, showDecimals: false }
                   )}
-                  {property.status === "rented" && (
-                    <span className="text-lg font-normal text-muted-foreground">/month</span>
-                  )}
                 </span>
+                {property.status === "rented" && (
+                  <span className="text-xl text-muted-foreground">/month</span>
+                )}
               </div>
             </div>
 
             {/* Key Features */}
             <Card>
-              <CardHeader>
-                <CardTitle>Key Features</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <CardContent className="p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {property.bedrooms !== null && property.bedrooms !== undefined && (
                     <div className="text-center">
-                      <Bed className="size-6 mx-auto mb-2 text-muted-foreground" />
-                      <div className="font-semibold">{property.bedrooms}</div>
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                        <Bed className="size-6 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold">{property.bedrooms}</div>
                       <div className="text-sm text-muted-foreground">Bedrooms</div>
                     </div>
                   )}
                   {property.bathrooms !== null && property.bathrooms !== undefined && (
                     <div className="text-center">
-                      <Bath className="size-6 mx-auto mb-2 text-muted-foreground" />
-                      <div className="font-semibold">{property.bathrooms}</div>
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                        <Bath className="size-6 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold">{property.bathrooms}</div>
                       <div className="text-sm text-muted-foreground">Bathrooms</div>
                     </div>
                   )}
                   {property.sizeSqft !== null && property.sizeSqft !== undefined && (
                     <div className="text-center">
-                      <Square className="size-6 mx-auto mb-2 text-muted-foreground" />
-                      <div className="font-semibold">{property.sizeSqft.toLocaleString()}</div>
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                        <Square className="size-6 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold">{property.sizeSqft.toLocaleString()}</div>
                       <div className="text-sm text-muted-foreground">Sq Ft</div>
                     </div>
                   )}
                   {property.yearBuilt && (
                     <div className="text-center">
-                      <Calendar className="size-6 mx-auto mb-2 text-muted-foreground" />
-                      <div className="font-semibold">{property.yearBuilt}</div>
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+                        <Calendar className="size-6 text-primary" />
+                      </div>
+                      <div className="text-2xl font-bold">{property.yearBuilt}</div>
                       <div className="text-sm text-muted-foreground">Year Built</div>
                     </div>
                   )}
@@ -271,10 +278,12 @@ export default function PublicPropertyDetailPage() {
             {property.description && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Description</CardTitle>
+                  <CardTitle className="text-xl">About this property</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-wrap">{property.description}</p>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {property.description}
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -283,12 +292,12 @@ export default function PublicPropertyDetailPage() {
             {property.amenities && Array.isArray(property.amenities) && property.amenities.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Amenities</CardTitle>
+                  <CardTitle className="text-xl">Amenities</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {property.amenities.map((amenity: string, index: number) => (
-                      <Badge key={index} variant="secondary">
+                      <Badge key={index} variant="secondary" className="text-sm px-3 py-1.5">
                         {amenity}
                       </Badge>
                     ))}
@@ -296,55 +305,17 @@ export default function PublicPropertyDetailPage() {
                 </CardContent>
               </Card>
             )}
+          </div>
 
-            {/* Contact Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Contact Agent</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {agentInfo && (agentInfo.name || agentInfo.email || agentInfo.phone) && (
-                  <div className="space-y-2">
-                    {agentInfo.name && (
-                      <div>
-                        <span className="font-semibold">Agent:</span> {agentInfo.name}
-                      </div>
-                    )}
-                    {agentInfo.agency && (
-                      <div>
-                        <span className="font-semibold">Agency:</span> {agentInfo.agency}
-                      </div>
-                    )}
-                    {agentInfo.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="size-4" />
-                        <a href={`tel:${agentInfo.phone}`} className="hover:underline">
-                          {agentInfo.phone}
-                        </a>
-                      </div>
-                    )}
-                    {agentInfo.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="size-4" />
-                        <a href={`mailto:${agentInfo.email}`} className="hover:underline">
-                          {agentInfo.email}
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={() => setShowContactForm(!showContactForm)}
-                >
-                  {showContactForm ? "Hide Contact Form" : "Send Message to Agent"}
-                </Button>
-                {showContactForm && property && (
-                  <ContactForm propertyId={property.id} propertyTitle={property.title} />
-                )}
-              </CardContent>
-            </Card>
+          {/* Right Column - Agent Contact Card (1/3 width) */}
+          <div className="lg:col-span-1">
+            {property && agentInfo && (
+              <AgentContactCard
+                agentInfo={agentInfo}
+                propertyId={property.id}
+                propertyTitle={property.title || property.address}
+              />
+            )}
           </div>
         </div>
       </div>
