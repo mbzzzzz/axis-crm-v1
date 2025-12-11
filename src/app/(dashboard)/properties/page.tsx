@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload, List, Map, Globe, GlobeLock } from "lucide-react";
+import { Plus, Search, Building2, DollarSign, Home, MapPin, Edit, Trash2, Download, Upload, List, Map, Globe, GlobeLock, EllipsisVertical } from "lucide-react";
 import { PropertyMapView } from "@/components/property-map-view";
 import {
   Select,

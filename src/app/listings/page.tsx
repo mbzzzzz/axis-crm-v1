@@ -151,8 +151,8 @@ function ListingsContent() {
       </div>
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white min-h-[600px] sm:min-h-[700px]">
-        {/* Background Video */}
+      <section className="relative overflow-hidden border-b text-white min-h-[600px] sm:min-h-[700px]">
+        {/* Background Video - Always visible as background */}
         <video
           autoPlay
           loop
@@ -163,6 +163,7 @@ function ListingsContent() {
             objectFit: "cover",
             zIndex: 0,
             pointerEvents: "none",
+            backgroundColor: "#0f172a", // Fallback color while video loads
           }}
           onLoadedData={(e) => {
             // Ensure video plays even if autoplay was blocked
