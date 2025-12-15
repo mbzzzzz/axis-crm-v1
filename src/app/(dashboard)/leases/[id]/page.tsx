@@ -30,6 +30,8 @@ interface Lease {
   documentUrl?: string;
   tenant?: { id: number; name: string; email: string };
   property?: { id: number; title?: string; address: string };
+  ownerSignature?: string | null;
+  tenantSignature?: string | null;
 }
 
 export default function LeaseDetailsPage() {
@@ -85,6 +87,8 @@ export default function LeaseDetailsPage() {
         monthlyRent: lease.monthlyRent,
         deposit: lease.deposit ?? null,
         currency: lease.currency || "USD",
+        ownerSignatureDataUrl: lease.ownerSignature || undefined,
+        tenantSignatureDataUrl: lease.tenantSignature || undefined,
       });
       
       // Convert PDF to buffer for upload
@@ -137,7 +141,8 @@ export default function LeaseDetailsPage() {
       monthlyRent: lease.monthlyRent,
       deposit: lease.deposit ?? null,
       currency: lease.currency || "USD",
-      // Signatures are applied on server when fully signed
+      ownerSignatureDataUrl: lease.ownerSignature || undefined,
+      tenantSignatureDataUrl: lease.tenantSignature || undefined,
     });
     pdf.save(`lease-${leaseNumber}.pdf`);
     toast.success("Lease PDF downloaded");

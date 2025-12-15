@@ -62,7 +62,7 @@ export default function SettingsPage() {
   const hasUserEditedRef = useRef(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
   const [isSavingPlan, setIsSavingPlan] = useState(false);
-  const { theme, themeKey, setTheme, isSaving } = useCardTheme();
+  const { theme, themeKey, setTheme, isSaving, options } = useCardTheme();
   const [lateFeePolicies, setLateFeePolicies] = useState<any[]>([]);
   const [isLateFeeDialogOpen, setIsLateFeeDialogOpen] = useState(false);
   const [selectedPolicy, setSelectedPolicy] = useState<any | null>(null);
@@ -500,6 +500,45 @@ export default function SettingsPage() {
                 ? "Your invoices will be sent using your connected Gmail account."
                 : "Connect your account to have invoices appear as sent explicitly by you."}
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Dashboard Theme */}
+        <Card>
+          <CardHeader className="pb-3 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">Dashboard Theme</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Choose your preferred card theme for dashboard visuals.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="space-y-1.5 sm:space-y-2">
+              <Label htmlFor="cardTheme" className="text-sm">
+                Theme
+              </Label>
+              <Select
+                value={themeKey}
+                onValueChange={(value) => {
+                  // Theme keys are validated on the API, so we can cast here
+                  void setTheme(value as any);
+                }}
+                disabled={isSaving}
+              >
+                <SelectTrigger id="cardTheme" className="h-9 sm:h-10 text-sm sm:text-base">
+                  <SelectValue placeholder="Select a theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.map((opt) => (
+                    <SelectItem key={opt.key} value={opt.key} className="text-sm">
+                      {opt.name} — {opt.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                Changes are saved to your profile and applied across dashboards.
+              </p>
+            </div>
           </CardContent>
         </Card>
 

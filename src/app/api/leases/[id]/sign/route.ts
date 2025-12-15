@@ -88,8 +88,12 @@ export async function POST(
           propertyTitle: propertyData?.title,
           propertyAddress: propertyData?.address,
           leaseType: leaseData.leaseType,
-          startDate: leaseData.startDate?.toISOString?.() || undefined,
-          endDate: leaseData.endDate?.toISOString?.() || undefined,
+          startDate: leaseData.startDate
+            ? new Date(leaseData.startDate as unknown as string).toLocaleDateString()
+            : undefined,
+          endDate: leaseData.endDate
+            ? new Date(leaseData.endDate as unknown as string).toLocaleDateString()
+            : undefined,
           monthlyRent: leaseData.monthlyRent,
           deposit: leaseData.deposit ?? null,
           currency: leaseData.currency || propertyData?.currency || "USD",
