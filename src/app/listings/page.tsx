@@ -15,7 +15,6 @@ import { PublicPropertyCard } from "@/components/property/PublicPropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
@@ -215,157 +214,19 @@ function ListingsContent() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Sheet open={showFilters} onOpenChange={setShowFilters}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 h-12"
-                    >
-                      <Filter className="size-4" />
-                      Filters
-                      {activeFilterCount > 0 && (
-                        <Badge variant="secondary" className="ml-1">
-                          {activeFilterCount}
-                        </Badge>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="max-w-md w-full">
-                    <SheetHeader>
-                      <SheetTitle>Filter Listings</SheetTitle>
-                      <SheetDescription>
-                        Refine properties by type, price, bedrooms, and location.
-                      </SheetDescription>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4 mt-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Property Type</label>
-                        <Select value={propertyType} onValueChange={setPropertyType}>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="All Types" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">All Types</SelectItem>
-                            <SelectItem value="residential">Residential</SelectItem>
-                            <SelectItem value="commercial">Commercial</SelectItem>
-                            <SelectItem value="land">Land</SelectItem>
-                            <SelectItem value="multi_family">Multi-Family</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Status</label>
-                        <Select value={status} onValueChange={setStatus}>
-                          <SelectTrigger className="h-11">
-                            <SelectValue placeholder="All Statuses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">All Statuses</SelectItem>
-                            <SelectItem value="available">For Sale</SelectItem>
-                            <SelectItem value="rented">For Rent</SelectItem>
-                            <SelectItem value="under_contract">Under Contract</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Min Price</label>
-                          <Input
-                            type="number"
-                            placeholder="$"
-                            value={minPrice}
-                            onChange={(e) => setMinPrice(e.target.value)}
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Max Price</label>
-                          <Input
-                            type="number"
-                            placeholder="$"
-                            value={maxPrice}
-                            onChange={(e) => setMaxPrice(e.target.value)}
-                            className="h-11"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Min Beds</label>
-                          <Input
-                            type="number"
-                            placeholder="Any"
-                            value={minBedrooms}
-                            onChange={(e) => setMinBedrooms(e.target.value)}
-                            className="h-11"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold">Min Baths</label>
-                          <Input
-                            type="number"
-                            placeholder="Any"
-                            value={minBathrooms}
-                            onChange={(e) => setMinBathrooms(e.target.value)}
-                            className="h-11"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">City</label>
-                        <Input
-                          placeholder="Any city"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          className="h-11"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">State</label>
-                        <Input
-                          placeholder="Any state"
-                          value={state}
-                          onChange={(e) => setState(e.target.value)}
-                          className="h-11"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Area / Neighborhood</label>
-                        <Input
-                          placeholder="e.g., DHA, Bahria Town"
-                          value={area}
-                          onChange={(e) => setArea(e.target.value)}
-                          className="h-11"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          clearFilters();
-                          setShowFilters(false);
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <X className="size-4" />
-                        Clear
-                      </Button>
-                      <Button
-                        onClick={() => setShowFilters(false)}
-                        className="min-w-[120px]"
-                      >
-                        Apply Filters
-                      </Button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFilters(true)}
+                  className="flex items-center gap-2 h-12"
+                >
+                  <Filter className="size-4" />
+                  Filters
+                  {activeFilterCount > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {activeFilterCount}
+                    </Badge>
+                  )}
+                </Button>
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" onClick={clearFilters} className="flex items-center gap-2 h-12">
                     <X className="size-4" />
@@ -375,7 +236,165 @@ function ListingsContent() {
               </div>
             </div>
 
-            {/* Inline filters removed; filters now live in sidebar sheet */}
+            {/* Sidebar-style filters using a simple overlay */}
+            {showFilters && (
+              <div className="fixed inset-0 z-40 flex">
+                {/* Overlay */}
+                <button
+                  className="flex-1 bg-black/40"
+                  aria-label="Close filters"
+                  onClick={() => setShowFilters(false)}
+                />
+                {/* Sidebar panel */}
+                <div className="w-full max-w-md bg-background shadow-xl border-l flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b">
+                    <div>
+                      <p className="font-semibold text-base">Filter Listings</p>
+                      <p className="text-xs text-muted-foreground">
+                        Refine properties by type, price, bedrooms, and location.
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Close"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4 mt-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">Property Type</label>
+                      <Select value={propertyType} onValueChange={setPropertyType}>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All Types</SelectItem>
+                          <SelectItem value="residential">Residential</SelectItem>
+                          <SelectItem value="commercial">Commercial</SelectItem>
+                          <SelectItem value="land">Land</SelectItem>
+                          <SelectItem value="multi_family">Multi-Family</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">Status</label>
+                      <Select value={status} onValueChange={setStatus}>
+                        <SelectTrigger className="h-11">
+                          <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All Statuses</SelectItem>
+                          <SelectItem value="available">For Sale</SelectItem>
+                          <SelectItem value="rented">For Rent</SelectItem>
+                          <SelectItem value="under_contract">Under Contract</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Min Price</label>
+                        <Input
+                          type="number"
+                          placeholder="$"
+                          value={minPrice}
+                          onChange={(e) => setMinPrice(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Max Price</label>
+                        <Input
+                          type="number"
+                          placeholder="$"
+                          value={maxPrice}
+                          onChange={(e) => setMaxPrice(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Min Beds</label>
+                        <Input
+                          type="number"
+                          placeholder="Any"
+                          value={minBedrooms}
+                          onChange={(e) => setMinBedrooms(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Min Baths</label>
+                        <Input
+                          type="number"
+                          placeholder="Any"
+                          value={minBathrooms}
+                          onChange={(e) => setMinBathrooms(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">City</label>
+                      <Input
+                        placeholder="Any city"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">State</label>
+                      <Input
+                        placeholder="Any state"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">Area / Neighborhood</label>
+                      <Input
+                        placeholder="e.g., DHA, Bahria Town"
+                        value={area}
+                        onChange={(e) => setArea(e.target.value)}
+                        className="h-11"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        clearFilters();
+                        setShowFilters(false);
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <X className="size-4" />
+                      Clear
+                    </Button>
+                    <Button
+                      onClick={() => setShowFilters(false)}
+                      className="min-w-[120px]"
+                    >
+                      Apply Filters
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
