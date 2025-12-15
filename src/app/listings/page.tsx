@@ -10,12 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, X, Building2, MapPin, Bed, Bath, ArrowLeft, Home } from "lucide-react";
+import { Search, Filter, X, Building2, MapPin, Bed, Bath, ArrowLeft } from "lucide-react";
 import { PublicPropertyCard } from "@/components/property/PublicPropertyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 interface Property {
@@ -36,7 +37,6 @@ interface Property {
 }
 
 function ListingsContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,17 +87,6 @@ function ListingsContent() {
       if (state) params.set("state", state);
       if (area) params.set("area", area);
 
-      // Update URL without full reload
-      const newUrl = `/listings${params.toString() ? `?${params.toString()}` : ""}`;
-      try {
-        router.replace(newUrl);
-      } catch {
-        // Fallback to history API in browser environments
-        if (typeof window !== "undefined" && window.history?.pushState) {
-          window.history.pushState({}, "", newUrl);
-        }
-      }
-
       const response = await fetch(`/api/public/properties?${params.toString()}`);
       const data = await response.json();
 
@@ -131,7 +120,6 @@ function ListingsContent() {
     setCity("");
     setState("");
     setArea("");
-    router.push("/listings");
   };
 
   const highlightStats = useMemo(
@@ -227,19 +215,157 @@ function ListingsContent() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center gap-2 h-12"
-                >
-                  <Filter className="size-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {activeFilterCount}
-                    </Badge>
-                  )}
-                </Button>
+                <Sheet open={showFilters} onOpenChange={setShowFilters}>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex items-center gap-2 h-12"
+                    >
+                      <Filter className="size-4" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <Badge variant="secondary" className="ml-1">
+                          {activeFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="max-w-md w-full">
+                    <SheetHeader>
+                      <SheetTitle>Filter Listings</SheetTitle>
+                      <SheetDescription>
+                        Refine properties by type, price, bedrooms, and location.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4 mt-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Property Type</label>
+                        <Select value={propertyType} onValueChange={setPropertyType}>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="All Types" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All Types</SelectItem>
+                            <SelectItem value="residential">Residential</SelectItem>
+                            <SelectItem value="commercial">Commercial</SelectItem>
+                            <SelectItem value="land">Land</SelectItem>
+                            <SelectItem value="multi_family">Multi-Family</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Status</label>
+                        <Select value={status} onValueChange={setStatus}>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="All Statuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">All Statuses</SelectItem>
+                            <SelectItem value="available">For Sale</SelectItem>
+                            <SelectItem value="rented">For Rent</SelectItem>
+                            <SelectItem value="under_contract">Under Contract</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Min Price</label>
+                          <Input
+                            type="number"
+                            placeholder="$"
+                            value={minPrice}
+                            onChange={(e) => setMinPrice(e.target.value)}
+                            className="h-11"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Max Price</label>
+                          <Input
+                            type="number"
+                            placeholder="$"
+                            value={maxPrice}
+                            onChange={(e) => setMaxPrice(e.target.value)}
+                            className="h-11"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Min Beds</label>
+                          <Input
+                            type="number"
+                            placeholder="Any"
+                            value={minBedrooms}
+                            onChange={(e) => setMinBedrooms(e.target.value)}
+                            className="h-11"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-semibold">Min Baths</label>
+                          <Input
+                            type="number"
+                            placeholder="Any"
+                            value={minBathrooms}
+                            onChange={(e) => setMinBathrooms(e.target.value)}
+                            className="h-11"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">City</label>
+                        <Input
+                          placeholder="Any city"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">State</label>
+                        <Input
+                          placeholder="Any state"
+                          value={state}
+                          onChange={(e) => setState(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Area / Neighborhood</label>
+                        <Input
+                          placeholder="e.g., DHA, Bahria Town"
+                          value={area}
+                          onChange={(e) => setArea(e.target.value)}
+                          className="h-11"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          clearFilters();
+                          setShowFilters(false);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <X className="size-4" />
+                        Clear
+                      </Button>
+                      <Button
+                        onClick={() => setShowFilters(false)}
+                        className="min-w-[120px]"
+                      >
+                        Apply Filters
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" onClick={clearFilters} className="flex items-center gap-2 h-12">
                     <X className="size-4" />
@@ -249,116 +375,7 @@ function ListingsContent() {
               </div>
             </div>
 
-            {showFilters && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 pt-2 border-t">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Property Type</label>
-                  <Select value={propertyType} onValueChange={setPropertyType}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="All Types" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
-                      <SelectItem value="residential">Residential</SelectItem>
-                      <SelectItem value="commercial">Commercial</SelectItem>
-                      <SelectItem value="land">Land</SelectItem>
-                      <SelectItem value="multi_family">Multi-Family</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Status</label>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="All Statuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Statuses</SelectItem>
-                      <SelectItem value="available">For Sale</SelectItem>
-                      <SelectItem value="rented">For Rent</SelectItem>
-                      <SelectItem value="under_contract">Under Contract</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Min Price</label>
-                    <Input
-                      type="number"
-                      placeholder="$"
-                      value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Max Price</label>
-                    <Input
-                      type="number"
-                      placeholder="$"
-                      value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Min Beds</label>
-                    <Input
-                      type="number"
-                      placeholder="Any"
-                      value={minBedrooms}
-                      onChange={(e) => setMinBedrooms(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Min Baths</label>
-                    <Input
-                      type="number"
-                      placeholder="Any"
-                      value={minBathrooms}
-                      onChange={(e) => setMinBathrooms(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">City</label>
-                  <Input
-                    placeholder="Any city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">State</label>
-                  <Input
-                    placeholder="Any state"
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Area / Neighborhood</label>
-                  <Input
-                    placeholder="e.g., DHA, Bahria Town"
-                    value={area}
-                    onChange={(e) => setArea(e.target.value)}
-                    className="h-11"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Inline filters removed; filters now live in sidebar sheet */}
           </CardContent>
         </Card>
 
