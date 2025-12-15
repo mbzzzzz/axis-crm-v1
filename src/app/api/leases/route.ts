@@ -125,6 +125,7 @@ export async function POST(request: NextRequest) {
       monthlyRent,
       deposit,
       terms,
+      currency,
     } = body;
 
     // Validation
@@ -169,6 +170,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const leaseCurrency = currency || property[0].currency || 'USD';
+
     // Create lease
     const newLease = await db
       .insert(leases)
@@ -182,6 +185,7 @@ export async function POST(request: NextRequest) {
         monthlyRent,
         deposit: deposit || null,
         terms: terms || null,
+        currency: leaseCurrency,
         status: 'draft',
         signedByTenant: 0,
         signedByOwner: 0,

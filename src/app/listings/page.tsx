@@ -87,9 +87,16 @@ function ListingsContent() {
       if (state) params.set("state", state);
       if (area) params.set("area", area);
 
-      // Update URL without navigation
+      // Update URL without full reload
       const newUrl = `/listings${params.toString() ? `?${params.toString()}` : ""}`;
-      window.history.pushState({}, "", newUrl);
+      try {
+        router.replace(newUrl);
+      } catch {
+        // Fallback to history API in browser environments
+        if (typeof window !== "undefined" && window.history?.pushState) {
+          window.history.pushState({}, "", newUrl);
+        }
+      }
 
       const response = await fetch(`/api/public/properties?${params.toString()}`);
       const data = await response.json();

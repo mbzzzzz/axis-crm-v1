@@ -47,6 +47,7 @@ export function LeaseForm({
     endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
     monthlyRent: 0,
     deposit: 0,
+    currency: "USD",
     terms: null as any,
   });
 
@@ -62,6 +63,7 @@ export function LeaseForm({
         endDate: initialData.endDate ? new Date(initialData.endDate) : new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
         monthlyRent: initialData.monthlyRent || 0,
         deposit: initialData.deposit || 0,
+        currency: initialData.currency || "USD",
         terms: initialData.terms || null,
       });
       if (initialData.terms) {
@@ -109,7 +111,7 @@ export function LeaseForm({
     setIsSubmitting(true);
 
     try {
-      if (!formData.tenantId || !formData.propertyId || !formData.monthlyRent) {
+      if (!formData.tenantId || !formData.propertyId || !formData.monthlyRent || !formData.currency) {
         throw new Error("Please fill in all required fields");
       }
 
@@ -121,6 +123,7 @@ export function LeaseForm({
         endDate: formData.endDate.toISOString(),
         monthlyRent: formData.monthlyRent,
         deposit: formData.deposit || null,
+        currency: formData.currency,
         terms: selectedTemplate || formData.terms,
       };
 
@@ -280,6 +283,27 @@ export function LeaseForm({
             onChange={(e) => setFormData({ ...formData, deposit: parseFloat(e.target.value) || 0 })}
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="currency">Currency *</Label>
+        <Select
+          value={formData.currency}
+          onValueChange={(value) => setFormData({ ...formData, currency: value })}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select currency" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="USD">USD - US Dollar</SelectItem>
+            <SelectItem value="PKR">PKR - Pakistani Rupee</SelectItem>
+            <SelectItem value="INR">INR - Indian Rupee</SelectItem>
+            <SelectItem value="EUR">EUR - Euro</SelectItem>
+            <SelectItem value="GBP">GBP - British Pound</SelectItem>
+            <SelectItem value="AED">AED - UAE Dirham</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex justify-end gap-2">

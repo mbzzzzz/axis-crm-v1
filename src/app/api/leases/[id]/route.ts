@@ -104,6 +104,7 @@ export async function PUT(
       deposit,
       terms,
       status,
+      currency,
     } = body;
 
     // Verify ownership
@@ -128,6 +129,7 @@ export async function PUT(
     if (deposit !== undefined) updateData.deposit = deposit;
     if (terms !== undefined) updateData.terms = terms;
     if (status !== undefined) updateData.status = status;
+    if (currency !== undefined) updateData.currency = currency;
 
     const updated = await db
       .update(leases)

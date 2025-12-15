@@ -61,8 +61,14 @@ export async function POST(
 
     if (signerType === 'tenant') {
       updateData.signedByTenant = 1;
+      if (signatureDataUrl) {
+        updateData.tenantSignature = signatureDataUrl;
+      }
     } else {
       updateData.signedByOwner = 1;
+      if (signatureDataUrl) {
+        updateData.ownerSignature = signatureDataUrl;
+      }
     }
 
     // If both parties have signed, mark as active and set signed date
@@ -72,11 +78,24 @@ export async function POST(
 
     let finalDocumentUrl = documentUrl;
 
-    // Generate and upload PDF if fully signed or if we need to store it
+    // Generate and upload PDF if fully signed
     if (isFullySigned && leaseData.terms) {
       try {
         const leaseNumber = `LEASE-${id}`;
-        const pdf = generateLeasePDF(leaseData.terms, leaseNumber);
+        const pdf = generateLeasePDF(leaseData.terms, leaseNumber, {
+          tenantName: tenantData?.name,
+          tenantEmail: tenantData?.email,
+          propertyTitle: propertyData?.title,
+          propertyAddress: propertyData?.address,
+          leaseType: leaseData.leaseType,
+          startDate: leaseData.startDate?.toISOString?.() || undefined,
+          endDate: leaseData.endDate?.toISOString?.() || undefined,
+          monthlyRent: leaseData.monthlyRent,
+          deposit: leaseData.deposit ?? null,
+          currency: leaseData.currency || propertyData?.currency || "USD",
+          ownerSignatureDataUrl: signerType === "owner" ? signatureDataUrl : leaseData.ownerSignature,
+          tenantSignatureDataUrl: signerType === "tenant" ? signatureDataUrl : leaseData.tenantSignature,
+        });
         const pdfBuffer = Buffer.from(pdf.output('arraybuffer'));
         
         // Upload to Supabase Storage

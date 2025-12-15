@@ -36,6 +36,7 @@ interface Lease {
   endDate: string;
   monthlyRent: number;
   deposit?: number;
+   currency?: string;
   status: string;
   signedByTenant: number;
   signedByOwner: number;
@@ -219,7 +220,7 @@ export default function LeasesPage() {
                         )}
                       </TableCell>
                       <TableCell className="font-semibold">
-                        ${lease.monthlyRent.toLocaleString()}
+                        {(lease.currency || "USD")} {lease.monthlyRent.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(lease)}

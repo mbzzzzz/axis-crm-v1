@@ -290,6 +290,9 @@ export const leases = pgTable('leases', {
   signedByOwner: integer('signed_by_owner').default(0).notNull(), // 1 = signed, 0 = not signed
   signedAt: timestamp('signed_at'), // Date when both parties signed
   documentUrl: text('document_url'), // URL to signed lease PDF in Supabase Storage
+  currency: text('currency').default('USD'), // Currency code for lease amounts
+  ownerSignature: text('owner_signature'), // Data URL or stored signature reference
+  tenantSignature: text('tenant_signature'), // Data URL or stored signature reference
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

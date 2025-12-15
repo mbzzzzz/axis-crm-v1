@@ -1,9 +1,34 @@
 import jsPDF from "jspdf";
 import { LeaseTerms } from "./lease-templates";
 
-export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF {
+export interface LeasePdfMetadata {
+  tenantName?: string | null;
+  tenantEmail?: string | null;
+  propertyTitle?: string | null;
+  propertyAddress?: string | null;
+  leaseType?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  monthlyRent?: number | null;
+  deposit?: number | null;
+  currency?: string | null;
+  ownerSignatureDataUrl?: string | null;
+  tenantSignatureDataUrl?: string | null;
+  ownerLabel?: string;
+  tenantLabel?: string;
+}
+
+export function generateLeasePDF(
+  terms: LeaseTerms,
+  leaseNumber: string,
+  metadata: LeasePdfMetadata = {}
+): jsPDF {
   const doc = new jsPDF();
   let yPos = 20;
+
+  const currency = metadata.currency || terms.currency || "USD";
+  const formatMoney = (amount: number | null | undefined): string =>
+    amount != null ? `${currency} ${amount.toLocaleString()}` : `${currency} 0`;
 
   // Header
   doc.setFontSize(20);
@@ -12,7 +37,33 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
 
   doc.setFontSize(12);
   doc.text(`Lease Number: ${leaseNumber}`, 105, yPos, { align: "center" });
-  yPos += 15;
+  yPos += 8;
+
+  if (metadata.tenantName || metadata.propertyAddress) {
+    const tenantLine = metadata.tenantName
+      ? `Tenant: ${metadata.tenantName}${metadata.tenantEmail ? ` <${metadata.tenantEmail}>` : ""}`
+      : "";
+    const propertyLine = metadata.propertyTitle || metadata.propertyAddress
+      ? `Property: ${metadata.propertyTitle || metadata.propertyAddress}`
+      : "";
+
+    if (tenantLine) {
+      doc.text(tenantLine, 20, yPos);
+      yPos += 6;
+    }
+    if (propertyLine) {
+      doc.text(propertyLine, 20, yPos);
+      yPos += 6;
+    }
+  }
+
+  if (metadata.startDate || metadata.endDate) {
+    const datesLine = `Term: ${metadata.startDate || "N/A"} to ${metadata.endDate || "N/A"}`;
+    doc.text(datesLine, 20, yPos);
+    yPos += 8;
+  } else {
+    yPos += 4;
+  }
 
   // Lease Terms
   doc.setFontSize(14);
@@ -20,12 +71,13 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
   yPos += 10;
 
   doc.setFontSize(11);
-  doc.text(`Monthly Rent: $${terms.monthlyRent.toLocaleString()}`, 20, yPos);
+  doc.text(`Monthly Rent: ${formatMoney(metadata.monthlyRent ?? terms.monthlyRent)}`, 20, yPos);
   yPos += 7;
 
-  if (terms.deposit || terms.securityDeposit) {
-    const deposit = terms.deposit || terms.securityDeposit || 0;
-    doc.text(`Security Deposit: $${deposit.toLocaleString()}`, 20, yPos);
+  const depositValue =
+    metadata.deposit != null ? metadata.deposit : terms.deposit || terms.securityDeposit || 0;
+  if (depositValue) {
+    doc.text(`Security Deposit: ${formatMoney(depositValue)}`, 20, yPos);
     yPos += 7;
   }
 
@@ -38,7 +90,7 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
     doc.text(`Pets Allowed: ${terms.petsAllowed ? "Yes" : "No"}`, 20, yPos);
     yPos += 7;
     if (terms.petsAllowed && terms.petDeposit) {
-      doc.text(`Pet Deposit: $${terms.petDeposit.toLocaleString()}`, 30, yPos);
+      doc.text(`Pet Deposit: ${formatMoney(terms.petDeposit)}`, 30, yPos);
       yPos += 7;
     }
   }
@@ -52,7 +104,7 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
     doc.text(`Grace Period: ${terms.lateFeePolicy.gracePeriodDays} days`, 20, yPos);
     yPos += 7;
     if (terms.lateFeePolicy.flatFee) {
-      doc.text(`Late Fee: $${terms.lateFeePolicy.flatFee} flat fee`, 20, yPos);
+      doc.text(`Late Fee: ${formatMoney(terms.lateFeePolicy.flatFee)}`, 20, yPos);
       yPos += 7;
     } else if (terms.lateFeePolicy.percentage) {
       doc.text(`Late Fee: ${terms.lateFeePolicy.percentage}% of rent`, 20, yPos);
@@ -76,7 +128,39 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
     yPos += splitText.length * 5;
   }
 
-  // Footer
+  // Move to last page for signatures and footer
+  const pageCountBefore = doc.getNumberOfPages();
+  doc.setPage(pageCountBefore);
+
+  const pageHeight = doc.internal.pageSize.height || 297;
+  const signatureAreaTop = pageHeight - 50;
+
+  // Signature labels
+  doc.setFontSize(11);
+  const ownerLabel = metadata.ownerLabel || "Agent / Owner Signature";
+  const tenantLabel = metadata.tenantLabel || "Tenant Signature";
+
+  doc.text(ownerLabel, 20, signatureAreaTop + 22);
+  doc.text(tenantLabel, 130, signatureAreaTop + 22);
+
+  // Signature images (agent left bottom, tenant right bottom)
+  if (metadata.ownerSignatureDataUrl) {
+    try {
+      doc.addImage(metadata.ownerSignatureDataUrl, "PNG", 20, signatureAreaTop, 60, 20);
+    } catch {
+      // Ignore image errors so PDF generation still succeeds
+    }
+  }
+
+  if (metadata.tenantSignatureDataUrl) {
+    try {
+      doc.addImage(metadata.tenantSignatureDataUrl, "PNG", 130, signatureAreaTop, 60, 20);
+    } catch {
+      // Ignore image errors so PDF generation still succeeds
+    }
+  }
+
+  // Footer with page numbers
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -84,7 +168,7 @@ export function generateLeasePDF(terms: LeaseTerms, leaseNumber: string): jsPDF 
     doc.text(
       `Page ${i} of ${pageCount}`,
       105,
-      doc.internal.pageSize.height - 10,
+      (doc.internal.pageSize.height || pageHeight) - 10,
       { align: "center" }
     );
   }

@@ -11,6 +11,7 @@ export interface LeaseTerms {
     flatFee?: number;
     percentage?: number;
   };
+  currency?: string;
 }
 
 export interface LeaseTemplate {

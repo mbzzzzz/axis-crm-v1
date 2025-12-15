@@ -21,6 +21,7 @@ interface Lease {
   endDate: string;
   monthlyRent: number;
   deposit?: number;
+  currency?: string;
   terms: LeaseTerms | null;
   status: string;
   signedByTenant: number;
@@ -73,7 +74,18 @@ export default function LeaseDetailsPage() {
       }
 
       const leaseNumber = `LEASE-${lease.id}`;
-      const pdf = generateLeasePDF(lease.terms, leaseNumber);
+      const pdf = generateLeasePDF(lease.terms, leaseNumber, {
+        tenantName: lease.tenant?.name,
+        tenantEmail: lease.tenant?.email,
+        propertyTitle: lease.property?.title,
+        propertyAddress: lease.property?.address,
+        leaseType: lease.leaseType,
+        startDate: new Date(lease.startDate).toLocaleDateString(),
+        endDate: new Date(lease.endDate).toLocaleDateString(),
+        monthlyRent: lease.monthlyRent,
+        deposit: lease.deposit ?? null,
+        currency: lease.currency || "USD",
+      });
       
       // Convert PDF to buffer for upload
       const pdfBuffer = Buffer.from(pdf.output('arraybuffer'));
@@ -114,7 +126,19 @@ export default function LeaseDetailsPage() {
     }
 
     const leaseNumber = `LEASE-${lease.id}`;
-    const pdf = generateLeasePDF(lease.terms, leaseNumber);
+    const pdf = generateLeasePDF(lease.terms, leaseNumber, {
+      tenantName: lease.tenant?.name,
+      tenantEmail: lease.tenant?.email,
+      propertyTitle: lease.property?.title,
+      propertyAddress: lease.property?.address,
+      leaseType: lease.leaseType,
+      startDate: new Date(lease.startDate).toLocaleDateString(),
+      endDate: new Date(lease.endDate).toLocaleDateString(),
+      monthlyRent: lease.monthlyRent,
+      deposit: lease.deposit ?? null,
+      currency: lease.currency || "USD",
+      // Signatures are applied on server when fully signed
+    });
     pdf.save(`lease-${leaseNumber}.pdf`);
     toast.success("Lease PDF downloaded");
   };
@@ -237,13 +261,17 @@ export default function LeaseDetailsPage() {
 
             <div>
               <label className="text-sm font-medium text-muted-foreground">Monthly Rent</label>
-              <p className="mt-1 font-semibold">${lease.monthlyRent.toLocaleString()}</p>
+              <p className="mt-1 font-semibold">
+                {(lease.currency || "USD")} {lease.monthlyRent.toLocaleString()}
+              </p>
             </div>
 
             {lease.deposit && (
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Security Deposit</label>
-                <p className="mt-1 font-semibold">${lease.deposit.toLocaleString()}</p>
+                <p className="mt-1 font-semibold">
+                  {(lease.currency || "USD")} {lease.deposit.toLocaleString()}
+                </p>
               </div>
             )}
           </CardContent>
