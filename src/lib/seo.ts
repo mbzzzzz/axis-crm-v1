@@ -13,12 +13,12 @@ export interface SEOConfig {
 }
 
 export function generateMetadata(config: SEOConfig): Metadata {
-  const title = config.title 
+  const title = config.title
     ? `${config.title} | ${siteName}`
     : `${siteName} - Real Estate Management Platform`;
-  
-  const description = config.description || 
-    "Comprehensive real estate CRM platform for property managers and agents.";
+
+  const description = config.description ||
+    "The ultimate real estate management tool and property listing solution. Streamline your property management, tenant tracking, invoicing, and lead generation with Axis CRM.";
 
   return {
     title,

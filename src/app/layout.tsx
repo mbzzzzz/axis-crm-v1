@@ -11,26 +11,26 @@ import { StructuredData } from "@/components/structured-data";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://axis-crm-v1.vercel.app";
 const siteName = "Axis CRM";
-const siteDescription = "Comprehensive real estate CRM platform for property managers and agents. Manage properties, tenants, invoices, maintenance requests, and leads all in one place.";
+const siteDescription = "The ultimate real estate management tool and property listing solution. Streamline your property management, tenant tracking, invoicing, and lead generation with Axis CRM.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${siteName} - Real Estate Management Platform`,
+    default: `${siteName} - Real Estate Management Platform & Listing Site`,
     template: `%s | ${siteName}`,
   },
   description: siteDescription,
   keywords: [
     "real estate CRM",
     "property management software",
-    "real estate management",
-    "property CRM",
-    "tenant management",
-    "real estate invoicing",
+    "real estate management tools",
+    "property listing sites",
+    "tenant management system",
+    "landlord software",
+    "real estate agent tools",
     "property maintenance tracking",
-    "lead management",
-    "real estate automation",
-    "property management platform",
+    "rental property management",
+    "automated invoicing for landlords",
   ],
   authors: [{ name: "Axis CRM" }],
   creator: "Axis CRM",

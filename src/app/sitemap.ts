@@ -4,7 +4,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://axis-crm-v1.vercel.
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = siteUrl;
-  
+
   // Public routes
   const routes = [
     {
@@ -24,6 +24,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/listings`,
+      lastModified: new Date(),
+      changeFrequency: "daily" as const,
+      priority: 0.9,
     },
   ];
 
