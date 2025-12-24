@@ -17,6 +17,8 @@ const publicRoutes = [
   "/listings", // Public property browse pages
   "/tenant-portal/login",
   "/tenant-portal/register",
+  "/sitemap.xml",
+  "/robots.txt",
 ];
 
 function isPublicApiPath(pathname: string) {
@@ -38,9 +40,9 @@ function isTenantRoute(pathname: string) {
 function isTenantApiRoute(pathname: string) {
   // Allow tenant-specific API routes (they use JWT tokens, not Supabase sessions)
   return pathname.startsWith("/api/maintenance/generate-description/tenant") ||
-         pathname.startsWith("/api/maintenance/mobile") ||
-         pathname.startsWith("/api/invoices/mobile") ||
-         pathname.startsWith("/api/auth/tenant");
+    pathname.startsWith("/api/maintenance/mobile") ||
+    pathname.startsWith("/api/invoices/mobile") ||
+    pathname.startsWith("/api/auth/tenant");
 }
 
 export async function middleware(request: NextRequest) {
@@ -100,7 +102,7 @@ export async function middleware(request: NextRequest) {
   // Log session errors for debugging (but don't fail the request)
   if (sessionError) {
     console.error(`Middleware session error for ${pathname}:`, sessionError);
-    
+
     // If session error indicates expired/invalid token, try to refresh
     if (sessionError.message.includes("JWT") || sessionError.message.includes("expired")) {
       // Try to refresh the session
@@ -119,7 +121,7 @@ export async function middleware(request: NextRequest) {
 
   // Debug logging for auth flow
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
-    const authCookies = request.cookies.getAll().filter(c => 
+    const authCookies = request.cookies.getAll().filter(c =>
       c.name.includes('auth') || c.name.includes('supabase')
     );
     if (authCookies.length > 0 && !session) {
@@ -139,7 +141,7 @@ export async function middleware(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     // For page routes, redirect to login
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("redirectedFrom", pathname);
