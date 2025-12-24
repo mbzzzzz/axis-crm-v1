@@ -84,8 +84,7 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   verification: {
-    // Add your verification codes here when available
-    // google: "your-google-verification-code",
+    google: "N0FGyKfRNpX5FgA6n94KfJPTHQ9d4JUQH7fOVe9OJzA",
     // yandex: "your-yandex-verification-code",
     // bing: "your-bing-verification-code",
   },
@@ -99,37 +98,37 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
-          <meta name="theme-color" content="#000000" />
-          <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-          <StructuredData type="Organization" />
-          <StructuredData type="WebApplication" />
-        </head>
-        <body className="antialiased">
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-            <GlobalThemeProvider>
-              <ErrorReporter />
-              <Script
-                src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
-                strategy="afterInteractive"
-                data-target-origin="*"
-                data-message-type="ROUTE_CHANGE"
-                data-include-search-params="true"
-                data-only-in-iframe="true"
-                data-debug="true"
-                data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-              />
-              {/* Global theme toggle - hidden on landing page */}
-              <ConditionalThemeToggle />
-              {children}
-              <Toaster />
-              <VisualEditsMessenger />
-            </GlobalThemeProvider>
-          </ThemeProvider>
-        </body>
-      </html>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <StructuredData type="Organization" />
+        <StructuredData type="WebApplication" />
+      </head>
+      <body className="antialiased">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <GlobalThemeProvider>
+            <ErrorReporter />
+            <Script
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+              strategy="afterInteractive"
+              data-target-origin="*"
+              data-message-type="ROUTE_CHANGE"
+              data-include-search-params="true"
+              data-only-in-iframe="true"
+              data-debug="true"
+              data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+            />
+            {/* Global theme toggle - hidden on landing page */}
+            <ConditionalThemeToggle />
+            {children}
+            <Toaster />
+            <VisualEditsMessenger />
+          </GlobalThemeProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
