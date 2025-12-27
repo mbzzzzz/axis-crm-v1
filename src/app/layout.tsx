@@ -31,6 +31,13 @@ export const metadata: Metadata = {
     "property maintenance tracking",
     "rental property management",
     "automated invoicing for landlords",
+    "best property tenant management tool",
+    "best invoicing for tenants and realtor",
+    "buy property",
+    "rent property",
+    "property listing",
+    "tenant invoicing software",
+    "realtor management tools",
   ],
   authors: [{ name: "Axis CRM" }],
   creator: "Axis CRM",
@@ -106,8 +113,27 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <StructuredData type="Organization" />
         <StructuredData type="WebApplication" />
+        {/* Google Tag Manager */}
+        <Script id="gtm-script" strategy="afterInteractive">
+          {`
+            (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+            'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+            })(window,document,'script','dataLayer','GTM-PSVSDRCH');
+          `}
+        </Script>
       </head>
       <body className="antialiased">
+        {/* Google Tag Manager (noscript) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-PSVSDRCH"
+            height="0"
+            width="0"
+            style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <GlobalThemeProvider>
             <ErrorReporter />
