@@ -19,6 +19,7 @@ const publicRoutes = [
   "/tenant-portal/register",
   "/sitemap.xml",
   "/robots.txt",
+  "/blog",
 ];
 
 function isPublicApiPath(pathname: string) {
