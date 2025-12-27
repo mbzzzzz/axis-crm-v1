@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 
@@ -33,7 +35,7 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
   if (variant === "icon") {
     const dimensions = sizeMap[size];
     const src = getImageSrc("icon");
-    
+
     return (
       <div className={`flex items-center shrink-0 ${className}`} style={{ maxHeight: dimensions.maxHeight, height: dimensions.maxHeight }}>
         <Image
@@ -42,7 +44,7 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
           width={dimensions.width}
           height={dimensions.height}
           className="object-contain"
-          style={{ 
+          style={{
             maxHeight: dimensions.maxHeight,
             maxWidth: dimensions.maxHeight,
             height: dimensions.maxHeight,
@@ -61,15 +63,15 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
 
   const dimensions = fullLogoSizeMap[size];
   const src = getImageSrc("full");
-  
+
   // Special handling for landing page logos
   const isLandingPageLogo = size === "lg" || size === "navbar";
-  
+
   return (
-    <div 
-      className={`flex items-center shrink-0 ${className}`} 
-      style={{ 
-        maxHeight: dimensions.maxHeight, 
+    <div
+      className={`flex items-center shrink-0 ${className}`}
+      style={{
+        maxHeight: dimensions.maxHeight,
         height: isLandingPageLogo ? (size === "lg" ? "350px" : "180px") : dimensions.maxHeight,
         width: isLandingPageLogo ? (size === "lg" ? "180px" : "350px") : "auto"
       }}
@@ -80,7 +82,7 @@ export function AxisLogo({ variant = "full", className = "", size = "md" }: Axis
         width={dimensions.width}
         height={dimensions.height}
         className="object-contain"
-        style={{ 
+        style={{
           color: "transparent",
           maxHeight: dimensions.maxHeight,
           height: isLandingPageLogo ? (size === "lg" ? "350px" : "180px") : "100%",
