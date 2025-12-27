@@ -20,6 +20,7 @@ const publicRoutes = [
   "/sitemap.xml",
   "/robots.txt",
   "/blog",
+  "/screenshots",
 ];
 
 function isPublicApiPath(pathname: string) {
@@ -155,7 +156,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest|mp4)).*)",
     "/(api|trpc)(.*)",
   ],
 };
