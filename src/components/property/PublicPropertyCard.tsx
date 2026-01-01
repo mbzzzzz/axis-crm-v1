@@ -2,10 +2,12 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MapPin, Bed, Bath, Square } from "lucide-react";
+import { MapPin, Bed, Bath, Square, Heart } from "lucide-react";
 import { formatCurrency, type CurrencyCode } from "@/lib/currency-formatter";
 import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface PublicPropertyCardProps {
   property: {
@@ -27,6 +29,8 @@ interface PublicPropertyCardProps {
 }
 
 export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
+  const [isLiked, setIsLiked] = useState(false);
+
   const mainImage =
     property.images && property.images.length > 0
       ? property.images[0]
@@ -44,101 +48,112 @@ export function PublicPropertyCard({ property }: PublicPropertyCardProps) {
   };
 
   const getStatusColor = (status: string) => {
-    // Match the exact colors from dashboard properties page
     const colors: Record<string, string> = {
-      rented: "bg-green-500 text-white",
-      occupied: "bg-green-500 text-white",
-      available: "bg-blue-500 text-white",
-      vacant: "bg-blue-500 text-white",
-      pending: "bg-orange-500 text-white",
-      maintenance: "bg-orange-500 text-white",
-      under_contract: "bg-yellow-500 text-white",
-      sold: "bg-purple-500 text-white",
+      rented: "bg-green-500",
+      occupied: "bg-green-500",
+      available: "bg-blue-600",
+      vacant: "bg-blue-600",
+      pending: "bg-orange-500",
+      maintenance: "bg-orange-500",
+      under_contract: "bg-yellow-600",
+      sold: "bg-purple-600",
     };
-    return colors[status.toLowerCase()] || "bg-gray-500 text-white";
+    return colors[status.toLowerCase()] || "bg-gray-500";
   };
 
   return (
-    <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl group border-border/50">
-      <Link href={`/listings/${property.id}`} className="block">
-        <div className="relative h-56 overflow-hidden bg-muted">
-          <div
-            className="h-full w-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-            style={{
-              backgroundImage: `url(${mainImage})`,
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <Badge
-            className={`absolute top-3 right-3 ${getStatusColor(property.status)} capitalize shadow-lg`}
-          >
+    <Card className="group relative overflow-hidden border-none bg-muted/20 hover:bg-muted/30 transition-all duration-500 shadow-sm hover:shadow-2xl h-full flex flex-col">
+      <Link href={`/listings/${property.id}`} className="block relative aspect-[4/3] overflow-hidden">
+        {/* Image Section */}
+        <Image
+          src={mainImage}
+          alt={property.title || property.address}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+
+        {/* Status Badge */}
+        <div className="absolute top-4 left-4 z-10">
+          <Badge className={cn("px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white border-none", getStatusColor(property.status))}>
             {getStatusLabel(property.status)}
           </Badge>
-          {property.images && property.images.length > 1 && (
-            <div className="absolute bottom-3 left-3 bg-black/70 text-white px-2 py-1 rounded-md text-xs font-medium backdrop-blur-sm">
-              {property.images.length} Photos
-            </div>
-          )}
+        </div>
+
+        {/* Like Button */}
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsLiked(!isLiked);
+          }}
+          className="absolute top-4 right-4 size-9 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white hover:text-red-500 transition-all z-20"
+        >
+          <Heart className={cn("size-5", isLiked && "fill-current text-red-500")} />
+        </button>
+
+        {/* Price Overlay */}
+        <div className="absolute bottom-4 left-4 right-4 z-10">
+          <p className="text-2xl font-black text-white drop-shadow-md">
+            {formatCurrency(
+              property.price,
+              (property.currency || "USD") as CurrencyCode,
+              { compact: false, showDecimals: false }
+            )}
+            {property.status === "rented" && <span className="text-sm font-normal opacity-80 ml-1">/mo</span>}
+          </p>
         </div>
       </Link>
-      <CardContent className="p-5">
-        <div className="space-y-4">
-          <div>
-            <Link href={`/listings/${property.id}`}>
-              <h3 className="font-bold text-lg line-clamp-2 hover:text-primary transition-colors mb-2 min-h-[3.5rem]">
+
+      {/* Content Section */}
+      <CardContent className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+        <div className="space-y-3">
+          <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            {property.bedrooms !== null && (
+              <span className="flex items-center gap-1">
+                <span className="text-foreground">{property.bedrooms}</span> Bds
+              </span>
+            )}
+            {property.bathrooms !== null && (
+              <span className="flex items-center gap-1">
+                <span className="text-foreground">{property.bathrooms}</span> Ba
+              </span>
+            )}
+            {property.sizeSqft !== null && (
+              <span className="flex items-center gap-1">
+                <span className="text-foreground">{property.sizeSqft.toLocaleString()}</span> Sqft
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Link href={`/listings/${property.id}`} className="block">
+              <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors">
                 {property.title || property.address}
               </h3>
             </Link>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="size-3.5 flex-shrink-0" />
-              <span className="line-clamp-1">
-                {property.city}, {property.state}
-              </span>
-            </div>
+            <p className="text-sm text-muted-foreground flex items-center gap-1">
+              <MapPin className="size-3" />
+              {property.city}, {property.state} {property.zipCode}
+            </p>
           </div>
+        </div>
 
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold">
-              {formatCurrency(
-                property.price,
-                (property.currency || "USD") as CurrencyCode,
-                { compact: false, showDecimals: false }
-              )}
-            </span>
-            {property.status === "rented" && (
-              <span className="text-sm text-muted-foreground font-normal">/mo</span>
-            )}
+        <div className="pt-4 mt-auto flex items-center justify-between border-t border-border/50">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+            Listing by AXIS
+          </span>
+          <div className="flex -space-x-2">
+            {[1].map((i) => (
+              <div key={i} className="size-6 rounded-full border-2 border-background bg-muted overflow-hidden relative">
+                {/* Fallback avatar if no agent image */}
+                <div className="size-full bg-slate-300 flex items-center justify-center text-[8px] font-bold text-slate-600">
+                  AX
+                </div>
+              </div>
+            ))}
           </div>
-
-          <div className="flex items-center gap-4 pt-2 border-t">
-            {property.bedrooms !== null && property.bedrooms !== undefined && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Bed className="size-4 text-muted-foreground" />
-                <span className="font-medium">{property.bedrooms}</span>
-                <span className="text-muted-foreground">Bed</span>
-              </div>
-            )}
-            {property.bathrooms !== null && property.bathrooms !== undefined && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Bath className="size-4 text-muted-foreground" />
-                <span className="font-medium">{property.bathrooms}</span>
-                <span className="text-muted-foreground">Bath</span>
-              </div>
-            )}
-            {property.sizeSqft !== null && property.sizeSqft !== undefined && (
-              <div className="flex items-center gap-1.5 text-sm">
-                <Square className="size-4 text-muted-foreground" />
-                <span className="font-medium">{property.sizeSqft.toLocaleString()}</span>
-                <span className="text-muted-foreground">sqft</span>
-              </div>
-            )}
-          </div>
-
-          <Link href={`/listings/${property.id}`}>
-            <Button className="w-full mt-4" variant="default">
-              View Details
-            </Button>
-          </Link>
         </div>
       </CardContent>
     </Card>

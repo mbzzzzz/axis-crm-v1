@@ -1,4 +1,5 @@
 import jsPDF from "jspdf";
+import { formatCurrency, CurrencyCode } from "./currency-formatter";
 import { LeaseTerms } from "./lease-templates";
 
 export interface LeasePdfMetadata {
@@ -26,9 +27,9 @@ export function generateLeasePDF(
   const doc = new jsPDF();
   let yPos = 20;
 
-  const currency = metadata.currency || terms.currency || "USD";
+  const currencyCode = (metadata.currency || terms.currency || "USD") as CurrencyCode;
   const formatMoney = (amount: number | null | undefined): string =>
-    amount != null ? `${currency} ${amount.toLocaleString()}` : `${currency} 0`;
+    amount != null ? formatCurrency(amount, currencyCode, { compact: false }) : formatCurrency(0, currencyCode, { compact: false });
 
   // Header
   doc.setFontSize(20);

@@ -19,6 +19,7 @@ import { CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { LeaseTemplateSelector } from "./lease-template-selector";
 import { LeaseTerms } from "@/lib/lease-templates";
+import { getCurrencySymbol } from "@/lib/currency-formatter";
 
 interface LeaseFormProps {
   tenantId?: number;
@@ -260,7 +261,7 @@ export function LeaseForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="monthlyRent">Monthly Rent ($) *</Label>
+          <Label htmlFor="monthlyRent">Monthly Rent ({getCurrencySymbol(formData.currency as any)}) *</Label>
           <Input
             id="monthlyRent"
             type="number"
@@ -273,7 +274,7 @@ export function LeaseForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="deposit">Security Deposit ($)</Label>
+          <Label htmlFor="deposit">Security Deposit ({getCurrencySymbol(formData.currency as any)})</Label>
           <Input
             id="deposit"
             type="number"

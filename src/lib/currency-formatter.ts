@@ -98,11 +98,12 @@ export function formatCurrency(
   } = {}
 ): string {
   const { showSymbol = true, showDecimals = true, compact = true } = options;
-  const currency = CURRENCIES[currencyCode];
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD;
   const symbol = showSymbol ? currency.symbol : '';
 
   if (!compact || value === 0) {
-    return `${symbol}${value.toLocaleString('en-US', {
+    const locale = currency.usesIndianNumbering ? 'en-IN' : 'en-US';
+    return `${symbol}${value.toLocaleString(locale, {
       minimumFractionDigits: showDecimals ? 2 : 0,
       maximumFractionDigits: showDecimals ? 2 : 0,
     })}`;
@@ -137,7 +138,7 @@ export function parseCurrencyValue(input: string, currencyCode: CurrencyCode = '
 
   // Check if input contains unit indicators
   const lowerInput = input.toLowerCase();
-  
+
   if (currency.usesIndianNumbering) {
     if (lowerInput.includes('cr') || lowerInput.includes('crore')) {
       return numericValue * 10000000;

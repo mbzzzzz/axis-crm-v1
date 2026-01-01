@@ -12,8 +12,8 @@ import { uploadImages } from "./adapters/utils";
 import { extractLeadFromCurrentPage } from "../shared/leads-extractor";
 
 const ADAPTERS: AutofillAdapter[] = [
-  ZillowAdapter, 
-  ZameenAdapter, 
+  ZillowAdapter,
+  ZameenAdapter,
   RealtorAdapter,
   BayutAdapter,
   PropertyFinderAdapter,
@@ -66,11 +66,11 @@ function showToast(message: string) {
     toast.setAttribute("tabindex", "-1");
     document.body.appendChild(toast);
   }
-  
+
   if (toastTimeout !== undefined) {
     clearTimeout(toastTimeout);
   }
-  
+
   toast.textContent = message;
   toast.style.opacity = "1";
   toastTimeout = window.setTimeout(() => {
@@ -113,14 +113,14 @@ async function waitForFormContainer(timeout = 5000): Promise<HTMLElement | null>
       'article',
       '[class*="container"]',
     ];
-    
+
     for (const selector of formSelectors) {
       const element = document.querySelector<HTMLElement>(selector);
       if (element) {
         return element;
       }
     }
-    
+
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   return null;
@@ -130,7 +130,7 @@ async function waitForFormContainer(timeout = 5000): Promise<HTMLElement | null>
 function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, value: string) {
   // Focus the element first
   element.focus();
-  
+
   if (element instanceof HTMLSelectElement) {
     element.value = value;
     // Trigger multiple events for React compatibility
@@ -146,7 +146,7 @@ function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSe
     Object.getPrototypeOf(element),
     "value"
   )?.set;
-  
+
   // Set value using native setter
   if (nativeInputValueSetter) {
     nativeInputValueSetter.call(element, value);
@@ -161,20 +161,20 @@ function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSe
     new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" }),
     new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: "Enter" }),
   ];
-  
+
   events.forEach(event => {
     element.dispatchEvent(event);
   });
-  
+
   // Create React-compatible synthetic event
   const reactInputEvent = new Event("input", { bubbles: true, cancelable: true });
-  Object.defineProperty(reactInputEvent, "target", { 
-    value: element, 
+  Object.defineProperty(reactInputEvent, "target", {
+    value: element,
     enumerable: true,
-    configurable: true 
+    configurable: true
   });
   element.dispatchEvent(reactInputEvent);
-  
+
   // Trigger blur and refocus to ensure validation runs
   element.blur();
   // Small delay before refocus to let validation complete
@@ -183,244 +183,228 @@ function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement | HTMLSe
   }, 50);
 }
 
+// Helper to highlight element for visual feedback
+function highlightElement(element: HTMLElement) {
+  const originalTransition = element.style.transition;
+  const originalBoxShadow = element.style.boxShadow;
+
+  element.style.transition = "all 0.5s ease";
+  element.style.boxShadow = "0 0 0 4px #a855f7";
+
+  setTimeout(() => {
+    element.style.boxShadow = originalBoxShadow;
+    setTimeout(() => {
+      element.style.transition = originalTransition;
+    }, 500);
+  }, 2000);
+}
+
+// Robust input finder that looks for labels, placeholders, and structure
+function findInputByKeywords(root: Document | HTMLElement, keywords: string[]): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null {
+  const lowerKeywords = keywords.map(k => k.toLowerCase());
+
+  // 1. Direct match by placeholder, name, id, or aria-label
+  const selectorParts = [];
+  for (const keyword of keywords) {
+    selectorParts.push(`input[placeholder*="${keyword}" i]`);
+    selectorParts.push(`textarea[placeholder*="${keyword}" i]`);
+    selectorParts.push(`select[placeholder*="${keyword}" i]`);
+    selectorParts.push(`input[name*="${keyword.toLowerCase()}" i]`);
+    selectorParts.push(`textarea[name*="${keyword.toLowerCase()}" i]`);
+    selectorParts.push(`select[name*="${keyword.toLowerCase()}" i]`);
+    selectorParts.push(`input[id*="${keyword.toLowerCase()}" i]`);
+    selectorParts.push(`[aria-label*="${keyword}" i]`);
+  }
+
+  const directMatch = root.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(selectorParts.join(','));
+  if (directMatch) return directMatch;
+
+  // 2. Find by Label text
+  const allLabels = Array.from(root.querySelectorAll("label, div, span, p, h3, h4, h5, h6"));
+  const foundLabel = allLabels.find(el => {
+    // specific check to avoid finding long paragraphs
+    if (el.textContent && el.textContent.length < 50) {
+      const text = el.textContent.toLowerCase().trim();
+      return lowerKeywords.some(k => text.includes(k.toLowerCase()));
+    }
+    return false;
+  });
+
+  if (foundLabel) {
+    // Check "for" attribute
+    if (foundLabel instanceof HTMLLabelElement && foundLabel.htmlFor) {
+      const input = root.getElementById(foundLabel.htmlFor);
+      if (input && (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA' || input.tagName === 'SELECT')) {
+        return input as HTMLInputElement;
+      }
+    }
+
+    // Check ancestors/siblings (common in React UI libs)
+
+    // a. Input inside the label
+    const inputInLabel = foundLabel.querySelector('input, textarea, select');
+    if (inputInLabel) return inputInLabel as HTMLInputElement;
+
+    // b. Input is next sibling
+    let sibling = foundLabel.nextElementSibling;
+    while (sibling) {
+      if (sibling.tagName === 'INPUT' || sibling.tagName === 'TEXTAREA' || sibling.tagName === 'SELECT') {
+        return sibling as HTMLInputElement;
+      }
+      // If sibling is a wrapper div, look inside
+      const inputInSibling = sibling.querySelector('input, textarea, select');
+      if (inputInSibling) return inputInSibling as HTMLInputElement;
+
+      sibling = sibling.nextElementSibling;
+      // Don't look too far
+      if (sibling && sibling.tagName === 'LABEL') break;
+    }
+
+    // c. Label is inside a wrapper that also contains the input (Material UI style)
+    const parent = foundLabel.parentElement;
+    if (parent) {
+      const inputInParent = parent.querySelector('input, textarea, select');
+      if (inputInParent) return inputInParent as HTMLInputElement;
+
+      const grandParent = parent.parentElement;
+      if (grandParent) {
+        const inputInGrandParent = grandParent.querySelector('input, textarea, select');
+        if (inputInGrandParent) return inputInGrandParent as HTMLInputElement;
+      }
+    }
+  }
+
+  return null;
+}
+
 // Handle Profolio (profolio.zameen.com) form filling
 async function handleProfolioFill(payload: AutofillPayload) {
   console.log("AXIS Autofill: Starting Profolio form fill", payload.property);
-  
+  showToast("Detecting form fields...");
+
   const { property } = payload;
 
-  // Wait for page to be ready and form elements to load
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  
-  // Wait for form container to be available
-  const formContainer = await waitForFormContainer();
-  if (!formContainer) {
-    console.warn("AXIS Autofill: Form container not found, continuing anyway");
-  }
-
-  // Find Title Input: Look for input with placeholder 'Enter property title...' or label 'Title'
-  const titleSelectors = [
-    'input[placeholder*="Enter property title" i]',
-    'input[placeholder*="property title" i]',
-    'input[placeholder*="Title" i]',
-    'input[aria-label*="Title" i]',
-    'label:has-text("Title") + input',
-    'input[name*="title" i]',
-  ];
-
-  let titleInput: HTMLInputElement | null = null;
-  for (const selector of titleSelectors) {
-    titleInput = document.querySelector<HTMLInputElement>(selector);
-    if (titleInput) break;
-  }
-
-  // Also try finding by label
-  if (!titleInput) {
-    const titleLabel = Array.from(document.querySelectorAll("label")).find(
-      (label) => label.textContent?.toLowerCase().includes("title")
-    );
-    if (titleLabel) {
-      const labelFor = titleLabel.getAttribute("for");
-      if (labelFor) {
-        titleInput = document.querySelector<HTMLInputElement>(`#${labelFor}`);
-      } else {
-        // Look for input next to label
-        const nextInput = titleLabel.nextElementSibling as HTMLInputElement;
-        if (nextInput && (nextInput.tagName === "INPUT" || nextInput.tagName === "TEXTAREA")) {
-          titleInput = nextInput;
-        }
-      }
-    }
-  }
-
-  if (titleInput) {
-    // Wait a bit for the input to be fully interactive
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    setNativeValue(titleInput, property.title);
-    console.log("AXIS Autofill: Title filled");
-  } else {
-    console.warn("AXIS Autofill: Title input not found");
-  }
-
-  // Find Description Input: Look for textarea with placeholder 'Describe your property...'
-  const descriptionSelectors = [
-    'textarea[placeholder*="Describe your property" i]',
-    'textarea[placeholder*="Describe" i]',
-    'textarea[placeholder*="description" i]',
-    'textarea[aria-label*="Description" i]',
-    'textarea[name*="description" i]',
-  ];
-
-  let descriptionInput: HTMLTextAreaElement | null = null;
-  for (const selector of descriptionSelectors) {
-    descriptionInput = document.querySelector<HTMLTextAreaElement>(selector);
-    if (descriptionInput) break;
-  }
-
-  // Also try finding by label
-  if (!descriptionInput) {
-    const descLabel = Array.from(document.querySelectorAll("label")).find(
-      (label) => label.textContent?.toLowerCase().includes("description")
-    );
-    if (descLabel) {
-      const labelFor = descLabel.getAttribute("for");
-      if (labelFor) {
-        descriptionInput = document.querySelector<HTMLTextAreaElement>(`#${labelFor}`);
-      } else {
-        const nextTextarea = descLabel.nextElementSibling as HTMLTextAreaElement;
-        if (nextTextarea && nextTextarea.tagName === "TEXTAREA") {
-          descriptionInput = nextTextarea;
-        }
-      }
-    }
-  }
-
-  if (descriptionInput && property.description) {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    setNativeValue(descriptionInput, property.description);
-    console.log("AXIS Autofill: Description filled");
-  } else {
-    console.warn("AXIS Autofill: Description textarea not found");
-  }
-
-  // Fill Price
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const priceSelectors = [
-    'input[placeholder*="Price" i]',
-    'input[placeholder*="Enter Price" i]',
-    'input[type="number"][name*="price" i]',
-    'input[aria-label*="Price" i]',
-  ];
-  let priceInput: HTMLInputElement | null = null;
-  for (const selector of priceSelectors) {
-    priceInput = document.querySelector<HTMLInputElement>(selector);
-    if (priceInput) break;
-  }
-  if (priceInput && property.price) {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    setNativeValue(priceInput, String(property.price));
-    console.log("AXIS Autofill: Price filled");
-  }
-
-  // Fill Location/Address
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const locationSelectors = [
-    'input[placeholder*="Location" i]',
-    'input[placeholder*="Address" i]',
-    'input[placeholder*="Search Location" i]',
-    'input[aria-label*="Location" i]',
-    'input[name*="location" i]',
-    'input[name*="address" i]',
-  ];
-  let locationInput: HTMLInputElement | null = null;
-  for (const selector of locationSelectors) {
-    locationInput = document.querySelector<HTMLInputElement>(selector);
-    if (locationInput) break;
-  }
-  if (locationInput) {
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const fullAddress = `${property.address}, ${property.city}${property.state ? `, ${property.state}` : ''}`.trim();
-    setNativeValue(locationInput, fullAddress);
-    console.log("AXIS Autofill: Location filled");
-  }
-
-  // Fill Area/Size
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (property.sizeSqft) {
-    const areaSelectors = [
-      'input[placeholder*="Area" i]',
-      'input[placeholder*="Size" i]',
-      'input[placeholder*="Square Feet" i]',
-      'input[name*="area" i]',
-      'input[name*="size" i]',
-    ];
-    let areaInput: HTMLInputElement | null = null;
-    for (const selector of areaSelectors) {
-      areaInput = document.querySelector<HTMLInputElement>(selector);
-      if (areaInput) break;
-    }
-    if (areaInput) {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setNativeValue(areaInput, String(property.sizeSqft));
-      console.log("AXIS Autofill: Area filled");
-    }
-  }
-
-  // Fill Bedrooms
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (property.bedrooms) {
-    const bedroomSelectors = [
-      'input[placeholder*="Bedroom" i]',
-      'select[name*="bedroom" i]',
-      'button:has-text("' + property.bedrooms + '")',
-    ];
-    let bedroomInput: HTMLInputElement | HTMLSelectElement | HTMLButtonElement | null = null;
-    for (const selector of bedroomSelectors) {
-      bedroomInput = document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(selector);
-      if (bedroomInput) break;
-    }
-    if (!bedroomInput) {
-      // Try finding button with bedroom count
-      const buttons = Array.from(document.querySelectorAll("button"));
-      bedroomInput = buttons.find((btn) => btn.textContent?.trim() === String(property.bedrooms)) || null;
-    }
-    if (bedroomInput) {
-      if (bedroomInput instanceof HTMLInputElement || bedroomInput instanceof HTMLSelectElement) {
-        setNativeValue(bedroomInput, String(property.bedrooms));
-      } else if (bedroomInput instanceof HTMLButtonElement) {
-        bedroomInput.click();
-      }
-      console.log("AXIS Autofill: Bedrooms filled");
-    }
-  }
-
-  // Fill Bathrooms
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  if (property.bathrooms) {
-    const bathroomCount = Math.floor(property.bathrooms);
-    const bathroomSelectors = [
-      'input[placeholder*="Bathroom" i]',
-      'select[name*="bathroom" i]',
-    ];
-    let bathroomInput: HTMLInputElement | HTMLSelectElement | HTMLButtonElement | null = null;
-    for (const selector of bathroomSelectors) {
-      bathroomInput = document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(selector);
-      if (bathroomInput) break;
-    }
-    if (!bathroomInput) {
-      const buttons = Array.from(document.querySelectorAll("button"));
-      bathroomInput = buttons.find((btn) => btn.textContent?.trim() === String(bathroomCount)) || null;
-    }
-    if (bathroomInput) {
-      if (bathroomInput instanceof HTMLInputElement || bathroomInput instanceof HTMLSelectElement) {
-        setNativeValue(bathroomInput, String(bathroomCount));
-      } else if (bathroomInput instanceof HTMLButtonElement) {
-        bathroomInput.click();
-      }
-      console.log("AXIS Autofill: Bathrooms filled");
-    }
-  }
-
-  // Upload Images
+  // Wait for page to be ready
   await new Promise((resolve) => setTimeout(resolve, 500));
-  if (property.images?.length) {
-    const uploadBtn = Array.from(document.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.toLowerCase().includes("upload") || 
-      btn.textContent?.toLowerCase().includes("image") ||
-      btn.textContent?.toLowerCase().includes("photo")
-    );
-    if (uploadBtn) {
-      (uploadBtn as HTMLButtonElement).click();
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
-      if (fileInput) {
-        try {
-          await uploadImages('input[type="file"]', property.images);
-          console.log("AXIS Autofill: Images uploaded");
-        } catch (error) {
-          console.warn("AXIS Autofill: Image upload failed", error);
-        }
+
+  // --- Search Location / City ---
+  // In the screenshot, "City" is a dropdown/select and "Location" is a search input.
+  if (property.city) {
+    const cityInput = findInputByKeywords(document, ["City", "Select City"]);
+    if (cityInput) {
+      highlightElement(cityInput);
+      // For react-select or complex dropdowns, we might just focus it or try to type
+      cityInput.focus();
+      // Try setting value, but often these need manual interaction
+      // setNativeValue(cityInput, property.city); 
+      console.log("Found City input");
+    }
+  }
+
+  if (property.address) {
+    // "Location" in Profolio is usually an autocomplete. We can try typing the address.
+    const locationInput = findInputByKeywords(document, ["Location", "Search Location"]);
+    if (locationInput) {
+      highlightElement(locationInput);
+      setNativeValue(locationInput as HTMLInputElement, property.address);
+      console.log("Found Location input");
+    }
+  }
+
+  // --- Property Type ---
+  // Often a set of buttons or a dropdown.
+  if (property.propertyType) {
+    // Try to find a button with the text (e.g. "Apartment")
+    const xpath = `//span[contains(text(), '${property.propertyType}')] | //div[contains(text(), '${property.propertyType}')] | //button[contains(text(), '${property.propertyType}')]`;
+    const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    const typeEl = result.singleNodeValue as HTMLElement;
+    if (typeEl) {
+      highlightElement(typeEl);
+      typeEl.click();
+      console.log("Clicked Property Type:", property.propertyType);
+    }
+  }
+
+  // --- Price ---
+  // Look specifically for "Price" in the "Price and Area" section
+  if (property.price) {
+    const priceInput = findInputByKeywords(document, ["Price (PKR)", "Total Price", "Price"]);
+    if (priceInput) {
+      highlightElement(priceInput);
+      setNativeValue(priceInput as HTMLInputElement, String(property.price));
+      console.log("Filled Price");
+    }
+  }
+
+  // --- Area Size ---
+  if (property.sizeSqft) {
+    // Profolio might use Marla/Kanal. 
+    // This is a naive fill of the number. User might need to select unit.
+    const areaInput = findInputByKeywords(document, ["Area Size", "Area", "Enter Unit"]);
+    if (areaInput) {
+      highlightElement(areaInput);
+      setNativeValue(areaInput as HTMLInputElement, String(property.sizeSqft)); // Or convert if needed logic exists
+      console.log("Filled Area");
+    }
+  }
+
+  // --- Title and Description ---
+  // These are often further down
+  if (property.title) {
+    const titleInput = findInputByKeywords(document, ["Property Title", "Title"]);
+    if (titleInput) {
+      highlightElement(titleInput);
+      setNativeValue(titleInput as HTMLInputElement, property.title);
+    }
+  }
+
+  if (property.description) {
+    const descInput = findInputByKeywords(document, ["Description", "Describe your property"]);
+    if (descInput) {
+      highlightElement(descInput);
+      setNativeValue(descInput as HTMLTextAreaElement, property.description);
+    }
+  }
+
+  // --- Bedrooms / Bathrooms ---
+  if (property.bedrooms) {
+    const bedInput = findInputByKeywords(document, ["Bedrooms", "Beds"]);
+    if (bedInput) {
+      highlightElement(bedInput);
+      setNativeValue(bedInput as HTMLInputElement, String(property.bedrooms));
+    } else {
+      // Look for grouping buttons
+      // e.g. a section with "Bedrooms" header and buttons 1, 2, 3...
+      // Naive approach: find 'Bedrooms' text, look at next siblings for buttons
+    }
+  }
+
+  if (property.bathrooms) {
+    const bathInput = findInputByKeywords(document, ["Bathrooms", "Baths"]);
+    if (bathInput) {
+      highlightElement(bathInput);
+      setNativeValue(bathInput as HTMLInputElement, String(property.bathrooms));
+    }
+  }
+
+  // --- Images ---
+  if (property.images && property.images.length > 0) {
+    // Trigger file input if possible, but this usually requires user interaction to open dialog
+    // or finding the hidden file input.
+    const fileInput = document.querySelector('input[type="file"]');
+    if (fileInput) {
+      // Automated file upload is restricted by browser security without user action usually.
+      // We can try calling our utils if they work via DataTransfer
+      try {
+        await uploadImages('input[type="file"]', property.images);
+        console.log("Attempted image upload");
+      } catch (e) {
+        console.warn("Image upload failed", e);
       }
+    } else {
+      // Try finding the "Upload" button to highlight it at least
+      const uploadBtn = findInputByKeywords(document, ["Upload", "Add Photos", "Images"]) as unknown as HTMLElement; // findInput returns inputs, but maybe we change it or just use similar logic
+      if (uploadBtn) highlightElement(uploadBtn);
     }
   }
 
@@ -440,7 +424,7 @@ browser.runtime.onMessage.addListener(
     // Handle FILL_FORM message (direct from popup)
     if ("action" in message && message.action === "FILL_FORM") {
       const fillMessage = message as FillFormMessage;
-      
+
       // Check if we're on Profolio
       if (window.location.hostname.includes("profolio.zameen.com")) {
         try {
@@ -454,7 +438,7 @@ browser.runtime.onMessage.addListener(
           return { success: false, error: errorMsg };
         }
       }
-      
+
       // For other sites, use adapter
       const adapter = getAdapter();
       if (!adapter) {

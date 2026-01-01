@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { properties } from "@/db/schema-postgres";
-import { eq, and, or, like, gte, lte, ilike } from "drizzle-orm";
+import { eq, and, or, like, gte, lte, ilike, asc, desc } from "drizzle-orm";
 
 /**
  * Public API endpoint for fetching public properties
@@ -27,6 +27,34 @@ export async function GET(request: NextRequest) {
     const zipCode = searchParams.get("zipCode") || "";
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
+    const sort = searchParams.get("sort") || "newest";
+
+    // Determine sort order
+    let orderByClause;
+    switch (sort) {
+      case "price_asc":
+        orderByClause = asc(properties.price);
+        break;
+      case "price_desc":
+        orderByClause = desc(properties.price);
+        break;
+      case "bedrooms":
+        orderByClause = desc(properties.bedrooms);
+        break;
+      case "bathrooms":
+        orderByClause = desc(properties.bathrooms);
+        break;
+      case "sqft":
+        orderByClause = desc(properties.sizeSqft);
+        break;
+      case "oldest":
+        orderByClause = asc(properties.createdAt);
+        break;
+      case "newest":
+      default:
+        orderByClause = desc(properties.createdAt);
+        break;
+    }
 
     // Build query - only public properties
     let query = db
@@ -106,7 +134,7 @@ export async function GET(request: NextRequest) {
       .where(and(...conditions))
       .limit(limit)
       .offset(offset)
-      .orderBy(properties.createdAt);
+      .orderBy(orderByClause);
 
     // Get total count for pagination
     const countResult = await db

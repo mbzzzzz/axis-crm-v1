@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Eye, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
+import { formatCurrency, CURRENCIES, type CurrencyCode } from "@/lib/currency-formatter";
 
 interface InvoiceItem {
   description: string;
@@ -35,7 +36,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
   const [tenants, setTenants] = useState<any[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<any>(null);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
-  
+
   const [formData, setFormData] = useState({
     invoiceNumber: invoice?.invoiceNumber || `INV-${Date.now()}`,
     propertyId: invoice?.propertyId || "",
@@ -64,6 +65,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
     companyTagline: invoice?.companyTagline || "Real Estate Management",
     logoDataUrl: invoice?.logoDataUrl || "",
     logoWidth: invoice?.logoWidth || 40, // px width in PDF header
+    currency: invoice?.currency || "USD",
   });
 
   const [items, setItems] = useState<InvoiceItem[]>(
@@ -159,12 +161,12 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
   const handleItemChange = (index: number, field: keyof InvoiceItem, value: any) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
-    
+
     // Auto-calculate amount
     if (field === "quantity" || field === "rate") {
       newItems[index].amount = (Number(newItems[index].quantity) || 0) * (Number(newItems[index].rate) || 0);
     }
-    
+
     setItems(newItems);
   };
 
@@ -180,7 +182,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
 
   const handlePreview = () => {
     const { subtotal, taxAmount, totalAmount } = calculateTotals();
-    
+
     const pdfData = {
       ...formData,
       propertyAddress: selectedProperty?.address,
@@ -191,7 +193,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       taxAmount,
       totalAmount,
     } as any;
-    
+
     const pdf = generateInvoicePDF(pdfData);
     pdf.output('dataurlnewwindow');
   };
@@ -378,7 +380,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
       </Card>
 
       {/* Invoice Header */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         <div className="space-y-2">
           <Label htmlFor="invoiceNumber">Invoice Number *</Label>
           <Input
@@ -387,6 +389,24 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
             onChange={(e) => setFormData({ ...formData, invoiceNumber: e.target.value })}
             required
           />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="currency">Currency *</Label>
+          <Select
+            value={formData.currency}
+            onValueChange={(value) => setFormData({ ...formData, currency: value })}
+          >
+            <SelectTrigger id="currency">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(CURRENCIES).map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.code} - {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="invoiceDate">Invoice Date *</Label>
@@ -654,7 +674,7 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
           <div className="ml-auto max-w-xs space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Subtotal:</span>
-              <span className="font-semibold">${subtotal.toFixed(2)}</span>
+              <span className="font-semibold">{formatCurrency(subtotal, formData.currency as CurrencyCode, { compact: false })}</span>
             </div>
             <div className="flex items-center justify-between">
               <Label htmlFor="taxRate" className="text-sm text-muted-foreground">Tax Rate (%):</Label>
@@ -670,11 +690,11 @@ export function InvoiceForm({ invoice, onSuccess }: InvoiceFormProps) {
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-muted-foreground">Tax Amount:</span>
-              <span className="font-semibold">${taxAmount.toFixed(2)}</span>
+              <span className="font-semibold">{formatCurrency(taxAmount, formData.currency as CurrencyCode, { compact: false })}</span>
             </div>
             <div className="flex justify-between border-t pt-2">
               <span className="text-lg font-bold">Total:</span>
-              <span className="text-lg font-bold text-primary">${totalAmount.toFixed(2)}</span>
+              <span className="text-lg font-bold text-primary">{formatCurrency(totalAmount, formData.currency as CurrencyCode, { compact: false })}</span>
             </div>
           </div>
         </CardContent>
