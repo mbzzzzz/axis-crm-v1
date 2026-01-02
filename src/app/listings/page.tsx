@@ -206,7 +206,7 @@ function ListingsContent() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Navigation - Zillow style */}
       <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container flex h-24 items-center justify-between px-4">
           <div className="flex items-center gap-6">
             <Button variant="ghost" size="icon" className="md:hidden">
               <Menu className="h-5 w-5" />
@@ -222,7 +222,7 @@ function ListingsContent() {
 
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link href="/" className="flex items-center">
-              <AxisLogo variant="full" size="md" />
+              <AxisLogo variant="full" size="xl" />
             </Link>
           </div>
 
@@ -341,7 +341,7 @@ function ListingsContent() {
         </div>
 
         {/* Control Bar & Results */}
-        <div className="bg-background border-b sticky top-16 z-40 shadow-sm">
+        <div className="bg-background border-b sticky top-24 z-40 shadow-sm">
           <div className="container py-3 px-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 no-scrollbar">
               {/* Filter Trigger */}

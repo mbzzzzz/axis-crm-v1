@@ -6,13 +6,14 @@ import Image from "next/image";
 interface AxisLogoProps {
   variant?: "full" | "icon";
   className?: string;
-  size?: "sm" | "md" | "lg" | "navbar";
+  size?: "sm" | "md" | "lg" | "xl" | "navbar";
 }
 
 const sizeMap = {
   sm: { width: 32, height: 32, maxHeight: "32px" },
   md: { width: 40, height: 40, maxHeight: "40px" },
   lg: { width: 56, height: 56, maxHeight: "56px" },
+  xl: { width: 72, height: 72, maxHeight: "72px" },
   navbar: { width: 45, height: 45, maxHeight: "45px" }, // App logo in sidebar
 };
 
@@ -20,6 +21,7 @@ const fullLogoSizeMap = {
   sm: { width: 140, height: 50, maxHeight: "50px" },
   md: { width: 180, height: 64, maxHeight: "64px" },
   lg: { width: 180, height: 350, maxHeight: "200px" }, // Landing page and sign in logo
+  xl: { width: 225, height: 80, maxHeight: "80px" },
   navbar: { width: 350, height: 180, maxHeight: "200px" }, // Landing page header logo
 };
 
