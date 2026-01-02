@@ -20,6 +20,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { AxisLogo } from "@/components/axis-logo";
 
 // Dynamic import for Map to avoid SSR issues
 const PropertyMap = dynamic(() => import("@/components/property/PropertyMap"), {
@@ -221,14 +222,7 @@ function ListingsContent() {
 
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2">
             <Link href="/" className="flex items-center">
-              <Image
-                src="/landing page logo full.png"
-                alt="AXIS Logo"
-                width={160}
-                height={50}
-                className="h-12 w-auto object-contain"
-                priority
-              />
+              <AxisLogo variant="full" size="navbar" />
             </Link>
           </div>
 
