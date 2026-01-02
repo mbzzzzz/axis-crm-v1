@@ -19,6 +19,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 // Dynamic import for Map to avoid SSR issues
 const PropertyMap = dynamic(() => import("@/components/property/PropertyMap"), {
@@ -52,6 +53,10 @@ function ListingsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [availableCount, setAvailableCount] = useState(0);
+
+  // Trending Properties
+  const [trendingProperties, setTrendingProperties] = useState<Property[]>([]);
+  const [isTrendingLoading, setIsTrendingLoading] = useState(true);
 
   // View & UI States
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
@@ -143,10 +148,35 @@ function ListingsContent() {
     }
   };
 
+  const fetchTrendingProperties = async () => {
+    setIsTrendingLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set("city", "Lahore");
+      params.set("limit", "4");
+
+      const response = await fetch(`/api/public/properties?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setTrendingProperties(data.properties || []);
+      }
+    } catch (error) {
+      console.error("Error fetching trending properties:", error);
+    } finally {
+      setIsTrendingLoading(false);
+    }
+  };
+
   // Immediate update
   useEffect(() => {
     fetchProperties();
   }, [propertyType, status, sort, activeTab]);
+
+  // Fetch trending on mount
+  useEffect(() => {
+    fetchTrendingProperties();
+  }, []);
 
   // Debounced update
   useEffect(() => {
@@ -181,26 +211,36 @@ function ListingsContent() {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-              <Link href="#" className="hover:text-primary transition-colors">Buy</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Rent</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Sell</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Home Loans</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Agent finder</Link>
+              <Link href="/listings?activeTab=buy" className="hover:text-primary transition-colors">Buy</Link>
+              <Link href="/listings?activeTab=rent" className="hover:text-primary transition-colors">Rent</Link>
+              <Link href="/solutions/list-your-property" className="hover:text-primary transition-colors">Sell</Link>
+              <Link href="/solutions/invoicing" className="hover:text-primary transition-colors">Home Loans</Link>
+              <Link href="/solutions/tenant-management" className="hover:text-primary transition-colors">Agent finder</Link>
             </div>
           </div>
 
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 flex items-center gap-2">
-            <Building2 className="h-6 w-6 text-primary" />
-            <span className="font-bold text-xl tracking-tight hidden md:inline-block">AXIS</span>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/landing page logo full.png"
+                alt="AXIS Logo"
+                width={160}
+                height={50}
+                className="h-12 w-auto object-contain"
+                priority
+              />
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-              <Link href="#" className="hover:text-primary transition-colors">Manage Rentals</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Advertise</Link>
-              <Link href="#" className="hover:text-primary transition-colors">Help</Link>
+              <Link href="/tenant-portal/login" className="hover:text-primary transition-colors">Manage Rentals</Link>
+              <Link href="/solutions/list-your-property" className="hover:text-primary transition-colors">Advertise</Link>
+              <Link href="/blog" className="hover:text-primary transition-colors">Help</Link>
             </div>
-            <Button variant="ghost" className="font-medium">Sign In</Button>
+            <Link href="/login">
+              <Button variant="ghost" className="font-medium">Sign In</Button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -234,7 +274,7 @@ function ListingsContent() {
 
           <div className="relative z-10 w-full max-w-4xl space-y-8 animate-in fade-in zoom-in duration-700">
             <h1 className="text-4xl md:text-6xl font-black text-center tracking-tight drop-shadow-lg leading-tight">
-              Agents. Tours. <br className="md:hidden" />Loans. Homes.
+              Discover Your Dream<br className="md:hidden" /> Property in Pakistan
             </h1>
 
             {/* Intelligent Search Tabs */}
@@ -276,21 +316,33 @@ function ListingsContent() {
           </div>
         </div>
 
-        {/* Trending Homes Carousel (Visual Only) */}
+        {/* Trending Homes Carousel */}
         <div className="container py-8 px-4 border-b">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Trending Homes in San Francisco</h3>
+            <h3 className="text-xl font-bold">Trending Homes in Lahore</h3>
             <div className="flex gap-2">
               <Button variant="outline" size="icon" className="h-8 w-8 rounded-full"><ChevronLeft className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" className="h-8 w-8 rounded-full"><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
-          <div className="flex gap-4 overflow-hidden mask-linear-fade pb-2">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="min-w-[280px] h-32 bg-muted/40 rounded-lg animate-pulse flex items-center justify-center text-muted-foreground text-xs hover:bg-muted/60 cursor-pointer transition-colors border">
-                <span className="font-semibold">Trending Property {i}</span>
+          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+            {isTrendingLoading ? (
+              [1, 2, 3, 4].map(i => (
+                <div key={i} className="min-w-[300px]">
+                  <Skeleton className="h-[280px] w-full rounded-xl" />
+                </div>
+              ))
+            ) : trendingProperties.length > 0 ? (
+              trendingProperties.map((property) => (
+                <div key={property.id} className="min-w-[300px] w-[300px]">
+                  <PublicPropertyCard property={property} />
+                </div>
+              ))
+            ) : (
+              <div className="w-full text-center py-8 text-muted-foreground">
+                No trending properties found in Lahore at the moment.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -556,10 +608,13 @@ function ListingsContent() {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-8 lg:gap-12">
             <div className="col-span-2 space-y-6">
               <Link href="/" className="flex items-center gap-2">
-                <div className="size-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Building2 className="size-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold tracking-tight">AXIS CRM</span>
+                <Image
+                  src="/landing page logo full.png"
+                  alt="AXIS CRM"
+                  width={140}
+                  height={45}
+                  className="h-10 w-auto object-contain"
+                />
               </Link>
               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                 Axis CRM is the leading real estate management platform, helping you find and manage properties with ease.
@@ -568,9 +623,8 @@ function ListingsContent() {
             <div className="space-y-4">
               <h4 className="font-bold">Real Estate</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><Link href="#" className="hover:text-foreground transition-colors">Browse Communities</Link></li>
-                <li><Link href="#" className="hover:text-foreground transition-colors">Properties for Sale</Link></li>
-                <li><Link href="#" className="hover:text-foreground transition-colors">Rental Properties</Link></li>
+                <li><Link href="/listings?activeTab=buy" className="hover:text-foreground transition-colors">Properties for Sale</Link></li>
+                <li><Link href="/listings?activeTab=rent" className="hover:text-foreground transition-colors">Rental Properties</Link></li>
               </ul>
             </div>
             <div className="space-y-4">
